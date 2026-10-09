@@ -237,7 +237,7 @@ def test_command_line_pipeline(tmp_path):
 
     def run(script: str, *extra: str) -> str:
         cmd = [sys.executable, str(ROOT / "scripts" / script), "--config", str(ROOT / "configs" / "smoke.yaml"), *extra, *overrides]
-        done = subprocess.run(cmd, capture_output=True, text=True, cwd=ROOT, timeout=900)
+        done = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=ROOT, timeout=900)
         assert done.returncode == 0, f"{script} failed:\n{done.stdout[-2000:]}\n{done.stderr[-2000:]}"
         return done.stdout
 
@@ -290,3 +290,58 @@ def test_pretrained_backbone_path(cfg, tmp_path):
     a = evaluate_tf(restored, TEXTS, 8, 10.0, Channel("awgn", 4))
     b = evaluate_tf(again, TEXTS, 8, 10.0, Channel("awgn", 4))
     assert a["ce_bits"] == pytest.approx(b["ce_bits"], abs=1e-5)  # the stream run did not alter the checkpoint
+
+
+def test_pretraining_resumes_bit_for_bit(cfg, tmp_path):
+    """An interrupted run that is resumed must end exactly where an
+    uninterrupted run ends (same weights, same evaluation history)."""
+    import copy
+
+    cfg["pretrain"].update({"steps": 8, "eval_every": 4, "log_every": 2, "save_every": 2})
+    straight = copy.deepcopy(cfg)
+    straight["out_dir"] = str(tmp_path / "straight")
+    broken = copy.deepcopy(cfg)
+    broken["out_dir"] = str(tmp_path / "broken")
+
+    reference = pretrain(straight)
+    directory = pretrain(broken, stop_after=3)  # interrupted after step 3
+    assert (directory / "pretrain_state.pt").exists() and not (directory / "codec.pt").exists()
+    pretrain(broken, stop_after=2)  # resumed, interrupted again after step 5
+    pretrain(broken)  # resumed to the end
+    assert (directory / "codec.pt").exists() and not (directory / "pretrain_state.pt").exists()
+
+    a = torch.load(reference / "codec.pt", map_location="cpu")
+    b = torch.load(directory / "codec.pt", map_location="cpu")
+    assert a["state"].keys() == b["state"].keys()
+    for key in a["state"]:
+        assert torch.allclose(a["state"][key].float(), b["state"][key].float(), atol=1e-6), key
+    assert [row["step"] for row in b["extra"]["history"]] == [4, 8]
+    for row_a, row_b in zip(a["extra"]["history"], b["extra"]["history"]):
+        assert row_a["8"]["ce_bits"] == pytest.approx(row_b["8"]["ce_bits"], abs=1e-5)
+
+    before = (directory / "codec.pt").stat().st_mtime_ns
+    pretrain(broken)  # a finished checkpoint is left alone
+    assert (directory / "codec.pt").stat().st_mtime_ns == before
+    pretrain(broken, force=True)
+    assert (directory / "codec.pt").stat().st_mtime_ns != before
+
+
+def test_pipeline_runner_plans_every_stage():
+    def run(*args: str) -> str:
+        cmd = [sys.executable, str(ROOT / "scripts" / "run_pipeline.py"), "--config", "configs/laptop.yaml", "--dry-run", *args]
+        done = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=ROOT, timeout=60)
+        assert done.returncode == 0, done.stderr
+        return done.stdout
+
+    everything = run("--stage", "all", "--seeds", "0,1", "threads=4")
+    assert everything.count("=====") == 10 and "pretrain.py --config configs/laptop.yaml threads=4" in everything
+    assert "--seeds 0,1 stream.kind=temporal threads=4" in everything
+    assert run("--stage", "smoke").count("=====") == 8 and run("--stage", "report").count("=====") == 2
+
+
+def test_real_configs_are_valid():
+    from dnsc.config import load_config
+
+    for name in ("smoke", "laptop", "dev", "main", "scale"):
+        loaded = load_config(ROOT / "configs" / f"{name}.yaml")
+        assert loaded["stream"]["m_op"] in loaded["codec"]["granularities"], name

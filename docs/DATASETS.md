@@ -1,6 +1,6 @@
 # Datasets
 
-Four public text corpora, all small enough for a 16 GB MacBook Air: the raw
+Four public text corpora, all small enough for a 16 GB laptop: the raw
 downloads total well under 200 MB and each is capped at 60 000 sentences after
 filtering. Every corpus is reduced to single sentences of 4–30 words (the
 length protocol used by DeepSC and most text semantic-communication papers),
@@ -13,10 +13,11 @@ de-duplicated, and split 80/10/10 **by document**.
 | **TeleQnA** | Stream domain 2; *domain* shift into telecom / 3GPP language | 10 000 telecom questions with explanations, 5 categories incl. standards specifications — ties the study to 6G standardisation | ≈ 25 500 sentences (13 MB) | Authors' GitHub repository `netop-team/TeleQnA` (password-protected archive, password published in their README) | MIT |
 | **News Category Dataset (HuffPost)** | Natural *temporal* drift; the slow timescale is real calendar time | 209 527 dated headlines and descriptions, 2012–2022, 42 categories; the news benchmark of Wild-Time | ≤ 60 000 sentences (87 MB download) | Hugging Face `heegyu/news-category-dataset` | CC BY 4.0 |
 
-The AG News and TeleQnA loaders were run against the real sources while this
-repository was built (60 000 and 25 543 sentences respectively). The Europarl
-and HuffPost loaders could not be exercised there (no Hub access);
-`scripts/check_env.py` tests them on your machine.
+All four loaders have been run against the real sources. With the default
+4–30 word filter and the 60 000 cap they give 60 000 (Europarl), 60 000
+(AG News), 25 543 (TeleQnA) and 60 000 (HuffPost, 28 Jan 2012 – 23 Sep 2022,
+42 categories) sentences. `configs/laptop.yaml` uses 4–20 words and a 40 000
+cap to keep CPU training affordable.
 
 ## Why these four
 

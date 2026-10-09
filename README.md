@@ -27,49 +27,66 @@ Details: [`docs/METHOD.md`](docs/METHOD.md) · datasets:
 [`docs/DATASETS.md`](docs/DATASETS.md) · 15-day plan:
 [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
-## Quick start (macOS, Apple Silicon)
+## Quick start
 
-Python 3.10 or newer is required (`python3 --version`; if it is older,
-`brew install python@3.12` and use `python3.12` below).
+Python 3.10 or newer. The commands are the same in Windows PowerShell, macOS
+and Linux (on macOS/Linux use `python3` if `python` is not found).
 
-```bash
+```
 git clone https://github.com/abraheemrashid99-sys/Wiley_paper.git
 cd Wiley_paper
-python3 -m venv .venv
-source .venv/bin/activate
-pip install --upgrade pip
-pip install -e ".[dev]"
+python -m pip install -e ".[dev]"
 
-pytest                      # unit + integration tests, offline, a few minutes
-bash scripts/run_smoke.sh   # whole pipeline on a tiny offline model
+python -m pytest
+python scripts/run_pipeline.py --config configs/smoke.yaml --stage smoke
 ```
 
-Then the first real run, on the small development backbone:
+`pytest` runs the unit and integration tests offline; the `smoke` stage runs
+the whole pipeline on a tiny offline model. Both take a few minutes.
 
-```bash
-python scripts/check_env.py       --config configs/dev.yaml   # downloads model + data, one step on MPS
-python scripts/prepare_data.py    --config configs/dev.yaml   # builds and caches the four corpora
-python scripts/benchmark_speed.py --config configs/dev.yaml   # it/s and time estimates on this machine
-python scripts/pretrain.py        --config configs/dev.yaml   # base codec
-python scripts/eval_rate.py       --config configs/dev.yaml   # rate-fidelity + separation references
-python scripts/run_stream.py      --config configs/dev.yaml --methods frozen,tx_only,single_rate,nested --seeds 0,1,2
-python scripts/eval_refine.py     --config configs/dev.yaml
-python scripts/aggregate.py       --config configs/dev.yaml   # tables (md / csv / tex)
-python scripts/make_figures.py    --config configs/dev.yaml   # figures (pdf / png)
+### On a CPU-only laptop (`configs/laptop.yaml`)
+
+```
+python scripts/benchmark_speed.py --config configs/laptop.yaml
+python scripts/run_pipeline.py --config configs/laptop.yaml --stage base
+python scripts/run_pipeline.py --config configs/laptop.yaml --stage streams --seeds 0,1,2
+python scripts/run_pipeline.py --config configs/laptop.yaml --stage report
 ```
 
-`bash scripts/run_all.sh configs/dev.yaml` runs that whole sequence. Results
-land in `runs/<name>/`. Any config value can be overridden on the command
-line, e.g. `nested.sync.bits=4` or `stream.kind=temporal`.
+- `benchmark_speed.py` prints how long pretraining and each stream run will
+  take on this machine. Try `threads=4` and `threads=8` after the config name
+  and keep the faster one by adding it to every later command.
+- `base` = environment check, data, pretraining, rate and refinement
+  evaluation. Pretraining is the long step and is **resumable**: if the laptop
+  sleeps or you press Ctrl+C, run the same command again.
+- `streams` = both drift streams for all methods. Finished runs are skipped on
+  re-start, so it can be run a few hours at a time.
+- Keep the laptop on mains power and stop it sleeping while a stage runs
+  (Windows: Settings → System → Power → "When plugged in, put my device to
+  sleep after" → Never).
+
+Each stage can also be run script by script (`scripts/pretrain.py`,
+`scripts/run_stream.py`, ...); every script accepts `--config` and any number
+of `section.key=value` overrides, e.g. `nested.sync.bits=4`.
+Results land in `runs/<name>/`.
+
+### With a GPU
+
+`configs/dev.yaml`, `configs/main.yaml` and `configs/scale.yaml` use larger
+backbones and longer streams and need a GPU: an NVIDIA card (CUDA) or Apple
+Silicon (MPS) is picked up automatically. A free Kaggle or Colab T4 runs the
+same commands after `git clone` and `pip install -e .`; copy `runs/` out before
+the session ends. The CUDA and MPS paths have not been exercised yet.
 
 ## Configs
 
 | File | Backbone | Purpose |
 | --- | --- | --- |
-| `configs/smoke.yaml` | tiny random model, toy text | offline pipeline check; numbers are meaningless |
-| `configs/dev.yaml` | SmolLM2-135M | first real run, debugging, sweeps |
-| `configs/main.yaml` | SmolLM2-360M | headline results |
-| `configs/scale.yaml` | Qwen2.5-0.5B | second backbone family |
+| `configs/smoke.yaml` | tiny offline model, toy text | pipeline check; numbers are meaningless |
+| `configs/laptop.yaml` | SmolLM2-135M | **CPU-only laptop: the full study at reduced compute** |
+| `configs/dev.yaml` | SmolLM2-135M | GPU rehearsal, sweeps |
+| `configs/main.yaml` | SmolLM2-360M | GPU headline results |
+| `configs/scale.yaml` | Qwen2.5-0.5B | GPU, second backbone family |
 
 ## Layout
 
@@ -95,24 +112,24 @@ docs/            method, datasets, roadmap
 
 Verified in the build environment (Linux, CPU, PyTorch 2.14, Transformers 5.19):
 
-- the full test suite, including every script run from the shell;
-- on the tiny model: the codec overfits a small set to 100 % token accuracy,
+- the full test suite, including every script run from the shell, bit-for-bit
+  resumption of pretraining, and the code path used for real backbones;
+- on the tiny model: the codec memorises a small set to 100 % token accuracy,
   and the cached greedy decoder agrees token-for-token with a full forward pass;
-- the code path used for real backbones (`AutoModelForCausalLM` / `AutoTokenizer`
-  by name, bfloat16 checkpoint, frozen, adapters only on disk), using a small
-  locally saved model;
 - the AG News and TeleQnA loaders, against the real sources.
 
-**Not** verified there, because the build environment could not reach the
-Hugging Face Hub and has no Apple GPU:
+Verified on the target laptop (Windows 11, Python 3.14, CPU), by
+`scripts/check_env.py`:
 
-- downloading and training an actual pretrained backbone (SmolLM2 / Qwen2.5),
-  and therefore how well a frozen small LLM reconstructs real sentences;
-- execution on Apple MPS;
-- the Europarl and HuffPost loaders and the sentence-similarity model.
+- SmolLM2-135M downloads, and a forward/backward/generate step runs;
+- all four corpora build (Europarl, AG News, TeleQnA, HuffPost 2012–2022);
+- the sentence-similarity model loads.
 
-`scripts/check_env.py` exercises exactly these on your machine and reports
-PASS/FAIL per item, so run it first.
+**Not yet verified anywhere:**
+
+- how well a frozen small LLM reconstructs real sentences after pretraining —
+  the first gate in the roadmap;
+- execution on CUDA or Apple MPS.
 
 ## Reproducibility rules this repository follows
 

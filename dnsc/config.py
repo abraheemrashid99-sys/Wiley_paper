@@ -18,6 +18,7 @@ DEFAULTS: dict[str, Any] = {
     "name": "default",
     "seed": 0,
     "device": "auto",
+    "threads": 0,  # CPU threads for PyTorch; 0 keeps the library default
     "out_dir": "runs/default",
     "backbone": {
         # "tiny-random" builds a small randomly initialised model with no
@@ -61,6 +62,7 @@ DEFAULTS: dict[str, Any] = {
         "eval_every": 500,
         "eval_sentences": 256,
         "log_every": 50,
+        "save_every": 250,  # resumable-state interval (steps)
     },
     "stream": {
         "kind": "hier",  # "hier" (domain/topic regimes) or "temporal"

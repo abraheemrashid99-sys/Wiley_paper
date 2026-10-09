@@ -2,9 +2,10 @@
 
     python scripts/benchmark_speed.py --config configs/main.yaml
 
-Reports training iterations per second at the configured batch size and the
-median per-message encode / decode latency at every prefix length, and turns
-the training speed into wall-clock estimates for the configured experiments.
+Reports training iterations per second for the configured pretraining and
+stream steps and the median per-message encode / decode latency at every
+prefix length, and turns the speeds into wall-clock estimates. To compare
+thread counts on a CPU, add e.g. ``threads=4`` or ``threads=8``.
 """
 
 from __future__ import annotations
@@ -33,36 +34,45 @@ def sync(device: torch.device) -> None:
 
 def main() -> None:
     parser = make_parser(__doc__)
-    parser.add_argument("--steps", type=int, default=20)
-    parser.add_argument("--repeats", type=int, default=30)
+    parser.add_argument("--steps", type=int, default=6, help="timed steps per measurement")
+    parser.add_argument("--repeats", type=int, default=9, help="timed repeats for the latency figures")
     cfg, args = parse(parser)
     device = get_device(cfg["device"])
     codec = build_codec(cfg, device)
     channel = Channel("awgn", 0)
     rng = np.random.default_rng(0)
-    batch_size = int(cfg["pretrain"]["batch_size"])
     params = [p for p in codec.parameters() if p.requires_grad]
-    optimizer = torch.optim.AdamW(params, lr=1e-4)
-    batch = codec.tokenize([SENTENCE] * batch_size)
+    optimizer = torch.optim.AdamW(params, lr=1e-5)
+    # a sentence of typical length for the configured corpus filter
+    n_words = max(4, (int(cfg["data"]["min_words"]) + int(cfg["data"]["max_words"])) // 2)
+    sentence = " ".join((SENTENCE.split() * 4)[:n_words])
 
-    def train_step() -> None:
-        z = codec.encode(batch)
-        loss = sum(codec.loss_at(z, batch, m, 10.0, channel)[0].mean() for m in sample_grans(codec.grans, int(cfg["pretrain"]["grans_per_step"]), rng))
-        optimizer.zero_grad(set_to_none=True)
-        loss.backward()
-        optimizer.step()
+    def measure(batch_size: int, n_grans: int) -> float:
+        """Training iterations per second for one encode and ``n_grans`` decodes."""
+        batch = codec.tokenize([sentence] * batch_size)
 
-    for _ in range(3):  # warm-up
-        train_step()
-    sync(device)
-    start = time.perf_counter()
-    for _ in range(args.steps):
-        train_step()
-    sync(device)
-    it_per_s = args.steps / (time.perf_counter() - start)
+        def step() -> None:
+            z = codec.encode(batch)
+            loss = sum(codec.loss_at(z, batch, m, 10.0, channel)[0].mean() for m in sample_grans(codec.grans, n_grans, rng))
+            optimizer.zero_grad(set_to_none=True)
+            loss.backward()
+            optimizer.step()
+
+        step()  # warm-up
+        sync(device)
+        start = time.perf_counter()
+        for _ in range(args.steps):
+            step()
+        sync(device)
+        return args.steps / (time.perf_counter() - start)
+
+    scfg = cfg["stream"]
+    it_per_s = measure(int(cfg["pretrain"]["batch_size"]), int(cfg["pretrain"]["grans_per_step"]))
+    stream_it_per_s = measure(int(scfg["batch_size"]), 1 + int(scfg["extra_grans"]))
+    batch_size = int(cfg["pretrain"]["batch_size"])
 
     codec.eval()
-    one = codec.tokenize([SENTENCE])
+    one = codec.tokenize([sentence])
     latency = {}
     with torch.no_grad():
         enc_times = []
@@ -85,18 +95,18 @@ def main() -> None:
     encode_ms = 1e3 * float(np.median(enc_times))
 
     pre_h = int(cfg["pretrain"]["steps"]) / it_per_s / 3600
-    scfg = cfg["stream"]
     stream_steps = len(scfg["domains"]) * int(scfg["cycles"]) * int(scfg["tau_slow"]) if scfg["kind"] == "hier" else int(scfg["temporal_steps"])
-    stream_h = stream_steps / it_per_s / 3600
-    print(f"\ndevice                : {device}")
-    print(f"training speed        : {it_per_s:.2f} it/s at batch size {batch_size}")
+    stream_h = stream_steps / stream_it_per_s / 3600
+    print(f"\ndevice                : {device}  (CPU threads: {torch.get_num_threads()})")
+    print(f"pretraining speed     : {it_per_s:.2f} it/s at batch size {batch_size}, {cfg['pretrain']['grans_per_step']} prefix length(s) per step")
+    print(f"stream speed          : {stream_it_per_s:.2f} it/s at batch size {scfg['batch_size']}")
     print(f"encode latency        : {encode_ms:.1f} ms per message (independent of m: the encoder runs in full)")
     for m, row in latency.items():
         print(f"decode latency  m={m:>4}: {row['decode_ms']:.1f} ms  (payload {row['payload_bytes_fp32']} B at fp32)")
-    print(f"estimated pretraining : {pre_h:.2f} h for {cfg['pretrain']['steps']} steps")
-    print(f"estimated stream run  : {stream_h:.2f} h per adaptive (method, seed) for {stream_steps} steps")
+    print(f"estimated pretraining : {pre_h:.1f} h for {cfg['pretrain']['steps']} steps (resumable)")
+    print(f"estimated stream run  : {stream_h:.2f} h per adaptive (method, seed) for {stream_steps} steps, plus probes; 'frozen' is about 3x faster")
     out = Path(cfg["out_dir"]) / "eval" / "speed.json"
-    save_json(out, {"device": str(device), "it_per_s": it_per_s, "encode_ms": encode_ms, "latency": latency, "pretrain_hours": pre_h, "stream_hours": stream_h, "env": environment()})
+    save_json(out, {"device": str(device), "threads": torch.get_num_threads(), "it_per_s": it_per_s, "stream_it_per_s": stream_it_per_s, "encode_ms": encode_ms, "latency": latency, "pretrain_hours": pre_h, "stream_hours": stream_h, "env": environment()})
     print(f"wrote {out}")
 
 

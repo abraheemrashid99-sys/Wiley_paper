@@ -62,13 +62,30 @@ def evaluate_gen(codec: SemanticCodec, texts: list[str], m: int, snr_db, channel
     return out
 
 
-def pretrain(cfg) -> Path:
+STATE_FILE = "pretrain_state.pt"
+
+
+def pretrain(cfg, resume: bool = True, force: bool = False, stop_after: int | None = None) -> Path:
     """Train the base codec on the base corpora and save it to
-    ``<out_dir>/base``. Returns the checkpoint directory."""
+    ``<out_dir>/base``. Returns the checkpoint directory.
+
+    The run is resumable: every ``pretrain.save_every`` steps the full training
+    state (weights, optimiser, random generators) is written to disk, and a
+    later call continues from it bit-for-bit, so a laptop that sleeps or is
+    closed overnight loses at most a few minutes. A finished checkpoint is
+    left untouched unless ``force`` is set. ``stop_after`` ends the call early
+    after that many steps (used to test resumption)."""
     set_seed(int(cfg["seed"]))
     device = get_device(cfg["device"])
     out_dir = ensure_dir(Path(cfg["out_dir"]) / "base")
     pcfg = cfg["pretrain"]
+    state_path = out_dir / STATE_FILE
+    if force:
+        for stale in (state_path, out_dir / "codec.pt"):
+            stale.unlink(missing_ok=True)
+    if (out_dir / "codec.pt").exists() and not state_path.exists():
+        print(f"[pretrain] {out_dir / 'codec.pt'} already exists - nothing to do (use --force to retrain)")
+        return out_dir
 
     train_texts, val_texts = [], []
     for name in cfg["data"]["base"]:
@@ -97,16 +114,44 @@ def pretrain(cfg) -> Path:
     eval_channel = Channel(cfg["channel"]["type"], seed=12345)
     snr_lo, snr_hi = cfg["channel"]["snr_train"]
     steps, batch_size = int(pcfg["steps"]), int(pcfg["batch_size"])
-    logger = JsonlLogger(out_dir / "pretrain_log.jsonl")
+    start, history, seconds_before = 0, [], 0.0
+    if resume and state_path.exists():
+        state = torch.load(state_path, map_location="cpu")
+        if state["steps"] != steps or state["batch_size"] != batch_size:
+            raise RuntimeError(f"{state_path} was written with different pretrain.steps/batch_size; use --force to start again")
+        codec.load_state_dict(state["codec"], strict=False)
+        optimizer.load_state_dict(state["optimizer"])
+        rng.bit_generator.state = state["np_rng"]
+        torch.set_rng_state(state["torch_rng"])
+        channel.generator.set_state(state["channel_rng"])
+        start, history, seconds_before = int(state["step"]), state["history"], float(state["seconds"])
+        print(f"[pretrain] resuming from step {start}/{steps}")
+    logger = JsonlLogger(out_dir / "pretrain_log.jsonl", append=start > 0)
     timer = Timer()
     print(
-        f"[pretrain] device={device} backbone={cfg['backbone']['name']} "
+        f"[pretrain] device={device} threads={torch.get_num_threads()} backbone={cfg['backbone']['name']} "
         f"trainable={count_params(trainable):,} train_sentences={len(train_texts):,} steps={steps}"
     )
 
-    history = []
+    def save_state(step_done: int) -> None:
+        payload = {
+            "step": step_done,
+            "steps": steps,
+            "batch_size": batch_size,
+            "codec": codec.codec_state(),
+            "optimizer": optimizer.state_dict(),
+            "np_rng": rng.bit_generator.state,
+            "torch_rng": torch.get_rng_state(),
+            "channel_rng": channel.generator.get_state(),
+            "history": history,
+            "seconds": seconds_before + timer.elapsed(),
+        }
+        tmp = state_path.with_suffix(".tmp")
+        torch.save(payload, tmp)
+        tmp.replace(state_path)
+
     codec.train()
-    for step in range(steps):
+    for step in range(start, steps):
         for group in optimizer.param_groups:
             group["lr"] = group["base_lr"] * lr_at(step, steps, int(pcfg["warmup"]))
         idx = rng.integers(0, len(train_texts), size=batch_size)
@@ -124,9 +169,10 @@ def pretrain(cfg) -> Path:
         torch.nn.utils.clip_grad_norm_(trainable, float(pcfg["grad_clip"]))
         optimizer.step()
 
-        if (step + 1) % int(pcfg["log_every"]) == 0 or step == 0:
-            rate = (step + 1) / max(timer.elapsed(), 1e-9)
-            print(f"[pretrain] step {step + 1:>6}/{steps} loss={loss.item():.4f} bits/token={loss.item() / LN2:.3f} it/s={rate:.2f}")
+        if (step + 1) % int(pcfg["log_every"]) == 0 or step == start:
+            rate = (step + 1 - start) / max(timer.elapsed(), 1e-9)
+            eta_h = (steps - step - 1) / max(rate, 1e-9) / 3600
+            print(f"[pretrain] step {step + 1:>6}/{steps} loss={loss.item():.4f} bits/token={loss.item() / LN2:.3f} it/s={rate:.2f} eta={eta_h:.1f}h")
             logger.log(step=step + 1, loss=loss.item(), snr=snr, acc=acc_log, it_per_s=rate)
         if (step + 1) % int(pcfg["eval_every"]) == 0 or step + 1 == steps:
             codec.eval()
@@ -138,11 +184,21 @@ def pretrain(cfg) -> Path:
             logger.log(eval=row)
             print("[pretrain] val tok_acc @10dB: " + "  ".join(f"m={m}:{row[str(m)]['tok_acc']:.3f}" for m in codec.grans))
             codec.train()
+        done = step + 1
+        stopping = stop_after is not None and done - start >= stop_after and done < steps
+        if done < steps and (done % int(pcfg["save_every"]) == 0 or stopping):
+            save_state(done)
+        if stopping:
+            logger.close()
+            print(f"[pretrain] stopped after step {done}; state saved to {state_path}")
+            return out_dir
 
     codec.eval()
-    extra = {"steps": steps, "seconds": timer.elapsed(), "history": history}
+    total = seconds_before + timer.elapsed()
+    extra = {"steps": steps, "seconds": total, "history": history}
     save_codec(codec, out_dir, extra)
     save_json(out_dir / "pretrain_summary.json", {"config": cfg.to_dict(), "env": environment(), **extra})
+    state_path.unlink(missing_ok=True)
     logger.close()
-    print(f"[pretrain] saved {out_dir / 'codec.pt'} in {timer.elapsed() / 60:.1f} min")
+    print(f"[pretrain] saved {out_dir / 'codec.pt'} in {total / 60:.1f} min")
     return out_dir

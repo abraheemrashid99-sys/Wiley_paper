@@ -33,6 +33,13 @@ def get_device(name: str = "auto") -> torch.device:
     return torch.device("cpu")
 
 
+def configure_threads(n: int) -> int:
+    """Set the number of intra-op CPU threads (0 = leave the default)."""
+    if int(n) > 0:
+        torch.set_num_threads(int(n))
+    return torch.get_num_threads()
+
+
 def ensure_dir(path: str | Path) -> Path:
     path = Path(path)
     path.mkdir(parents=True, exist_ok=True)
@@ -74,10 +81,10 @@ def load_json(path: str | Path) -> Any:
 class JsonlLogger:
     """Append-only JSON-lines log, flushed on every record."""
 
-    def __init__(self, path: str | Path):
+    def __init__(self, path: str | Path, append: bool = False):
         self.path = Path(path)
         ensure_dir(self.path.parent)
-        self._handle = open(self.path, "w", encoding="utf-8")
+        self._handle = open(self.path, "a" if append else "w", encoding="utf-8")
 
     def log(self, **record: Any) -> None:
         self._handle.write(json.dumps(_jsonable(record)) + "\n")
@@ -110,6 +117,7 @@ def environment() -> dict[str, Any]:
         "platform": platform.platform(),
         "machine": platform.machine(),
         "torch": torch.__version__,
+        "threads": torch.get_num_threads(),
         "transformers": transformers.__version__,
         "git": git_revision(),
         "time": time.strftime("%Y-%m-%d %H:%M:%S"),

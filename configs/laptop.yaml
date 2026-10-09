@@ -1,0 +1,70 @@
+# CPU-only laptop config (sized for a Ryzen 7 3700U, 16 GB, no usable GPU).
+#
+# Same method and datasets as configs/main.yaml; only the compute is reduced:
+# the smallest credible backbone (SmolLM2-135M), sentences of 4-20 words,
+# batch size 8, one prefix length per training step, shorter streams.
+# Run scripts/benchmark_speed.py first: it prints what each stage will cost.
+name: laptop
+seed: 0
+device: cpu
+threads: 0              # 0 = PyTorch default; try threads=4 and threads=8 in the benchmark
+out_dir: runs/laptop
+backbone:
+  name: HuggingFaceTB/SmolLM2-135M
+  train_backbone: false
+codec:
+  n_slots: 8
+  n_prompts: 8
+  granularities: [16, 32, 64, 128]        # real channel symbols per message
+  max_tokens: 48
+  lora: {r: 8, alpha: 16, dropout: 0.0, targets: [q_proj, v_proj], tx_last_n: 0, rx_last_n: 8}
+  deproj_rank: 4
+channel: {type: awgn, snr_train: [0.0, 20.0]}
+data:
+  cache_dir: data
+  base: [europarl]
+  min_words: 4
+  max_words: 20
+  max_sentences: 40000
+pretrain:
+  steps: 4000
+  batch_size: 8
+  lr: 5.0e-4
+  lora_lr: 2.0e-4
+  warmup: 200
+  grans_per_step: 1
+  eval_every: 1000
+  eval_sentences: 96
+  log_every: 20
+  save_every: 100
+stream:
+  kind: hier
+  domains: [ag_news, teleqna]
+  cycles: 2
+  tau_slow: 150
+  tau_med: 30
+  kappa: 0.9
+  temporal_corpus: huffpost
+  temporal_steps: 600
+  temporal_eras: 4
+  batch_size: 8
+  snr: {mean: 10.0, rho: 0.95, sigma: 4.0, min: 0.0, max: 20.0}
+  m_op: 32
+  extra_grans: 0
+  probe_size: 64
+  gen_every: 50
+  gen_sentences: 8
+nested:
+  periods: {fast: 1, medium: 10, slow: 50}
+  lrs: {fast: 5.0e-4, medium: 2.0e-4, slow: 1.0e-4}
+  ema: {enabled: true, decay: 0.99, beta: 0.9}
+  sync: {bits: 8, topk: 1.0}
+  single_period: auto
+  single_lr: 2.0e-4
+eval:
+  snrs: [0.0, 10.0, 20.0]
+  channels: [awgn, rayleigh]
+  n_test: 200
+  batch_size: 16
+  sim_model: sentence-transformers/all-MiniLM-L6-v2
+refine: {quality: sim, gamma: 0.8, n_val: 150, n_test: 200}
