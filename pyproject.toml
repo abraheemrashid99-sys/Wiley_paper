@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dnsc"
+version = "0.1.0"
+description = "Doubly Nested Semantic Communication: rate- and time-nested LLM codecs for drift-resilient 6G links"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+dependencies = [
+  "torch>=2.2",
+  "transformers>=4.45",
+  "datasets>=2.20",
+  "tokenizers>=0.19",
+  "numpy>=1.26",
+  "scipy>=1.11",
+  "pandas>=2.0",
+  "matplotlib>=3.8",
+  "pyyaml>=6.0",
+  "sacrebleu>=2.4",
+  "pyzipper>=0.3.6",
+  "tqdm>=4.66",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[tool.setuptools.packages.find]
+include = ["dnsc*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

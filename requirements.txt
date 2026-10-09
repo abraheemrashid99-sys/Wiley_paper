@@ -1,0 +1,13 @@
+torch>=2.2
+transformers>=4.45
+datasets>=2.20
+tokenizers>=0.19
+numpy>=1.26
+scipy>=1.11
+pandas>=2.0
+matplotlib>=3.8
+pyyaml>=6.0
+sacrebleu>=2.4
+pyzipper>=0.3.6
+tqdm>=4.66
+pytest>=8.0

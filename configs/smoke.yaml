@@ -1,0 +1,60 @@
+# Offline smoke test: a tiny backbone and synthetic toy text; needs no download.
+# The tiny model is first trained as a language model on all toy domains and
+# then FROZEN, so the run rehearses the real setting (frozen LLM + adapters).
+# It verifies that the pipeline works; its numbers mean nothing scientifically.
+name: smoke
+seed: 0
+device: cpu
+out_dir: runs/smoke
+backbone:
+  name: tiny-random
+  train_backbone: false
+  tiny: {hidden: 96, layers: 2, heads: 4, vocab: 600, lm_steps: 800}
+codec:
+  n_slots: 4
+  n_prompts: 4
+  granularities: [8, 16, 32]
+  max_tokens: 32
+  lora: {r: 4, alpha: 8, dropout: 0.0, targets: [q_proj, v_proj], tx_last_n: 0, rx_last_n: 0}
+  deproj_rank: 2
+channel: {type: awgn, snr_train: [0.0, 20.0]}
+data:
+  cache_dir: data
+  base: [toy_a]
+  min_words: 4
+  max_words: 30
+  max_sentences: 5000
+pretrain:
+  steps: 400
+  batch_size: 16
+  lr: 2.0e-3
+  lora_lr: 2.0e-3
+  warmup: 20
+  eval_every: 200
+  eval_sentences: 64
+  log_every: 100
+stream:
+  kind: hier
+  domains: [toy_b, toy_c]
+  cycles: 2
+  tau_slow: 40
+  tau_med: 10
+  temporal_corpus: toy_b
+  temporal_steps: 60
+  temporal_eras: 3
+  batch_size: 16
+  m_op: 16
+  probe_size: 48
+  gen_every: 40
+  gen_sentences: 8
+nested:
+  periods: {fast: 1, medium: 5, slow: 20}
+  lrs: {fast: 2.0e-3, medium: 1.0e-3, slow: 5.0e-4}
+  ewc_batches: 4
+eval:
+  snrs: [0.0, 10.0, 20.0]
+  channels: [awgn, rayleigh]
+  n_test: 64
+  batch_size: 32
+  sim_model: null
+refine: {quality: bleu1, gamma: 0.8, n_val: 64, n_test: 64}

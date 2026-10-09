@@ -1,0 +1,65 @@
+# Second backbone family: Qwen2.5-0.5B (about 494 M parameters, Apache-2.0).
+# Repeats the headline experiments on a different architecture so that no
+# conclusion rests on a single model family. Heaviest config: run it last.
+name: scale
+seed: 0
+device: auto            # MPS on Apple Silicon
+out_dir: runs/scale
+backbone:
+  name: Qwen/Qwen2.5-0.5B
+  train_backbone: false
+codec:
+  n_slots: 8
+  n_prompts: 8
+  granularities: [16, 32, 64, 128, 256]   # real channel symbols per message
+  max_tokens: 64
+  lora: {r: 8, alpha: 16, dropout: 0.0, targets: [q_proj, v_proj], tx_last_n: 0, rx_last_n: 8}
+  deproj_rank: 4
+channel: {type: awgn, snr_train: [0.0, 20.0]}
+data:
+  cache_dir: data
+  base: [europarl]
+  min_words: 4
+  max_words: 30
+  max_sentences: 60000
+pretrain:
+  steps: 8000
+  batch_size: 12
+  lr: 5.0e-4
+  lora_lr: 2.0e-4
+  warmup: 200
+  grans_per_step: 2
+  eval_every: 500
+  eval_sentences: 256
+  log_every: 50
+stream:
+  kind: hier
+  domains: [ag_news, teleqna]
+  cycles: 2
+  tau_slow: 400
+  tau_med: 80
+  kappa: 0.9
+  temporal_corpus: huffpost
+  temporal_steps: 1500
+  temporal_eras: 5
+  batch_size: 12
+  snr: {mean: 10.0, rho: 0.95, sigma: 4.0, min: 0.0, max: 20.0}
+  m_op: 64
+  extra_grans: 1
+  probe_size: 128
+  gen_every: 50
+  gen_sentences: 16
+nested:
+  periods: {fast: 1, medium: 20, slow: 100}
+  lrs: {fast: 5.0e-4, medium: 2.0e-4, slow: 1.0e-4}
+  ema: {enabled: true, decay: 0.99, beta: 0.9}
+  sync: {bits: 8, topk: 1.0}
+  single_period: auto
+  single_lr: 2.0e-4
+eval:
+  snrs: [0.0, 5.0, 10.0, 15.0, 20.0]
+  channels: [awgn, rayleigh]
+  n_test: 500
+  batch_size: 32
+  sim_model: sentence-transformers/all-MiniLM-L6-v2
+refine: {quality: sim, gamma: 0.8, n_val: 300, n_test: 500}
