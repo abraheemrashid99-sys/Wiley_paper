@@ -85,6 +85,14 @@ def sensitivity_table(by_kind: dict, tagged: list, tables: Path) -> None:
                 continue
             summary = run["summary"]
             need = summary["symbols_at_target_selective"]
+            # traffic above which this run beats the context-only receiver of the same seed and channel
+            free = by_kind.get(run["stream"], {}).get("context_only", {}).get(int(run["seed"]))
+            same_channel = free is not None and free["config"]["channel"] == run["config"]["channel"]
+            star = "-"
+            if same_channel and need is not None and free["summary"]["symbols_at_target_selective"] is not None and summary["sync_bits"] > 0:
+                saved = (free["summary"]["symbols_at_target_selective"] - need) * summary["tokens_per_message"]
+                value = crossover_traffic(summary["sync_bits_per_step"], saved, float(run["config"]["stream"]["snr"]["mean"]))
+                star = "never" if np.isinf(value) else f"{value:.0f}"
             rows.append(
                 {
                     "stream": run["stream"],
@@ -98,6 +106,7 @@ def sensitivity_table(by_kind: dict, tagged: list, tables: Path) -> None:
                     "selective tok-acc": f"{summary['sel_tok_acc']:.4f}",
                     f"sym/token for {run['target_acc']:.0%}": "not reached" if need is None else f"{need:.3f}",
                     "sync kbit/step": f"{summary['sync_bits_per_step'] / 1e3:.2f}",
+                    "N* (vs context_only)": star,
                     "slot switches": run.get("slot_switches", 0),
                 }
             )
