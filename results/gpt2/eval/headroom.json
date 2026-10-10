@@ -1,0 +1,542 @@
+{
+  "m_op": 6,
+  "snr_db": 10.0,
+  "n": 64,
+  "steps": 150,
+  "rows": [
+    {
+      "domain": "europarl_nltk",
+      "variant": "frozen",
+      "measured_on": "europarl_nltk",
+      "ce_bits": 0.3851848996058592,
+      "tok_acc": 0.9215823411941528,
+      "n": 64,
+      "prior_bits": 5.791138172149658,
+      "with_history": 62
+    },
+    {
+      "domain": "europarl_nltk",
+      "variant": "context",
+      "measured_on": "europarl_nltk",
+      "ce_bits": 0.270616119989499,
+      "tok_acc": 0.941902220249176,
+      "n": 64,
+      "prior_bits": 5.1368231773376465,
+      "with_history": 62
+    },
+    {
+      "domain": "ag_news",
+      "variant": "frozen",
+      "measured_on": "ag_news",
+      "ce_bits": 1.1964292995001888,
+      "tok_acc": 0.7800220251083374,
+      "n": 64,
+      "prior_bits": 6.92296028137207,
+      "with_history": 34
+    },
+    {
+      "domain": "ag_news",
+      "variant": "context",
+      "measured_on": "ag_news",
+      "ce_bits": 1.1235465777088731,
+      "tok_acc": 0.7984158992767334,
+      "n": 64,
+      "prior_bits": 6.600435256958008,
+      "with_history": 34
+    },
+    {
+      "domain": "teleqna",
+      "variant": "frozen",
+      "measured_on": "teleqna",
+      "ce_bits": 1.298358945117653,
+      "tok_acc": 0.7686072587966919,
+      "n": 64,
+      "prior_bits": 7.269158363342285,
+      "with_history": 39
+    },
+    {
+      "domain": "teleqna",
+      "variant": "context",
+      "measured_on": "teleqna",
+      "ce_bits": 0.6763973608930491,
+      "tok_acc": 0.8719804286956787,
+      "n": 64,
+      "prior_bits": 4.843334197998047,
+      "with_history": 39
+    },
+    {
+      "domain": "huffpost_gh",
+      "variant": "frozen",
+      "measured_on": "huffpost_gh",
+      "ce_bits": 0.9656837884732266,
+      "tok_acc": 0.803188681602478,
+      "n": 64,
+      "prior_bits": 6.514820098876953,
+      "with_history": 31
+    },
+    {
+      "domain": "huffpost_gh",
+      "variant": "context",
+      "measured_on": "huffpost_gh",
+      "ce_bits": 0.8670532000559381,
+      "tok_acc": 0.8268420696258545,
+      "n": 64,
+      "prior_bits": 6.333941459655762,
+      "with_history": 31
+    },
+    {
+      "domain": "ag_news",
+      "variant": "context+bias",
+      "measured_on": "europarl_nltk",
+      "steps": 150,
+      "ce_bits": 0.2765524451493306,
+      "tok_acc": 0.9353043437004089,
+      "n": 64,
+      "prior_bits": 5.208746910095215,
+      "with_history": 62
+    },
+    {
+      "domain": "ag_news",
+      "variant": "context+bias",
+      "measured_on": "ag_news",
+      "steps": 150,
+      "ce_bits": 1.0534429235728497,
+      "tok_acc": 0.8064999580383301,
+      "n": 64,
+      "prior_bits": 6.4101409912109375,
+      "with_history": 34
+    },
+    {
+      "domain": "ag_news",
+      "variant": "context+bias",
+      "measured_on": "teleqna",
+      "steps": 150,
+      "ce_bits": 0.6975199261067176,
+      "tok_acc": 0.868190586566925,
+      "n": 64,
+      "prior_bits": 4.91619873046875,
+      "with_history": 39
+    },
+    {
+      "domain": "ag_news",
+      "variant": "context+bias",
+      "measured_on": "huffpost_gh",
+      "steps": 150,
+      "ce_bits": 0.8875401173920177,
+      "tok_acc": 0.8230481147766113,
+      "n": 64,
+      "prior_bits": 6.370406150817871,
+      "with_history": 31
+    },
+    {
+      "domain": "ag_news",
+      "variant": "context+bias+lora",
+      "measured_on": "europarl_nltk",
+      "steps": 150,
+      "ce_bits": 0.2797622433537086,
+      "tok_acc": 0.9378616809844971,
+      "n": 64,
+      "prior_bits": 5.197209358215332,
+      "with_history": 62
+    },
+    {
+      "domain": "ag_news",
+      "variant": "context+bias+lora",
+      "measured_on": "ag_news",
+      "steps": 150,
+      "ce_bits": 0.9584158016477643,
+      "tok_acc": 0.816298246383667,
+      "n": 64,
+      "prior_bits": 6.080746173858643,
+      "with_history": 34
+    },
+    {
+      "domain": "ag_news",
+      "variant": "context+bias+lora",
+      "measured_on": "teleqna",
+      "steps": 150,
+      "ce_bits": 0.7250582181194977,
+      "tok_acc": 0.8626049160957336,
+      "n": 64,
+      "prior_bits": 4.929678916931152,
+      "with_history": 39
+    },
+    {
+      "domain": "ag_news",
+      "variant": "context+bias+lora",
+      "measured_on": "huffpost_gh",
+      "steps": 150,
+      "ce_bits": 0.8825826314895717,
+      "tok_acc": 0.8218187689781189,
+      "n": 64,
+      "prior_bits": 6.39536190032959,
+      "with_history": 31
+    },
+    {
+      "domain": "teleqna",
+      "variant": "context+bias",
+      "measured_on": "europarl_nltk",
+      "steps": 150,
+      "ce_bits": 0.28996760786458226,
+      "tok_acc": 0.9381523728370667,
+      "n": 64,
+      "prior_bits": 5.259548187255859,
+      "with_history": 62
+    },
+    {
+      "domain": "teleqna",
+      "variant": "context+bias",
+      "measured_on": "ag_news",
+      "steps": 150,
+      "ce_bits": 1.174274752390018,
+      "tok_acc": 0.7830395102500916,
+      "n": 64,
+      "prior_bits": 6.765097618103027,
+      "with_history": 34
+    },
+    {
+      "domain": "teleqna",
+      "variant": "context+bias",
+      "measured_on": "teleqna",
+      "steps": 150,
+      "ce_bits": 0.5760943271874454,
+      "tok_acc": 0.9010341167449951,
+      "n": 64,
+      "prior_bits": 4.581125736236572,
+      "with_history": 39
+    },
+    {
+      "domain": "teleqna",
+      "variant": "context+bias",
+      "measured_on": "huffpost_gh",
+      "steps": 150,
+      "ce_bits": 0.9303821136091739,
+      "tok_acc": 0.8318088054656982,
+      "n": 64,
+      "prior_bits": 6.493325233459473,
+      "with_history": 31
+    },
+    {
+      "domain": "teleqna",
+      "variant": "context+bias+lora",
+      "measured_on": "europarl_nltk",
+      "steps": 150,
+      "ce_bits": 0.3008636332034896,
+      "tok_acc": 0.9356570243835449,
+      "n": 64,
+      "prior_bits": 5.309109687805176,
+      "with_history": 62
+    },
+    {
+      "domain": "teleqna",
+      "variant": "context+bias+lora",
+      "measured_on": "ag_news",
+      "steps": 150,
+      "ce_bits": 1.2553558011566384,
+      "tok_acc": 0.7654132843017578,
+      "n": 64,
+      "prior_bits": 6.979244709014893,
+      "with_history": 34
+    },
+    {
+      "domain": "teleqna",
+      "variant": "context+bias+lora",
+      "measured_on": "teleqna",
+      "steps": 150,
+      "ce_bits": 0.4927046693069682,
+      "tok_acc": 0.9030466079711914,
+      "n": 64,
+      "prior_bits": 4.023691177368164,
+      "with_history": 39
+    },
+    {
+      "domain": "teleqna",
+      "variant": "context+bias+lora",
+      "measured_on": "huffpost_gh",
+      "steps": 150,
+      "ce_bits": 1.0281486611885275,
+      "tok_acc": 0.8080193996429443,
+      "n": 64,
+      "prior_bits": 6.72617244720459,
+      "with_history": 31
+    },
+    {
+      "domain": "huffpost_gh",
+      "variant": "context+bias",
+      "measured_on": "europarl_nltk",
+      "steps": 150,
+      "ce_bits": 0.27789556515907504,
+      "tok_acc": 0.9410154223442078,
+      "n": 64,
+      "prior_bits": 5.170567035675049,
+      "with_history": 62
+    },
+    {
+      "domain": "huffpost_gh",
+      "variant": "context+bias",
+      "measured_on": "ag_news",
+      "steps": 150,
+      "ce_bits": 1.1381129922890005,
+      "tok_acc": 0.7935358881950378,
+      "n": 64,
+      "prior_bits": 6.634243488311768,
+      "with_history": 34
+    },
+    {
+      "domain": "huffpost_gh",
+      "variant": "context+bias",
+      "measured_on": "teleqna",
+      "steps": 150,
+      "ce_bits": 0.684409043696505,
+      "tok_acc": 0.8694120645523071,
+      "n": 64,
+      "prior_bits": 4.878724575042725,
+      "with_history": 39
+    },
+    {
+      "domain": "huffpost_gh",
+      "variant": "context+bias",
+      "measured_on": "huffpost_gh",
+      "steps": 150,
+      "ce_bits": 0.8417041611973162,
+      "tok_acc": 0.84248286485672,
+      "n": 64,
+      "prior_bits": 6.214351177215576,
+      "with_history": 31
+    },
+    {
+      "domain": "huffpost_gh",
+      "variant": "context+bias+lora",
+      "measured_on": "europarl_nltk",
+      "steps": 150,
+      "ce_bits": 0.2795104392550141,
+      "tok_acc": 0.9385201930999756,
+      "n": 64,
+      "prior_bits": 5.17814302444458,
+      "with_history": 62
+    },
+    {
+      "domain": "huffpost_gh",
+      "variant": "context+bias+lora",
+      "measured_on": "ag_news",
+      "steps": 150,
+      "ce_bits": 1.1243176619240165,
+      "tok_acc": 0.7941505312919617,
+      "n": 64,
+      "prior_bits": 6.633552074432373,
+      "with_history": 34
+    },
+    {
+      "domain": "huffpost_gh",
+      "variant": "context+bias+lora",
+      "measured_on": "teleqna",
+      "steps": 150,
+      "ce_bits": 0.74873395177655,
+      "tok_acc": 0.8573000431060791,
+      "n": 64,
+      "prior_bits": 5.053915500640869,
+      "with_history": 39
+    },
+    {
+      "domain": "huffpost_gh",
+      "variant": "context+bias+lora",
+      "measured_on": "huffpost_gh",
+      "steps": 150,
+      "ce_bits": 0.7606674839546185,
+      "tok_acc": 0.8525461554527283,
+      "n": 64,
+      "prior_bits": 5.939530372619629,
+      "with_history": 31
+    }
+  ],
+  "config": {
+    "name": "gpt2",
+    "seed": 0,
+    "device": "cpu",
+    "threads": 1,
+    "out_dir": "runs/gpt2",
+    "backbone": {
+      "name": "models/gpt2",
+      "tiny": {
+        "hidden": 96,
+        "layers": 2,
+        "heads": 4,
+        "vocab": 600,
+        "lm_steps": 0,
+        "lm_lr": 0.003,
+        "lm_focus": "",
+        "lm_other_share": 1.0,
+        "corpora": []
+      }
+    },
+    "codec": {
+      "granularities": [
+        2,
+        4,
+        6,
+        8,
+        12,
+        16
+      ],
+      "max_tokens": 48,
+      "codebook_hidden": 256,
+      "peak_ratio": 4.0,
+      "lora": {
+        "r": 8,
+        "alpha": 16,
+        "dropout": 0.0,
+        "targets": [
+          "c_attn"
+        ],
+        "last_n": 6,
+        "slots": 2
+      }
+    },
+    "context": {
+      "enabled": true,
+      "max_tokens": 48
+    },
+    "cache": {
+      "enabled": false,
+      "decay": 0.98,
+      "weight": 0.05,
+      "min_mass": 50.0
+    },
+    "channel": {
+      "type": "awgn",
+      "snr_train": [
+        0.0,
+        20.0
+      ]
+    },
+    "data": {
+      "cache_dir": "data",
+      "base": [
+        "europarl_nltk"
+      ],
+      "min_words": 4,
+      "max_words": 30,
+      "max_sentences": 40000
+    },
+    "pretrain": {
+      "steps": 2000,
+      "batch_tokens": 256,
+      "grans_per_step": 3,
+      "uniform_share": 0.25,
+      "lr": 0.002,
+      "warmup": 100,
+      "weight_decay": 0.0,
+      "grad_clip": 1.0,
+      "eval_every": 500,
+      "eval_tokens": 2000,
+      "log_every": 50
+    },
+    "stream": {
+      "kind": "hier",
+      "domains": [
+        "ag_news",
+        "teleqna"
+      ],
+      "cycles": 2,
+      "tau_slow": 150,
+      "tau_med": 30,
+      "kappa": 0.9,
+      "temporal_corpus": "huffpost_gh",
+      "temporal_steps": 600,
+      "temporal_eras": 4,
+      "batch_size": 6,
+      "snr": {
+        "mean": 10.0,
+        "rho": 0.95,
+        "sigma": 4.0,
+        "min": 0.0,
+        "max": 20.0
+      },
+      "m_op": 6,
+      "extra_grans": 1,
+      "thresholds": [
+        0.5,
+        0.7,
+        0.9,
+        0.95,
+        0.99
+      ],
+      "threshold": 0.9,
+      "target_acc": 0.9,
+      "probe_size": 48,
+      "gen_every": 0,
+      "gen_sentences": 4
+    },
+    "nested": {
+      "periods": {
+        "medium": 10,
+        "slow": 50
+      },
+      "lrs": {
+        "medium": 0.001,
+        "slow": 0.0005
+      },
+      "rule": "local",
+      "select_every": 10,
+      "select_margin": 0.05,
+      "ema": {
+        "enabled": false,
+        "decay": 0.99,
+        "beta": 0.9
+      },
+      "sync": {
+        "bits": 8,
+        "topk": 1.0
+      },
+      "grad_clip": 1.0,
+      "adapt_codebook": false,
+      "codebook_lr": 0.0001,
+      "single_period": "auto",
+      "ewc_lambda": 10.0,
+      "ewc_batches": 20
+    },
+    "link": {
+      "traffic_per_step": 1000
+    },
+    "eval": {
+      "snrs": [
+        0.0,
+        10.0,
+        20.0
+      ],
+      "channels": [
+        "awgn",
+        "rayleigh"
+      ],
+      "priors": [
+        "llm_ctx",
+        "llm",
+        "unigram",
+        "none"
+      ],
+      "n_test": 200,
+      "batch_size": 16,
+      "sim_model": null
+    },
+    "refine": {
+      "n_val": 150,
+      "n_test": 200,
+      "n_live": 64,
+      "live_thresholds": [
+        0.5,
+        0.7,
+        0.9
+      ]
+    }
+  },
+  "env": {
+    "python": "3.13.16",
+    "platform": "Linux-6.18.44-fc-v114-x86_64-with-glibc2.39",
+    "machine": "x86_64",
+    "torch": "2.14.1+cu130",
+    "threads": 1,
+    "transformers": "5.19.0",
+    "git": "ce4a6f4",
+    "time": "2026-10-10 17:44:22"
+  }
+}

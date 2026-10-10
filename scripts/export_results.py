@@ -5,7 +5,8 @@
 Writes the tables and figures as they are, the evaluation files without the
 decoded texts, one compact JSON per stream run (summary, operating curves,
 probes, per-regime means and a 10-step-averaged trace instead of the full
-per-step log) and the trained codebook checkpoint. The full per-step logs are
+per-step log) and the trained codebook checkpoint (without the tokenizer,
+which comes with the backbone). The full per-step logs are
 packed into ``raw_streams.tar.gz`` so that ``aggregate.py`` and
 ``make_figures.py`` can be re-run from the exported folder after unpacking
 it into ``<out_dir>/stream``.
@@ -83,8 +84,6 @@ def main() -> None:
     for name in ("codec.pt", "pretrain_summary.json", "pretrain_log.jsonl"):
         if (base / name).exists():
             shutil.copy2(base / name, ensure_dir(dst / "base") / name)
-    if (base / "tokenizer").exists():
-        shutil.copytree(base / "tokenizer", dst / "base" / "tokenizer", dirs_exist_ok=True)
     print(f"[export] {len(streams)} stream runs, tables, figures and evaluations copied to {dst}")
 
 

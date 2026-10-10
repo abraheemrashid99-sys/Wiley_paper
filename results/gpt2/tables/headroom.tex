@@ -1,0 +1,39 @@
+% Diagnostic: what each memory could buy with oracle inputs, at m=6 symbols/token and 10 dB (150 adaptation steps; negative Δ bits = better)
+\begin{tabular}{lllllllll}
+\hline
+measured on & memory & n & prior bits/token & Δ prior & posterior bits @m=6 & Δ posterior & token acc & Δ acc \\
+\hline
+ag\_news & frozen & 64 & 6.923 & - & 1.196 & - & 0.780 & - \\
+ag\_news & context & 64 & 6.600 & -0.323 & 1.124 & -0.073 & 0.798 & +0.018 \\
+ag\_news & context+bias (adapted on ag\_news) & 64 & 6.410 & -0.513 & 1.053 & -0.143 & 0.806 & +0.026 \\
+ag\_news & context+bias+lora (adapted on ag\_news) & 64 & 6.081 & -0.842 & 0.958 & -0.238 & 0.816 & +0.036 \\
+ag\_news & context+bias (adapted on teleqna) & 64 & 6.765 & -0.158 & 1.174 & -0.022 & 0.783 & +0.003 \\
+ag\_news & context+bias+lora (adapted on teleqna) & 64 & 6.979 & +0.056 & 1.255 & +0.059 & 0.765 & -0.015 \\
+ag\_news & context+bias (adapted on huffpost\_gh) & 64 & 6.634 & -0.289 & 1.138 & -0.058 & 0.794 & +0.014 \\
+ag\_news & context+bias+lora (adapted on huffpost\_gh) & 64 & 6.634 & -0.289 & 1.124 & -0.072 & 0.794 & +0.014 \\
+europarl\_nltk & frozen & 64 & 5.791 & - & 0.385 & - & 0.922 & - \\
+europarl\_nltk & context & 64 & 5.137 & -0.654 & 0.271 & -0.115 & 0.942 & +0.020 \\
+europarl\_nltk & context+bias (adapted on ag\_news) & 64 & 5.209 & -0.582 & 0.277 & -0.109 & 0.935 & +0.014 \\
+europarl\_nltk & context+bias+lora (adapted on ag\_news) & 64 & 5.197 & -0.594 & 0.280 & -0.105 & 0.938 & +0.016 \\
+europarl\_nltk & context+bias (adapted on teleqna) & 64 & 5.260 & -0.532 & 0.290 & -0.095 & 0.938 & +0.017 \\
+europarl\_nltk & context+bias+lora (adapted on teleqna) & 64 & 5.309 & -0.482 & 0.301 & -0.084 & 0.936 & +0.014 \\
+europarl\_nltk & context+bias (adapted on huffpost\_gh) & 64 & 5.171 & -0.621 & 0.278 & -0.107 & 0.941 & +0.019 \\
+europarl\_nltk & context+bias+lora (adapted on huffpost\_gh) & 64 & 5.178 & -0.613 & 0.280 & -0.106 & 0.939 & +0.017 \\
+huffpost\_gh & frozen & 64 & 6.515 & - & 0.966 & - & 0.803 & - \\
+huffpost\_gh & context & 64 & 6.334 & -0.181 & 0.867 & -0.099 & 0.827 & +0.024 \\
+huffpost\_gh & context+bias (adapted on ag\_news) & 64 & 6.370 & -0.144 & 0.888 & -0.078 & 0.823 & +0.020 \\
+huffpost\_gh & context+bias+lora (adapted on ag\_news) & 64 & 6.395 & -0.119 & 0.883 & -0.083 & 0.822 & +0.019 \\
+huffpost\_gh & context+bias (adapted on teleqna) & 64 & 6.493 & -0.021 & 0.930 & -0.035 & 0.832 & +0.029 \\
+huffpost\_gh & context+bias+lora (adapted on teleqna) & 64 & 6.726 & +0.211 & 1.028 & +0.062 & 0.808 & +0.005 \\
+huffpost\_gh & context+bias (adapted on huffpost\_gh) & 64 & 6.214 & -0.300 & 0.842 & -0.124 & 0.842 & +0.039 \\
+huffpost\_gh & context+bias+lora (adapted on huffpost\_gh) & 64 & 5.940 & -0.575 & 0.761 & -0.205 & 0.853 & +0.049 \\
+teleqna & frozen & 64 & 7.269 & - & 1.298 & - & 0.769 & - \\
+teleqna & context & 64 & 4.843 & -2.426 & 0.676 & -0.622 & 0.872 & +0.103 \\
+teleqna & context+bias (adapted on ag\_news) & 64 & 4.916 & -2.353 & 0.698 & -0.601 & 0.868 & +0.100 \\
+teleqna & context+bias+lora (adapted on ag\_news) & 64 & 4.930 & -2.339 & 0.725 & -0.573 & 0.863 & +0.094 \\
+teleqna & context+bias (adapted on teleqna) & 64 & 4.581 & -2.688 & 0.576 & -0.722 & 0.901 & +0.132 \\
+teleqna & context+bias+lora (adapted on teleqna) & 64 & 4.024 & -3.245 & 0.493 & -0.806 & 0.903 & +0.134 \\
+teleqna & context+bias (adapted on huffpost\_gh) & 64 & 4.879 & -2.390 & 0.684 & -0.614 & 0.869 & +0.101 \\
+teleqna & context+bias+lora (adapted on huffpost\_gh) & 64 & 5.054 & -2.215 & 0.749 & -0.550 & 0.857 & +0.089 \\
+\hline
+\end{tabular}
