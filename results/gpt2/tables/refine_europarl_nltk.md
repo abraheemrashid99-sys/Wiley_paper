@@ -1,0 +1,10 @@
+**Selective refinement on europarl_nltk, teacher-forced sweep (token accuracy; ECE of token confidence)**
+
+| channel | snr_db | ECE raw | ECE calibrated | best fixed m | fixed acc | selective sym/token | selective acc | saving | max gain vs fixed | oracle sym/token | random control acc |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| awgn | 0.0 | 0.017 | 0.008 | 16 | 0.791 | 13.49 | 0.787 | 15.7% | +0.110 @ 10.18 | 8.22 | 0.548 |
+| awgn | 10.0 | 0.009 | 0.005 | 16 | 1.000 | 6.41 | 0.999 | 59.9% | +0.138 @ 4.36 | 3.74 | 0.907 |
+| awgn | 20.0 | 0.004 | 0.006 | 6 | 1.000 | 3.80 | 1.000 | 36.7% | +0.115 @ 2.60 | 2.56 | 0.960 |
+| rayleigh | 0.0 | 0.021 | 0.012 | 16 | 0.639 | 14.06 | 0.637 | 12.1% | +0.046 @ 10.74 | 9.16 | 0.472 |
+| rayleigh | 10.0 | 0.014 | 0.012 | 16 | 0.939 | 8.89 | 0.937 | 44.4% | +0.094 @ 7.39 | 5.11 | 0.762 |
+| rayleigh | 20.0 | 0.005 | 0.007 | 16 | 0.995 | 4.50 | 0.994 | 71.9% | +0.112 @ 3.21 | 3.00 | 0.923 |

@@ -1,0 +1,12 @@
+% Online adaptation on the 'temporal' drift stream (mean ± SD over seeds; per-step paired differences to 'nested' with a 95% block-bootstrap interval, * = excludes zero; seed-level sign-flip permutation test, Holm-corrected)
+\begin{tabular}{lllllllllllllllll}
+\hline
+method & seeds & tok-acc @m\_op & bits/token @m\_op & prior bits/token & selective sym/token & selective tok-acc & ECE & retention tok-acc & retention BLEU-4 & slot switches & codebook power & sync kbit/step & net rate (sym/msg) & prior bits: this − nested [95\% CI] & selective sym/token: this − nested [95\% CI] & selective tok-acc: this − nested [95\% CI] \\
+\hline
+context\_only & 1 & 0.7947 $\pm$ 0.0000 & 1.2137 $\pm$ 0.0000 & 6.1182 $\pm$ 0.0000 & 6.8004 $\pm$ 0.0000 & 0.9632 $\pm$ 0.0000 & 0.0037 $\pm$ 0.0000 & 0.8082 $\pm$ 0.0000 & 0.3761 $\pm$ 0.0000 & 0.0 & 1.388 & 0.00 & 92.12 & +0.2594 [+0.2077, +0.3089]* & +0.1284 [+0.0930, +0.1623]* & -0.0020 [-0.0033, -0.0009]* \\
+frozen & 1 & 0.7782 $\pm$ 0.0000 & 1.3002 $\pm$ 0.0000 & 6.3340 $\pm$ 0.0000 & 7.0964 $\pm$ 0.0000 & 0.9656 $\pm$ 0.0000 & 0.0036 $\pm$ 0.0000 & 0.7930 $\pm$ 0.0000 & 0.2892 $\pm$ 0.0000 & 0.0 & 1.413 & 0.00 & 92.38 & +0.4752 [+0.4409, +0.5091]* & +0.4244 [+0.3864, +0.4671]* & +0.0004 [-0.0026, +0.0027] \\
+full\_online & 1 & 0.8071 $\pm$ 0.0000 & 1.1169 $\pm$ 0.0000 & 5.8447 $\pm$ 0.0000 & 6.6633 $\pm$ 0.0000 & 0.9650 $\pm$ 0.0000 & 0.0034 $\pm$ 0.0000 & 0.8140 $\pm$ 0.0000 & 0.4501 $\pm$ 0.0000 & 0.0 & 1.388 & 1185.80 & 777.67 & -0.0140 [-0.0208, -0.0078]* & -0.0086 [-0.0189, +0.0021] & -0.0001 [-0.0006, +0.0003] \\
+nested & 1 & 0.8067 $\pm$ 0.0000 & 1.1215 $\pm$ 0.0000 & 5.8588 $\pm$ 0.0000 & 6.6720 $\pm$ 0.0000 & 0.9652 $\pm$ 0.0000 & 0.0040 $\pm$ 0.0000 & 0.8136 $\pm$ 0.0000 & 0.4463 $\pm$ 0.0000 & 0.0 & 1.388 & 24.23 & 106.13 & - & - & - \\
+single\_rate & 1 & 0.8057 $\pm$ 0.0000 & 1.1241 $\pm$ 0.0000 & 5.8644 $\pm$ 0.0000 & 6.6727 $\pm$ 0.0000 & 0.9650 $\pm$ 0.0000 & 0.0030 $\pm$ 0.0000 & 0.8152 $\pm$ 0.0000 & 0.4503 $\pm$ 0.0000 & 0.0 & 1.388 & 23.73 & 105.84 & +0.0056 [+0.0012, +0.0106]* & +0.0007 [-0.0064, +0.0078] & -0.0002 [-0.0007, +0.0004] \\
+\hline
+\end{tabular}
