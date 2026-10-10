@@ -1,25 +1,40 @@
 """Multi-timescale (nested) optimisation with over-the-air synchronisation.
 
-Following the continuum-memory rule of Nested Learning (Behrouz et al.,
-NeurIPS 2025), every parameter *level* ``l`` has an update period ``C_l``:
-gradients are accumulated at every step and applied once every ``C_l`` steps.
+Following the continuum-memory idea of Nested Learning (Behrouz et al.,
+NeurIPS 2025), every parameter *level* ``l`` has its own period ``C_l``.
 
 The twist that makes this a communication problem: a level that lives at the
 *receiver* cannot be updated for free. The transmitter is the only node that
-knows the source sentence, so it computes the update and must ship it. Each
-receiver-side update is therefore quantised, its exact bit cost is recorded in
-a ledger, and - crucially - the *quantised* update is applied at both ends, so
-the two copies of the receiver parameters stay bit-identical at all times.
-Between two updates of a level its parameters are constant, hence there is
-never a stale-copy mismatch: staleness is expressed purely through ``C_l``.
+knows the source text, so it computes the update and must ship it. A level is
+therefore kept in two copies:
 
-Transmitter-side levels cost no air time and may run at any frequency.
+* the transmitter's *working copy*, which learns from every message, and
+* the *receiver's copy*, which changes only at the level's period, when the
+  transmitter ships the quantised difference between the two.
+
+The exact bit cost of every shipment is recorded in a ledger, and the
+*quantised* difference is applied at both ends (the working copy is reset to
+the receiver's copy), so right after a synchronisation the two copies are
+bit-identical. Between synchronisations the receiver decodes with a stale
+copy: ``C_l`` trades staleness against air time.
+
+Two update rules are implemented:
+
+``local``  (default) the working copy takes one optimiser step per message;
+           the period only controls how often the receiver is refreshed.
+``chunk``  the literal chunked rule of the continuum memory system: gradients
+           are accumulated at fixed parameters and applied once per period,
+           so both copies always coincide but learning is ``C_l`` times slower.
+
+Transmitter-side levels (side ``"tx"``) cost no air time.
 """
 
 from __future__ import annotations
 
 import math
+from contextlib import contextmanager
 from dataclasses import dataclass, field
+from typing import Callable
 
 import torch
 
@@ -104,25 +119,74 @@ class SyncLedger:
 
 
 class NestedOptimizer:
-    """One Adam optimiser per level, chunked updates, EMA anchor, sync ledger."""
+    """One Adam optimiser per level, periodic synchronisation, EMA anchor,
+    synchronisation ledger."""
 
-    def __init__(self, levels: list[Level], sync_bits: int = 8, sync_topk: float = 1.0, ema_decay: float = 0.99, ema_beta: float = 0.9, grad_clip: float = 1.0):
+    def __init__(
+        self,
+        levels: list[Level],
+        sync_bits: int = 8,
+        sync_topk: float = 1.0,
+        ema_decay: float = 0.99,
+        ema_beta: float = 0.9,
+        grad_clip: float = 1.0,
+        rule: str = "local",
+        on_change: Callable[[], None] | None = None,
+    ):
+        if rule not in ("local", "chunk"):
+            raise ValueError("rule must be 'local' or 'chunk'")
         self.levels = [lv for lv in levels if lv.params]
+        self.rule = rule
         self.sync_bits, self.sync_topk = int(sync_bits), float(sync_topk)
         self.ema_decay, self.ema_beta = float(ema_decay), float(ema_beta)
         self.grad_clip = float(grad_clip)
+        self.on_change = on_change  # called whenever parameter values are replaced
         self.ledger = SyncLedger()
-        self._opt, self._acc, self._count, self._ema = {}, {}, {}, {}
+        self._opt, self._acc, self._count, self._ema, self._rx, self._dirty = {}, {}, {}, {}, {}, {}
         for lv in self.levels:
             tensors = [p for _, p in lv.params]
             self._opt[lv.name] = torch.optim.Adam(tensors, lr=lv.lr)
             self._acc[lv.name] = [torch.zeros_like(p) for p in tensors]
             self._count[lv.name] = 0
+            self._rx[lv.name] = [p.detach().clone() for p in tensors]  # the receiver's copy
+            self._dirty[lv.name] = False  # working copy differs from the receiver's
             if lv.ema:
                 self._ema[lv.name] = [p.detach().clone() for p in tensors]
 
     def trainable(self) -> list[torch.nn.Parameter]:
         return [p for lv in self.levels for _, p in lv.params]
+
+    # ------------------------------------------------------- the two copies
+    def is_dirty(self, name: str) -> bool:
+        """True when the transmitter's working copy of a level has moved away
+        from the copy the receiver holds."""
+        return self._dirty.get(name, False)
+
+    @property
+    def in_sync(self) -> bool:
+        return not any(self._dirty.values())
+
+    def _swap(self, level: Level) -> None:
+        held = self._rx[level.name]
+        for i, (_, p) in enumerate(level.params):
+            held[i], p.data = p.data, held[i]
+
+    @contextmanager
+    def receiver_view(self):
+        """Inside this block the model holds the receiver's (last synchronised)
+        parameters; the working copy is restored on exit."""
+        swapped = [lv for lv in self.levels if self._dirty[lv.name]]
+        for lv in swapped:
+            self._swap(lv)
+        if swapped and self.on_change is not None:
+            self.on_change()
+        try:
+            yield
+        finally:
+            for lv in swapped:
+                self._swap(lv)
+            if swapped and self.on_change is not None:
+                self.on_change()
 
     def expected_bits_per_update(self, level: Level) -> int:
         """Cost of one dense synchronisation of ``level`` (0 for tx levels)."""
@@ -140,38 +204,61 @@ class NestedOptimizer:
                 total += 32 + n * self.sync_bits
         return total
 
+    # ---------------------------------------------------------------- update
+    def _synchronise(self, level: Level, t: int) -> None:
+        """Ship the quantised difference between the two copies and make the
+        copies identical again."""
+        tensors = [p for _, p in level.params]
+        if level.ema:  # continuum-memory anchor on the slow level
+            for ema, p in zip(self._ema[level.name], tensors):
+                ema.mul_(self.ema_decay).add_(p, alpha=1.0 - self.ema_decay)
+                p.mul_(self.ema_beta).add_(ema, alpha=1.0 - self.ema_beta)
+        if level.side == "rx":
+            bits = 0
+            for held, p in zip(self._rx[level.name], tensors):
+                delta_q, cost = quantize_delta(p - held, self.sync_bits, self.sync_topk)
+                held.add_(delta_q)
+                p.copy_(held)
+                bits += cost
+            self.ledger.add(t, level.name, bits)
+        self._dirty[level.name] = False
+
     @torch.no_grad()
     def step(self, t: int) -> None:
         """Call once per stream step, after ``loss.backward()`` (t is 1-indexed)."""
+        changed = False
         for lv in self.levels:
             tensors = [p for _, p in lv.params]
+            due = t % lv.period == 0
+            if self.rule == "local":
+                if any(p.grad is not None for p in tensors):
+                    if self.grad_clip > 0:
+                        torch.nn.utils.clip_grad_norm_(tensors, self.grad_clip)
+                    self._opt[lv.name].step()
+                    self._dirty[lv.name] = lv.side == "rx"
+                    changed = True
+                if due and (self._dirty[lv.name] or lv.side != "rx"):
+                    self._synchronise(lv, t)
+                continue
             for acc, p in zip(self._acc[lv.name], tensors):
                 if p.grad is not None:
                     acc.add_(p.grad)
             self._count[lv.name] += 1
-            if t % lv.period != 0:
+            if not due:
                 continue
             count = self._count[lv.name]
             for acc, p in zip(self._acc[lv.name], tensors):
                 p.grad = acc / count
             if self.grad_clip > 0:
                 torch.nn.utils.clip_grad_norm_(tensors, self.grad_clip)
-            before = [p.detach().clone() for p in tensors] if lv.side == "rx" else None
             self._opt[lv.name].step()
-            if lv.ema:  # continuum-memory anchor on the slow level
-                for ema, p in zip(self._ema[lv.name], tensors):
-                    ema.mul_(self.ema_decay).add_(p, alpha=1.0 - self.ema_decay)
-                    p.mul_(self.ema_beta).add_(ema, alpha=1.0 - self.ema_beta)
-            if before is not None:  # ship the quantised update; apply the same at both ends
-                bits = 0
-                for old, p in zip(before, tensors):
-                    delta_q, cost = quantize_delta(p - old, self.sync_bits, self.sync_topk)
-                    p.copy_(old + delta_q)
-                    bits += cost
-                self.ledger.add(t, lv.name, bits)
+            self._synchronise(lv, t)
+            changed = True
             for acc in self._acc[lv.name]:
                 acc.zero_()
             self._count[lv.name] = 0
         for lv in self.levels:
             for _, p in lv.params:
                 p.grad = None
+        if changed and self.on_change is not None:
+            self.on_change()

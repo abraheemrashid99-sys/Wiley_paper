@@ -62,14 +62,20 @@ def toy_names() -> list[str]:
 
 
 def make_toy(name: str, n_docs: int = 900, seed: int = 0) -> list[dict]:
-    """Return raw records ``{text, topic, time, doc}`` for a toy domain."""
+    """Return raw records ``{text, topic, time, doc}`` for a toy domain.
+
+    A document is a short run of sentences about the same subject and object,
+    so that - as in real text - what was said before helps to predict what
+    comes next."""
     rng = random.Random(f"{name}:{seed}")
     topics = _DOMAINS[name]
     records = []
     for doc in range(n_docs):
         topic = rng.choice(sorted(topics))
         subj, verb, obj, tail = topics[topic]
-        parts = [rng.choice(subj), rng.choice(verb), rng.choice(obj), rng.choice(tail), rng.choice(_FILLERS)]
-        text = " ".join(p for p in parts if p)
-        records.append({"text": text[0].upper() + text[1:] + ".", "topic": topic, "time": f"{2000 + doc * 10 // n_docs}", "doc": doc})
+        subject, target = rng.choice(subj), rng.choice(obj)
+        for _ in range(rng.choice([1, 2, 3, 3])):
+            parts = [subject, rng.choice(verb), target, rng.choice(tail), rng.choice(_FILLERS)]
+            text = " ".join(p for p in parts if p)
+            records.append({"text": text[0].upper() + text[1:] + ".", "topic": topic, "time": f"{2000 + doc * 10 // n_docs}", "doc": doc})
     return records

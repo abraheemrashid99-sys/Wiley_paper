@@ -8,17 +8,17 @@ import numpy as np
 import pytest
 import torch
 
-from dnsc.channel import Channel, capacity_real, shell_normalize, shell_slices
+from dnsc.channel import Channel, capacity_real, nested_power_normalize, shell_slices
 from dnsc.classical import deflate_bits, delivered, max_bits
 from dnsc.config import load_config
 from dnsc.data import get_corpus
 from dnsc.data.corpora import assign_split, process
 from dnsc.data.stream import HierStream, TemporalStream, build_probes, snr_trace
 from dnsc.data.text import clean, keep_sentence, split_sentences, strip_bracket_tag
-from dnsc.linkbudget import crossover_traffic, net_semantic_rate, overhead_fraction, sync_symbols
+from dnsc.linkbudget import crossover_traffic, net_semantic_rate, overhead_fraction, symbols_at_accuracy, sync_symbols
 from dnsc.metrics import bleu_scores, expected_calibration_error, exact_match, sentence_bleu
 from dnsc.nested import Level, NestedOptimizer, quantize_delta
-from dnsc.refine import Calibrator, reference_policies, stopping_curve
+from dnsc.refine import Calibrator, features, interpolate_fixed, random_matched, reference_policies, stop_levels, stopping_curve
 from dnsc.stats import equivalence, holm, mean_sd, paired_bootstrap, paired_permutation
 from dnsc.train import lr_at, sample_grans
 
@@ -27,6 +27,8 @@ from dnsc.train import lr_at, sample_grans
 def test_config_overrides_and_validation():
     cfg = load_config(None, ["seed=7", "nested.sync.bits=4", "codec.granularities=[8, 16]", "stream.m_op=16"])
     assert cfg.seed == 7 and cfg.nested.sync.bits == 4 and cfg["codec"]["granularities"] == [8, 16]
+    with pytest.raises(ValueError):
+        load_config(None, ["eval.priors=[llm, oracle]"])
     with pytest.raises(KeyError):
         load_config(None, ["nested.not_a_key=1"])
     with pytest.raises(ValueError):
@@ -34,7 +36,7 @@ def test_config_overrides_and_validation():
     with pytest.raises(ValueError):
         load_config(None, ["codec.granularities=[16, 8]"])
     with pytest.raises(ValueError):
-        load_config(None, ["nested.periods={fast: 5, medium: 2, slow: 10}"])
+        load_config(None, ["nested.periods={medium: 20, slow: 10}"])
 
 
 # -------------------------------------------------------------------- text
@@ -66,14 +68,23 @@ def test_process_dedups_and_caps():
 
 
 # ----------------------------------------------------------------- channel
-def test_shell_normalisation_gives_unit_power_prefixes():
-    grans = [8, 16, 64]
-    z = torch.randn(5, 64) * torch.linspace(0.1, 9.0, 64)
-    x = shell_normalize(z, grans)
+def test_nested_power_constraint():
+    torch.manual_seed(0)
+    grans = [2, 4, 8]
+    raw = torch.randn(500, 8) * torch.linspace(0.1, 9.0, 8) + 3.0
+    weights = torch.rand(500) ** 3  # a skewed source distribution
+    code = nested_power_normalize(raw, weights, grans, peak=1e9)
+    p = (weights / weights.sum()).unsqueeze(1)
+    assert torch.allclose((p * code).sum(0), torch.zeros(8), atol=1e-4)  # no power wasted on a mean
     for sl in shell_slices(grans):
-        assert torch.allclose((x[:, sl] ** 2).mean(1), torch.ones(5), atol=1e-5)
-    for m in grans:  # every prefix meets the same average-power constraint exactly
-        assert torch.allclose((x[:, :m] ** 2).sum(1), torch.full((5,), float(m)), atol=1e-3)
+        assert float((p * code[:, sl] ** 2).sum()) / (sl.stop - sl.start) == pytest.approx(1.0, abs=1e-4)
+    for m in grans:  # every prefix meets the same average-power constraint
+        assert float((p * code[:, :m] ** 2).sum()) / m == pytest.approx(1.0, abs=1e-4)
+    limited = nested_power_normalize(raw, weights, grans, peak=2.0)
+    for sl in shell_slices(grans):
+        width = sl.stop - sl.start
+        assert float((limited[:, sl] ** 2).sum(1).max()) <= 2.0 * width * (1 + 1e-5)  # per-codeword peak limit
+        assert float((p * limited[:, sl] ** 2).sum()) / width <= 1.0 + 1e-5  # clamping never raises the average
 
 
 def test_awgn_noise_power_matches_snr_and_is_reproducible():
@@ -135,7 +146,7 @@ def _levels():
 
 def test_levels_update_only_at_their_period_and_ledger_is_exact():
     levels, (fast, med, slow) = _levels()
-    opt = NestedOptimizer(levels, sync_bits=8)
+    opt = NestedOptimizer(levels, sync_bits=8, rule="chunk")
     changes = {"fast": [], "med": [], "slow": []}
     for t in range(1, 9):
         before = [p.detach().clone() for p in (fast, med, slow)]
@@ -154,9 +165,55 @@ def test_levels_update_only_at_their_period_and_ledger_is_exact():
     assert cumulative[0] == 0 and cumulative[-1] == opt.ledger.total_bits and cumulative == sorted(cumulative)
 
 
+def test_local_rule_learns_every_step_and_refreshes_the_receiver_at_the_period():
+    levels, (fast, med, slow) = _levels()
+    changed = []
+    opt = NestedOptimizer(levels, sync_bits=8, rule="local", on_change=lambda: changed.append(1))
+    receiver_changes = {"med": [], "slow": []}
+    for t in range(1, 9):
+        with opt.receiver_view():
+            before = {"med": med.detach().clone(), "slow": slow.detach().clone()}
+        working = med.detach().clone()
+        loss = ((fast - 1) ** 2).sum() + ((med - 1) ** 2).sum() + ((slow - 1) ** 2).sum()
+        loss.backward()
+        opt.step(t)
+        assert not torch.equal(med.detach(), working)  # the transmitter's copy learns from every message
+        with opt.receiver_view():
+            for name, param in (("med", med), ("slow", slow)):
+                if not torch.equal(before[name], param.detach()):
+                    receiver_changes[name].append(t)
+        # the two copies coincide exactly when the level has just been shipped
+        assert opt.is_dirty("med") == (t % 2 != 0) and opt.is_dirty("slow") == (t % 4 != 0)
+    assert receiver_changes == {"med": [2, 4, 6, 8], "slow": [4, 8]}
+    assert opt.in_sync and changed
+    assert opt.ledger.events == {"med": 4, "slow": 2}
+    assert opt.ledger.bits["med"] == 4 * (32 + 4 * 8) and opt.ledger.bits["slow"] == 2 * (32 + 5 * 8)
+    # same budget as the chunked rule, but the receiver has moved further in the same time
+    chunk_levels, (_, chunk_med, _) = _levels()
+    chunk = NestedOptimizer(chunk_levels, sync_bits=8, rule="chunk")
+    for t in range(1, 9):
+        (((chunk_levels[0].params[0][1] - 1) ** 2).sum() + ((chunk_med - 1) ** 2).sum() + ((chunk_levels[2].params[0][1] - 1) ** 2).sum()).backward()
+        chunk.step(t)
+    assert chunk.ledger.total_bits == opt.ledger.total_bits
+    assert (med.detach() - 1).abs().mean().item() < (chunk_med.detach() - 1).abs().mean().item()
+
+
+def test_receiver_view_restores_the_working_copy_and_rejects_unknown_rules():
+    p = torch.nn.Parameter(torch.zeros(3))
+    opt = NestedOptimizer([Level("l", "rx", [("p", p)], period=5, lr=0.1)], rule="local")
+    (p - 1).pow(2).sum().backward()
+    opt.step(1)
+    working = p.detach().clone()
+    with opt.receiver_view():
+        assert torch.equal(p.detach(), torch.zeros(3))  # nothing has been shipped yet
+    assert torch.equal(p.detach(), working) and opt.ledger.total_bits == 0
+    with pytest.raises(ValueError):
+        NestedOptimizer([], rule="other")
+
+
 def test_chunked_update_uses_the_mean_of_accumulated_gradients():
     p = torch.nn.Parameter(torch.zeros(1))
-    opt = NestedOptimizer([Level("l", "tx", [("p", p)], period=3, lr=0.5)], grad_clip=0.0)
+    opt = NestedOptimizer([Level("l", "tx", [("p", p)], period=3, lr=0.5)], grad_clip=0.0, rule="chunk")
     seen = []
     orig = opt._opt["l"].step
 
@@ -233,6 +290,7 @@ def test_separation_reference():
     bits = np.array([10.0, 100.0])
     assert delivered(bits, 20, np.array([0.0, 0.0])).tolist() == [True, False]  # 20 symbols * 0.5 bit
     assert delivered(bits, 200, np.array([0.0, 0.0])).tolist() == [True, True]
+    assert delivered(bits, np.array([20, 400]), np.array([0.0, 0.0])).tolist() == [True, True]  # per-message budgets
     # finite block length: strictly below capacity, converging to it per symbol as the block grows
     for snr in (0.0, 10.0):
         gaps = [1.0 - float(max_bits(m, snr, eps=1e-3)) / float(max_bits(m, snr)) for m in (16, 256, 65536)]
@@ -253,7 +311,7 @@ def test_hier_stream_structure(cfg):
     assert len(items) == 2 * 6 and [i.t for i in items] == list(range(1, 13))
     assert [i.domain for i in items] == ["toy_b"] * 6 + ["toy_c"] * 6
     assert [i.t for i in items if i.regime_end] == [6, 12]
-    assert all(len(i.texts) == 4 and 0.0 <= i.snr_db <= 20.0 for i in items)
+    assert all(len(i.texts) == 4 and len(i.starts) == 4 and 0.0 <= i.snr_db <= 20.0 for i in items)
     assert items[0].topic != items[3].topic  # medium band refreshed after tau_med steps
     again = list(HierStream(corpora, cfg["stream"], seed=0))
     assert [i.texts for i in again] == [i.texts for i in items]
@@ -261,9 +319,29 @@ def test_hier_stream_structure(cfg):
     assert [i.texts for i in other] != [i.texts for i in items]
     train = set(corpora["toy_b"].texts("train")) | set(corpora["toy_c"].texts("train"))
     assert all(text in train for item in items for text in item.texts)
+    # every conversation walks through whole documents, in order
+    assert all(items[0].starts) and all(items[6].starts)  # the stream, and every new domain, open new documents
+    assert not all(all(i.starts) for i in items)  # some messages continue a document
+    docs = {}
+    for name in corpora:
+        for doc in corpora[name].documents("train"):
+            for position, record in enumerate(doc):
+                docs[record["text"]] = (name, record["doc"], position)
+    for talk in range(4):
+        for before, after in zip(items, items[1:]):
+            if not after.starts[talk]:  # a continued message is the next sentence of the same document
+                a, b = docs[before.texts[talk]], docs[after.texts[talk]]
+                assert a[:2] == b[:2] and b[2] == a[2] + 1
+            else:
+                assert docs[after.texts[talk]][2] == 0
     probes = build_probes(corpora, cfg["stream"])
-    assert set(probes) == {"toy_b", "toy_c"}
-    assert all(p not in train for texts in probes.values() for p in texts)  # probes are held out
+    assert set(probes) == {"toy_b", "toy_c"} and all(len(v) == 6 for v in probes.values())
+    assert all(p.text not in train for items_ in probes.values() for p in items_)  # probes are held out
+    assert any(p.history for items_ in probes.values() for p in items_)
+    for p in (p for items_ in probes.values() for p in items_ if p.history):  # the history is the start of the same document
+        name, doc, position = None, None, len(p.history)
+        test_docs = [d for n in corpora for d in corpora[n].documents("test")]
+        assert any([r["text"] for r in d[: position + 1]] == p.history + [p.text] for d in test_docs)
 
 
 def test_temporal_stream_is_chronological(cfg):
@@ -276,7 +354,26 @@ def test_temporal_stream_is_chronological(cfg):
     assert len(items) == 8 and means[0] < means[-1]
     assert [i.domain for i in items] == ["era0"] * 4 + ["era1"] * 4
     assert [i.t for i in items if i.regime_end] == [4, 8]
-    assert set(build_probes({"toy_b": corpus}, scfg)) == {"era0", "era1"}
+    assert all(items[0].starts) and all(len(i.starts) == len(i.texts) for i in items)
+    probes = build_probes({"toy_b": corpus}, scfg)
+    assert set(probes) == {"era0", "era1"} and all(hasattr(p, "history") for p in probes["era0"])
+
+
+def test_documents_group_consecutive_sentences(cfg):
+    corpus = get_corpus("toy_a", cfg["data"])
+    docs = corpus.documents("train")
+    assert sum(len(d) for d in docs) == len(corpus.split("train"))
+    assert all(len({r["doc"] for r in d}) == 1 for d in docs) and max(len(d) for d in docs) > 1
+    assert len({d[0]["doc"] for d in docs}) == len(docs)
+
+
+def test_capping_a_corpus_keeps_whole_documents():
+    raw = [{"text": f"Sentence number {i} of document {d} is here.", "topic": "t", "time": "", "doc": d} for d in range(50) for i in range(4)]
+    kept = process("toy_cap", raw, 4, 30, max_sentences=40)
+    sizes = {}
+    for r in kept:
+        sizes[r["doc"]] = sizes.get(r["doc"], 0) + 1
+    assert 40 <= len(kept) < 44 and set(sizes.values()) == {4}  # no document is cut
 
 
 def test_snr_trace_is_bounded_and_correlated():
@@ -297,15 +394,45 @@ def test_schedules():
 
 def test_calibrator_and_stopping_rule():
     rng = np.random.default_rng(0)
-    x = rng.normal(size=(4000, 4))
-    labels = (rng.uniform(size=4000) < 1 / (1 + np.exp(-2.0 * x[:, 0]))).astype(float)
-    prob = Calibrator().fit(x, labels).predict(x)
-    assert expected_calibration_error(prob, labels) < 0.03
-    quality = np.array([[0.2, 0.9, 1.0], [0.1, 0.3, 0.95], [0.9, 0.9, 0.9]])
-    prob = quality.copy()  # a perfectly informative confidence
-    curve = stopping_curve(prob, quality, [8, 16, 32], np.array([0.0, 0.8, 1.1]), gamma=0.8)
+    # an over-confident decoder: true accuracy is sigmoid(0.5 * logit(conf))
+    conf = rng.uniform(0.02, 0.98, size=20000)
+    logit = np.log(conf / (1 - conf))
+    labels = (rng.uniform(size=20000) < 1 / (1 + np.exp(-0.5 * logit))).astype(float)
+    feats = features(conf, np.zeros_like(conf), np.zeros_like(conf), 4)
+    assert feats.shape == (20000, 2)
+    prob = Calibrator().fit(feats, labels).predict(feats)
+    assert expected_calibration_error(conf, labels) > 0.08
+    assert expected_calibration_error(prob, labels) < 0.02
+    # a decoder that is already calibrated is left alone
+    labels = (rng.uniform(size=20000) < conf).astype(float)
+    prob = Calibrator().fit(feats, labels).predict(feats)
+    assert np.abs(prob - conf).mean() < 0.02
+
+    quality = np.array([[0.0, 1.0, 1.0], [0.0, 0.0, 1.0], [1.0, 1.0, 1.0]])
+    prob = np.array([[0.2, 0.9, 1.0], [0.1, 0.3, 0.95], [0.9, 0.9, 0.9]])  # an informative confidence
+    curve = stopping_curve(prob, quality, [8, 16, 32], np.array([0.0, 0.8, 1.1]))
     assert curve[0]["symbols"] == 8 and curve[-1]["symbols"] == 32
-    assert curve[1]["symbols"] == pytest.approx((16 + 32 + 8) / 3) and curve[1]["success"] == 1.0
-    refs = reference_policies(prob, quality, [8, 16, 32], gamma=0.8)
-    assert refs["oracle"]["symbols"] == pytest.approx((16 + 32 + 8) / 3)
-    assert [f["m"] for f in refs["fixed"]] == [8, 16, 32]
+    assert curve[1]["symbols"] == pytest.approx((16 + 32 + 8) / 3) and curve[1]["quality"] == 1.0
+    refs = reference_policies(quality, [8, 16, 32])
+    assert refs["oracle"]["symbols"] == pytest.approx((16 + 32 + 8) / 3) and refs["oracle"]["quality"] == 1.0
+    assert [f["m"] for f in refs["fixed"]] == [8, 16, 32] and [f["quality"] for f in refs["fixed"]] == pytest.approx([1 / 3, 2 / 3, 1.0])
+    assert interpolate_fixed(refs["fixed"], 12.0) == pytest.approx(0.5)  # time-sharing between m=8 and m=16
+    control = random_matched(np.array([1, 2, 0]), quality, [8, 16, 32], seed=0)
+    assert control["symbols"] == pytest.approx((16 + 32 + 8) / 3)
+
+
+def test_symbols_needed_for_a_target_accuracy():
+    symbols, accuracy = [2.0, 4.0, 8.0], [0.5, 0.7, 0.9]
+    assert symbols_at_accuracy(symbols, accuracy, 0.8) == pytest.approx(6.0)
+    assert symbols_at_accuracy(symbols, accuracy, 0.7) == pytest.approx(4.0)
+    assert symbols_at_accuracy(symbols, accuracy, 0.3) == 2.0  # already exceeded at the cheapest point
+    assert symbols_at_accuracy(symbols, accuracy, 0.95) == math.inf  # never reached
+    assert symbols_at_accuracy([8.0, 2.0, 4.0], [0.9, 0.5, 0.7], 0.8) == pytest.approx(6.0)  # order does not matter
+    assert symbols_at_accuracy([], [], 0.5) == math.inf
+
+
+def test_stop_levels_pick_the_first_confident_shell():
+    conf = torch.tensor([[0.2, 0.6, 0.95], [0.91, 0.5, 0.99], [0.1, 0.2, 0.3]])
+    assert stop_levels(conf, 0.9).tolist() == [2, 0, 2]  # the last shell when never confident
+    assert stop_levels(conf, 0.5).tolist() == [1, 0, 2]
+    assert stop_levels(conf, 0.0).tolist() == [0, 0, 0]

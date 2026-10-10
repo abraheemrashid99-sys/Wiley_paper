@@ -1,7 +1,7 @@
 """Online adaptation on a multi-timescale drift stream.
 
-    python scripts/run_stream.py --config configs/main.yaml --methods frozen,tx_only,single_rate,nested --seeds 0,1,2
-    python scripts/run_stream.py --config configs/main.yaml --methods nested --seeds 0 stream.kind=temporal
+    python scripts/run_stream.py --config configs/laptop.yaml --methods frozen,context_only,single_rate,nested --seeds 0,1,2
+    python scripts/run_stream.py --config configs/laptop.yaml --methods nested --seeds 0 stream.kind=temporal
 
 Existing result files are skipped unless --force is given, so an interrupted
 sweep can simply be restarted.
@@ -17,7 +17,7 @@ from dnsc.online import METHODS, run_stream
 
 def main() -> None:
     parser = make_parser(__doc__)
-    parser.add_argument("--methods", default="frozen,tx_only,single_rate,nested", help=f"comma-separated subset of {METHODS}")
+    parser.add_argument("--methods", default="frozen,context_only,single_rate,nested", help=f"comma-separated subset of {METHODS}")
     parser.add_argument("--seeds", default="0", help="comma-separated seeds")
     parser.add_argument("--ckpt", default="", help="checkpoint directory (default: <out_dir>/base)")
     parser.add_argument("--tag", default="", help="suffix for the result files (e.g. a sweep label)")

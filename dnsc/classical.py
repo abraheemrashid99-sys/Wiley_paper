@@ -16,7 +16,7 @@ fit, and is lost otherwise (outage):
 
 * asymptotic          ``bits <= m * C``, with ``C = 0.5 log2(1 + g)``. Capacity
                       is only approached at infinite block length, so at the
-                      16-256 symbols used here this is generous to separation.
+                      block lengths of a sentence this is generous to separation.
 * finite block length ``bits <= m*C - sqrt(m*V) * Qinv(eps) + 0.5*log2(m)``,
                       the normal approximation of Polyanskiy, Poor and Verdu
                       (2010) with dispersion ``V`` and block error rate
@@ -44,31 +44,36 @@ def deflate_bits(text: str) -> int:
 
 @torch.no_grad()
 def lm_bits(codec, texts: list[str], batch_size: int = 32) -> np.ndarray:
-    """Ideal code length (bits) of each sentence, EOS included, under the
-    frozen backbone with no adapter active."""
-    codec._side(None)
-    start = codec.tok.bos_token_id if codec.tok.bos_token_id is not None else codec.tok.eos_token_id
-    out = []
+    """Ideal code length (bits) of each sentence under the frozen backbone
+    with no adapter and no receiver memory active.
+
+    No end-of-sentence symbol is charged: like the semantic codec, the
+    separate design is assumed to learn the length from the packet framing."""
+    slot, out = codec.slot, []
+    codec.set_slot(None)
+    codec._activate()
     for i in range(0, len(texts), batch_size):
         batch = codec.tokenize(texts[i : i + batch_size])
-        ids, lens = batch.ids, batch.lens
-        bsz, width = ids.shape
-        context = torch.cat([torch.full((bsz, 1), start, dtype=torch.long, device=ids.device), ids[:, :-1]], dim=1)
-        mask = (torch.arange(width, device=ids.device).unsqueeze(0) < lens.unsqueeze(1)).long()
-        hidden = codec.lm.base_model(input_ids=context, attention_mask=mask).last_hidden_state
+        ids, mask = batch.ids, batch.mask
+        start = torch.full((ids.shape[0], 1), codec.start_token, dtype=torch.long, device=ids.device)
+        context = torch.cat([start, ids[:, :-1]], dim=1)
+        hidden = codec.lm.base_model(input_ids=context, attention_mask=mask.long()).last_hidden_state
         logp = F.log_softmax(codec._head(hidden).float(), dim=-1)
         token_lp = logp.gather(-1, ids.unsqueeze(-1)).squeeze(-1)
         nats = -(token_lp * mask.to(token_lp.dtype)).sum(1)
         out.append((nats / np.log(2.0)).cpu().numpy())
+    codec.set_slot(slot)
     return np.concatenate(out)
 
 
-def max_bits(m: int, eff_snr_db, eps: float | None = None) -> np.ndarray:
-    """Largest payload (bits) an ideal code carries in ``m`` real symbols.
+def max_bits(m, eff_snr_db, eps: float | None = None) -> np.ndarray:
+    """Largest payload (bits) an ideal code carries in ``m`` real symbols
+    (``m`` may be an array: one block length per message).
 
     ``eps=None`` gives the asymptotic limit ``m*C``; otherwise the normal
     approximation at block error rate ``eps``, clipped to ``[0, m*C]``."""
     snr_db = np.asarray(eff_snr_db, dtype=float)
+    m = np.asarray(m, dtype=float)
     capacity = capacity_real(torch.as_tensor(snr_db, dtype=torch.float64)).numpy()
     if eps is None:
         return m * capacity
@@ -76,11 +81,11 @@ def max_bits(m: int, eff_snr_db, eps: float | None = None) -> np.ndarray:
 
     p = 10.0 ** (snr_db / 10.0)
     dispersion = p * (p + 2.0) / (2.0 * (p + 1.0) ** 2) * np.log2(np.e) ** 2  # bits^2 per real use
-    approx = m * capacity - np.sqrt(m * dispersion) * norm.isf(eps) + 0.5 * np.log2(m)
+    approx = m * capacity - np.sqrt(m * dispersion) * norm.isf(eps) + 0.5 * np.log2(np.maximum(m, 1.0))
     # the approximation is loose for very short blocks: keep it inside [0, m*C]
     return np.clip(approx, 0.0, m * capacity)
 
 
-def delivered(bits: np.ndarray, m: int, eff_snr_db, eps: float | None = None) -> np.ndarray:
-    """Boolean mask: which messages fit in ``m`` symbols at the given SNRs."""
+def delivered(bits: np.ndarray, m, eff_snr_db, eps: float | None = None) -> np.ndarray:
+    """Boolean mask: which messages fit in their ``m`` symbols at the given SNRs."""
     return np.asarray(bits, dtype=float) <= max_bits(m, eff_snr_db, eps)

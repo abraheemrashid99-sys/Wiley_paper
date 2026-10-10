@@ -6,6 +6,7 @@ import html
 import re
 
 _WS = re.compile(r"\s+")
+_SPACE_PUNCT = re.compile(r" ([.,;:!?])(?= |$)")
 _SENT_SPLIT = re.compile(r"(?<=[.!?])\s+(?=[\"'(\[]?[A-Z0-9])")
 _WIRE_TAG = re.compile(r"\((?:Reuters|AP|AFP|SPACE\.com|washingtonpost\.com|CNN|Forbes\.com|USATODAY\.com)\)", re.I)
 _WIRE_LEAD = re.compile(r"^(?:[A-Z][A-Za-z.,' ]{0,40}\s)?(?:\(?(?:Reuters|AP|AFP)\)?)\s+-\s+")
@@ -18,7 +19,8 @@ def clean(text: str) -> str:
     text = text.replace("\\", " ")
     text = _WIRE_TAG.sub(" ", text)
     text = _WIRE_LEAD.sub("", text.strip())
-    return _WS.sub(" ", text).strip()
+    text = _SPACE_PUNCT.sub(r"\1", _WS.sub(" ", text))  # "Pipeline ." left behind by a removed tag
+    return text.strip()
 
 
 def strip_bracket_tag(text: str) -> str:

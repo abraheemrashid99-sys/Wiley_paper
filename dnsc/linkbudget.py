@@ -57,3 +57,19 @@ def overhead_fraction(m: float, sync_bits: float, n_steps: int, traffic_per_step
     """Share of the net rate that is synchronisation rather than payload."""
     net = net_semantic_rate(m, sync_bits, n_steps, traffic_per_step, snr_db)
     return (net - m) / net
+
+
+def symbols_at_accuracy(symbols: list[float], accuracy: list[float], target: float) -> float:
+    """Symbols per token needed to reach ``target`` accuracy, by linear
+    interpolation along a measured operating curve. Returns infinity when the
+    curve never reaches the target, and its cheapest point when every point
+    already exceeds it."""
+    points = sorted(zip(symbols, accuracy))
+    if not points:
+        return math.inf
+    if points[0][1] >= target:
+        return float(points[0][0])
+    for (s0, a0), (s1, a1) in zip(points, points[1:]):
+        if a1 >= target > a0:
+            return float(s0 + (target - a0) / (a1 - a0) * (s1 - s0))
+    return math.inf

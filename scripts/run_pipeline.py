@@ -2,20 +2,23 @@
 
     python scripts/run_pipeline.py --config configs/smoke.yaml --stage smoke
     python scripts/run_pipeline.py --config configs/laptop.yaml --stage base
+    python scripts/run_pipeline.py --config configs/laptop.yaml --stage pilot
     python scripts/run_pipeline.py --config configs/laptop.yaml --stage streams --seeds 0,1,2
     python scripts/run_pipeline.py --config configs/laptop.yaml --stage report
 
 Stages
 ------
 smoke    everything, on the offline config (a few minutes)
-base     environment check, data, speed benchmark, pretraining, rate and
-         refinement evaluation
+base     environment check, data, speed benchmark, codebook pretraining, rate
+         and refinement evaluation, adaptation headroom
+pilot    one seed of the five key methods on the hierarchical stream, then
+         the report: the cheapest way to see whether adaptation pays
 streams  both drift streams for the chosen methods and seeds
 report   tables and figures from whatever results exist
 all      base + streams + report
 
 Every stage can be re-run: finished pretraining and finished stream runs are
-skipped, and an interrupted pretraining resumes where it stopped.
+skipped.
 """
 
 from __future__ import annotations
@@ -27,7 +30,8 @@ import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
-DEFAULT_METHODS = "frozen,tx_only,single_rate,ewc,nested,nested_no_ema,nested_two_level"
+DEFAULT_METHODS = "frozen,context_only,single_rate,ewc,full_online,nested,nested_no_slots,nested_no_context,nested_two_level"
+PILOT_METHODS = "frozen,context_only,single_rate,nested,full_online"
 
 
 def plan(stage: str, config: str, seeds: str, methods: str) -> list[list[str]]:
@@ -38,26 +42,29 @@ def plan(stage: str, config: str, seeds: str, methods: str) -> list[list[str]]:
         ["pretrain.py"],
         ["eval_rate.py"],
         ["eval_refine.py"],
+        ["headroom.py"],
     ]
     streams = [
         ["run_stream.py", "--methods", methods, "--seeds", seeds, "stream.kind=hier"],
         ["run_stream.py", "--methods", methods, "--seeds", seeds, "stream.kind=temporal"],
     ]
     report = [["aggregate.py"], ["make_figures.py"]]
+    pilot = [["run_stream.py", "--methods", PILOT_METHODS, "--seeds", "0", "stream.kind=hier"], *report]
     smoke = [
         ["check_env.py"],
         ["prepare_data.py"],
         ["pretrain.py"],
         ["eval_rate.py"],
-        ["run_stream.py", "--methods", "frozen,tx_only,single_rate,nested", "--seeds", "0,1"],
+        ["run_stream.py", "--methods", "frozen,context_only,single_rate,nested", "--seeds", "0,1"],
         ["eval_refine.py"],
+        ["headroom.py", "--n", "16", "--steps", "10"],
         *report,
     ]
-    steps = {"smoke": smoke, "base": base, "streams": streams, "report": report, "all": base + streams + report}[stage]
+    steps = {"smoke": smoke, "base": base, "pilot": pilot, "streams": streams, "report": report, "all": base + streams + report}[stage]
     commands = []
     for script, *rest in steps:
-        options = [a for a in rest if "=" not in a or a.startswith("--")]
-        overrides = [a for a in rest if "=" in a and not a.startswith("--")]
+        options = [a for a in rest if "=" not in a]
+        overrides = [a for a in rest if "=" in a]
         commands.append([sys.executable, str(ROOT / script), "--config", config, *options, *overrides])
     return commands
 
@@ -65,7 +72,7 @@ def plan(stage: str, config: str, seeds: str, methods: str) -> list[list[str]]:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--config", required=True)
-    parser.add_argument("--stage", required=True, choices=["smoke", "base", "streams", "report", "all"])
+    parser.add_argument("--stage", required=True, choices=["smoke", "base", "pilot", "streams", "report", "all"])
     parser.add_argument("--seeds", default="0,1,2")
     parser.add_argument("--methods", default=DEFAULT_METHODS)
     parser.add_argument("--dry-run", action="store_true", help="print the commands without running them")

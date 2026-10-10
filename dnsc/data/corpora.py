@@ -15,14 +15,26 @@ huffpost   News Category Dataset (Misra, 2022) - 2012-2022 headlines with
            dates; the natural temporal-shift corpus of Wild-Time. Hugging Face.
 teleqna    TeleQnA (Maatouk et al., 2023) - telecom/3GPP question bank.
            Password-protected archive from the authors' GitHub repository.
+
+The same two corpora from fixed GitHub sources, for machines that cannot reach
+Hugging Face. They are separate names because they are different subsets:
+
+europarl_nltk  the Europarl sample distributed with NLTK: ten sittings of
+               January-February 2000, about 20 000 sentences.
+huffpost_gh    a GitHub mirror of the News Category Dataset v3 that holds
+               186 041 of the 209 527 records (5 Oct 2012 - 23 Sep 2022).
+
+Both downloads are checked against a SHA-256 digest.
 """
 
 from __future__ import annotations
 
 import csv
+import hashlib
 import io
 import json
 import random
+import re
 import urllib.request
 import zlib
 from dataclasses import dataclass, field
@@ -32,10 +44,15 @@ from typing import Callable
 from . import toy
 from .text import clean, keep_sentence, split_sentences, strip_bracket_tag
 
+CACHE_VERSION = "v3"  # bump when the cleaning rules change, so stale caches are rebuilt
 AG_NEWS_URL = "https://raw.githubusercontent.com/mhjabreel/CharCnn_Keras/master/data/ag_news_csv/{split}.csv"
 AG_NEWS_TOPICS = {1: "world", 2: "sports", 3: "business", 4: "scitech"}
 TELEQNA_URL = "https://raw.githubusercontent.com/netop-team/TeleQnA/main/TeleQnA.zip"
 TELEQNA_PASSWORD = b"teleqnadataset"  # published by the authors in their README
+EUROPARL_NLTK_URL = "https://raw.githubusercontent.com/nltk/nltk_data/gh-pages/packages/corpora/europarl_raw.zip"
+EUROPARL_NLTK_SHA256 = "ad553e177baac263840c10980e6f3e76d5d15f7f7a078bd98520b36edb69b27c"
+HUFFPOST_GH_URL = "https://raw.githubusercontent.com/roahn-w/NLP-News-Category-Classifier/main/News_Category_Dataset_v3%20copy.json.zip"
+HUFFPOST_GH_SHA256 = "7f9adc50a461dadbacf2e076a1e87822d33fd9fdffd15af028c28f81c3505270"
 
 
 @dataclass
@@ -48,6 +65,17 @@ class Corpus:
 
     def texts(self, which: str) -> list[str]:
         return [r["text"] for r in self.split(which)]
+
+    def documents(self, which: str) -> list[list[dict]]:
+        """The sentences of a split grouped into their documents, in order."""
+        docs: list[list[dict]] = []
+        last = None
+        for record in self.split(which):
+            if record["doc"] != last:
+                docs.append([])
+                last = record["doc"]
+            docs[-1].append(record)
+        return docs
 
     @property
     def topics(self) -> list[str]:
@@ -123,15 +151,7 @@ def _raw_teleqna(max_docs: int) -> list[dict]:
 def _raw_huffpost(max_docs: int) -> list[dict]:
     from datasets import load_dataset
 
-    ds = load_dataset("heegyu/news-category-dataset", split="train")
-    out = []
-    for doc, row in enumerate(ds):
-        day = str(row.get("date", ""))[:10]
-        topic = str(row.get("category", "all")).strip().lower().replace(" ", "_")
-        for piece in (row.get("headline") or "", row.get("short_description") or ""):
-            if piece:
-                out.append({"text": piece, "topic": topic, "time": day, "doc": doc})
-    return out
+    return _huffpost_rows(load_dataset("heegyu/news-category-dataset", split="train"))
 
 
 def _raw_europarl(max_docs: int) -> list[dict]:
@@ -151,6 +171,66 @@ def _raw_europarl(max_docs: int) -> list[dict]:
     return out
 
 
+def _download_checked(url: str, digest: str) -> bytes:
+    blob = _download(url, timeout=300)
+    found = hashlib.sha256(blob).hexdigest()
+    if found != digest:
+        raise RuntimeError(f"unexpected content at {url} (sha256 {found})")
+    return blob
+
+
+def _huffpost_rows(rows) -> list[dict]:
+    out = []
+    for doc, row in enumerate(rows):
+        day = str(row.get("date", ""))[:10]
+        topic = str(row.get("category", "all")).strip().lower().replace(" ", "_")
+        for piece in (row.get("headline") or "", row.get("short_description") or ""):
+            if piece:
+                out.append({"text": piece, "topic": topic, "time": day, "doc": doc})
+    return out
+
+
+def _raw_huffpost_gh(max_docs: int) -> list[dict]:
+    import zipfile
+
+    with zipfile.ZipFile(io.BytesIO(_download_checked(HUFFPOST_GH_URL, HUFFPOST_GH_SHA256))) as archive:
+        member = next(n for n in archive.namelist() if n.endswith(".json") and not n.startswith("__MACOSX"))
+        lines = archive.read(member).decode("utf-8").splitlines()
+    return _huffpost_rows(json.loads(line) for line in lines if line.strip())
+
+
+_DETOK = [
+    (re.compile(r"\s+([,.;:!?%)\]])"), r"\1"),  # no space before closing punctuation
+    (re.compile(r"([(\[])\s+"), r"\1"),  # none after an opening bracket
+    (re.compile(r"(\w)\s+'\s+s\b"), r"\1's"),  # "Mr Jonckheer ' s" -> "Mr Jonckheer's"
+    (re.compile(r"(\w)\s+'s\b"), r"\1's"),
+    (re.compile(r"(\w)\s+n't\b"), r"\1n't"),
+]
+
+
+def detokenize(text: str) -> str:
+    """Undo the space-separated punctuation of pre-tokenised corpora."""
+    for pattern, replacement in _DETOK:
+        text = pattern.sub(replacement, text)
+    return text
+
+
+def _raw_europarl_nltk(max_docs: int) -> list[dict]:
+    import zipfile
+
+    out = []
+    with zipfile.ZipFile(io.BytesIO(_download_checked(EUROPARL_NLTK_URL, EUROPARL_NLTK_SHA256))) as archive:
+        members = sorted(n for n in archive.namelist() if n.startswith("europarl_raw/english/") and n.endswith(".en"))
+        line_no = 0
+        for member in members:  # one file per sitting, one sentence per line
+            for line in archive.read(member).decode("utf-8", errors="replace").splitlines():
+                if line.strip():
+                    # consecutive lines belong to one speech: group 50 lines per "document"
+                    out.append({"text": detokenize(line.strip()), "topic": "all", "time": "", "doc": line_no // 50})
+                    line_no += 1
+    return out
+
+
 def _raw_toy(name: str) -> Callable[[int], list[dict]]:
     return lambda max_docs: toy.make_toy(name)
 
@@ -160,6 +240,8 @@ _RAW: dict[str, Callable[[int], list[dict]]] = {
     "teleqna": _raw_teleqna,
     "huffpost": _raw_huffpost,
     "europarl": _raw_europarl,
+    "europarl_nltk": _raw_europarl_nltk,
+    "huffpost_gh": _raw_huffpost_gh,
     **{name: _raw_toy(name) for name in toy.toy_names()},
 }
 
@@ -198,9 +280,19 @@ def process(name: str, raw: list[dict], min_words: int, max_words: int, max_sent
                     "split": assign_split(name, int(item["doc"])),
                 }
             )
-    if len(records) > max_sentences:
-        keep = sorted(random.Random(0).sample(range(len(records)), max_sentences))
-        records = [records[i] for i in keep]
+    if len(records) > max_sentences:  # keep whole documents, so that consecutive sentences stay together
+        doc_ids = sorted({r["doc"] for r in records})
+        random.Random(0).shuffle(doc_ids)
+        size: dict[int, int] = {}
+        for r in records:
+            size[r["doc"]] = size.get(r["doc"], 0) + 1
+        keep, total = set(), 0
+        for doc in doc_ids:
+            if total >= max_sentences:
+                break
+            keep.add(doc)
+            total += size[doc]
+        records = [r for r in records if r["doc"] in keep]
     return records
 
 
@@ -209,7 +301,7 @@ def get_corpus(name: str, data_cfg, refresh: bool = False) -> Corpus:
     if name not in _RAW:
         raise KeyError(f"unknown corpus '{name}'; available: {available_corpora()}")
     cache = Path(data_cfg["cache_dir"]) / "processed"
-    tag = f"{name}_w{data_cfg['min_words']}-{data_cfg['max_words']}_n{data_cfg['max_sentences']}"
+    tag = f"{name}_w{data_cfg['min_words']}-{data_cfg['max_words']}_n{data_cfg['max_sentences']}_{CACHE_VERSION}"
     path = cache / f"{tag}.jsonl"
     if path.exists() and not refresh:
         with open(path, "r", encoding="utf-8") as handle:

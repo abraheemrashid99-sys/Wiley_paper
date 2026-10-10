@@ -1,17 +1,29 @@
-"""Physical channel models and the shell-wise power constraint.
+"""Physical channel models and the nested power constraint.
 
 Symbols are real-valued; ``m`` real symbols correspond to ``m/2`` complex
-channel uses. SNR is the per-symbol ratio of signal power (normalised to one)
-to noise variance.
+channel uses. SNR is the ratio of the average signal power per symbol
+(normalised to one) to the noise variance.
 
-Shell-wise normalisation
-------------------------
-With granularities ``m_1 < m_2 < ... < m_K`` the payload is cut into shells
-``(m_{k-1}, m_k]`` and every shell is scaled to unit average power on its own.
-Any prefix is then a union of unit-power shells, so (i) every operating point
-meets the same average-power constraint exactly and (ii) sending shell ``k+1``
-after shells ``1..k`` is *identical* to having sent the prefix ``m_{k+1}`` in
-one go. Property (ii) is what makes incremental refinement exact.
+Nested average-power constraint
+-------------------------------
+With granularities ``m_1 < m_2 < ... < m_K`` every codeword is cut into shells
+``(m_{k-1}, m_k]``. Each shell is centred and scaled so that its *average*
+power per symbol, taken over the source distribution of the codewords, is at
+most one. Consequences:
+
+(i)  every prefix meets the same average-power constraint, so all operating
+     points are compared at equal transmit power;
+(ii) sending shell ``k+1`` after shells ``1..k`` is *identical* to having sent
+     the prefix ``m_{k+1}`` in one go, which makes incremental refinement
+     exact.
+
+The codebook constraint holds on average over the source distribution it was
+computed on. To make the transmit power *exact* for every message whatever
+its content, each transmitted block (one shell of one message) is additionally
+scaled to unit average power per symbol. The scale is applied to the whole
+block including its pilots, so it is absorbed in the channel estimate and the
+receiver, which is assumed to have perfect channel state information, sees it
+only as a change of effective SNR for that block.
 """
 
 from __future__ import annotations
@@ -26,14 +38,23 @@ def shell_slices(granularities: list[int]) -> list[slice]:
     return [slice(edges[i], edges[i + 1]) for i in range(len(granularities))]
 
 
-def shell_normalize(z: torch.Tensor, granularities: list[int]) -> torch.Tensor:
-    """Scale every shell of ``z`` (B, L) to unit average power per symbol."""
+def nested_power_normalize(raw: torch.Tensor, weights: torch.Tensor, granularities: list[int], peak: float = 4.0) -> torch.Tensor:
+    """Normalise a codebook ``raw`` (V, M) shell by shell.
+
+    ``weights`` (V,) is the probability of each codeword. After the call every
+    shell has zero weighted mean, weighted average power per symbol <= 1 and
+    per-codeword power per symbol <= ``peak``."""
+    weights = (weights / weights.sum()).to(raw.dtype).unsqueeze(1)
     parts = []
     for sl in shell_slices(granularities):
-        shell = z[:, sl]
+        shell = raw[:, sl]
         width = sl.stop - sl.start
-        norm = shell.norm(dim=1, keepdim=True).clamp_min(1e-8)
-        parts.append(shell * (math.sqrt(width) / norm))
+        shell = shell - (weights * shell).sum(0, keepdim=True)
+        power = (weights * shell.pow(2)).sum().clamp_min(1e-12) / width
+        shell = shell / power.sqrt()
+        norm = shell.norm(dim=1, keepdim=True).clamp_min(1e-12)
+        limit = math.sqrt(peak * width)
+        parts.append(shell * torch.clamp(limit / norm, max=1.0))
     return torch.cat(parts, dim=1)
 
 
@@ -68,11 +89,15 @@ class Channel:
             snr = snr + 10.0 * torch.log10(gain2)
         return snr
 
+    def noise(self, shape, std: torch.Tensor) -> torch.Tensor:
+        """Gaussian noise of ``shape`` with standard deviation ``std``
+        (broadcastable CPU tensor), drawn from the private generator."""
+        return torch.randn(tuple(shape), generator=self.generator) * std
+
     def __call__(self, x: torch.Tensor, snr_db) -> tuple[torch.Tensor, torch.Tensor]:
         """Return ``(y, effective_snr_db)`` for unit-power symbols ``x`` (B, m)."""
         eff = self.effective_snr_db(x.shape[0], snr_db)
-        sigma = torch.pow(10.0, -eff / 20.0).unsqueeze(1)
-        noise = torch.randn(x.shape, generator=self.generator) * sigma
+        noise = self.noise(x.shape, torch.pow(10.0, -eff / 20.0).unsqueeze(1))
         return x + noise.to(device=x.device, dtype=x.dtype), eff
 
 

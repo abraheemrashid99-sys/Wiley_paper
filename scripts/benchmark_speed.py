@@ -1,11 +1,13 @@
-"""Measure training and inference speed on this machine (measured, not extrapolated).
+"""Measure speed on this machine (measured, not extrapolated).
 
-    python scripts/benchmark_speed.py --config configs/main.yaml
+    python scripts/benchmark_speed.py --config configs/laptop.yaml
 
-Reports training iterations per second for the configured pretraining and
-stream steps and the median per-message encode / decode latency at every
-prefix length, and turns the speeds into wall-clock estimates. To compare
-thread counts on a CPU, add e.g. ``threads=4`` or ``threads=8``.
+Reports iterations per second for codebook pretraining and for the three
+kinds of stream step (forward-only, medium memory only, full adaptation with
+its second LLM pass), and
+the per-message decode latency at every prefix length, and turns them into
+wall-clock estimates. To compare thread counts on a CPU, add e.g.
+``threads=4`` or ``threads=8``.
 """
 
 from __future__ import annotations
@@ -19,7 +21,7 @@ import torch
 from dnsc.channel import Channel
 from dnsc.cli import make_parser, parse
 from dnsc.codec import build_codec
-from dnsc.train import sample_grans
+from dnsc.train import codebook_loss, sample_grans
 from dnsc.utils import environment, get_device, save_json
 
 SENTENCE = "The base station allocates resource blocks to the user equipment in every slot under fading."
@@ -32,81 +34,122 @@ def sync(device: torch.device) -> None:
         torch.cuda.synchronize()
 
 
+def timed(fn, steps: int, device: torch.device) -> float:
+    fn()  # warm-up
+    sync(device)
+    start = time.perf_counter()
+    for _ in range(steps):
+        fn()
+    sync(device)
+    return steps / (time.perf_counter() - start)
+
+
 def main() -> None:
     parser = make_parser(__doc__)
-    parser.add_argument("--steps", type=int, default=6, help="timed steps per measurement")
-    parser.add_argument("--repeats", type=int, default=9, help="timed repeats for the latency figures")
+    parser.add_argument("--steps", type=int, default=5, help="timed steps per measurement")
+    parser.add_argument("--repeats", type=int, default=5, help="timed repeats for the latency figures")
     cfg, args = parse(parser)
     device = get_device(cfg["device"])
     codec = build_codec(cfg, device)
     channel = Channel("awgn", 0)
     rng = np.random.default_rng(0)
-    params = [p for p in codec.parameters() if p.requires_grad]
-    optimizer = torch.optim.AdamW(params, lr=1e-5)
-    # a sentence of typical length for the configured corpus filter
-    n_words = max(4, (int(cfg["data"]["min_words"]) + int(cfg["data"]["max_words"])) // 2)
-    sentence = " ".join((SENTENCE.split() * 4)[:n_words])
-
-    def measure(batch_size: int, n_grans: int) -> float:
-        """Training iterations per second for one encode and ``n_grans`` decodes."""
-        batch = codec.tokenize([sentence] * batch_size)
-
-        def step() -> None:
-            z = codec.encode(batch)
-            loss = sum(codec.loss_at(z, batch, m, 10.0, channel)[0].mean() for m in sample_grans(codec.grans, n_grans, rng))
-            optimizer.zero_grad(set_to_none=True)
-            loss.backward()
-            optimizer.step()
-
-        step()  # warm-up
-        sync(device)
-        start = time.perf_counter()
-        for _ in range(args.steps):
-            step()
-        sync(device)
-        return args.steps / (time.perf_counter() - start)
-
     scfg = cfg["stream"]
-    it_per_s = measure(int(cfg["pretrain"]["batch_size"]), int(cfg["pretrain"]["grans_per_step"]))
-    stream_it_per_s = measure(int(scfg["batch_size"]), 1 + int(scfg["extra_grans"]))
-    batch_size = int(cfg["pretrain"]["batch_size"])
+    n_words = max(4, (int(cfg["data"]["min_words"]) + int(cfg["data"]["max_words"])) // 2)
+    sentence = " ".join((SENTENCE.split() * 4)[:n_words])  # a sentence of typical length
+    groups = codec.groups()
+    m_op = int(scfg["m_op"])
 
+    # 1. codebook pretraining step (no LLM pass)
+    codebook_params = [p for _, p in groups["codebook"]]
+    optimizer = torch.optim.AdamW(codebook_params, lr=1e-6)
+    n_tokens = int(cfg["pretrain"]["batch_tokens"])
+    codec.train_codebook = True
+
+    def pretrain_step() -> None:
+        ids = torch.tensor(rng.integers(0, codec.vocab, size=n_tokens), device=device)
+        loss, _ = codebook_loss(codec, ids, torch.full((n_tokens,), 10.0), channel, sample_grans(codec.grans, int(cfg["pretrain"]["grans_per_step"]), rng))
+        optimizer.zero_grad(set_to_none=True)
+        loss.backward()
+        optimizer.step()
+        codec.invalidate_codebook()
+
+    pretrain_its = timed(pretrain_step, args.steps, device)
+    codec.train_codebook = False
+    codec.invalidate_codebook()
+
+    # 2. stream steps
+    batch = codec.tokenize([sentence] * int(scfg["batch_size"]))
+    bias, lora = [p for _, p in groups["rx_bias"]], [p for _, p in groups["rx_lora"]]
+
+    def stream_step(train_bias: bool, train_lora: bool):
+        def step() -> None:
+            for p in bias:
+                p.requires_grad_(train_bias)
+            for p in lora:
+                p.requires_grad_(train_lora)
+            y, prec = codec.transmit(codec.encode(batch), batch.lens, 10.0, channel)
+            if train_lora:  # the receiver is scored with its own (stale) adapter first
+                with torch.no_grad():
+                    codec.loss_at(batch, y, prec, m_op, codec._adjust_prior(codec.lm_logits_tf(batch), None))
+            with torch.set_grad_enabled(train_lora):
+                logits = codec.lm_logits_tf(batch)
+            with torch.set_grad_enabled(train_bias or train_lora):
+                ce, _, _ = codec.loss_at(batch, y, prec, m_op, codec._adjust_prior(logits, None))
+                if train_bias or train_lora:
+                    ce.mean().backward()
+                    for p in bias + lora:
+                        p.grad = None
+
+        return step
+
+    forward_its = timed(stream_step(False, False), args.steps, device)
+    medium_its = timed(stream_step(True, False), args.steps, device)
+    full_its = timed(stream_step(True, True), args.steps, device)
+    codec.freeze_all()
+
+    # 3. decode latency, one message
     codec.eval()
     one = codec.tokenize([sentence])
     latency = {}
     with torch.no_grad():
-        enc_times = []
-        for _ in range(args.repeats):
-            sync(device)
-            t0 = time.perf_counter()
-            z = codec.encode(one)
-            sync(device)
-            enc_times.append(time.perf_counter() - t0)
-        for m in codec.grans:
-            dec_times = []
-            y, _ = codec.transmit(z, m, 10.0, channel)
-            for _ in range(max(5, args.repeats // 3)):
-                sync(device)
-                t0 = time.perf_counter()
-                codec.generate(codec.prompts(y, m), max_new=int(one.ids.shape[1]) + 4)
-                sync(device)
-                dec_times.append(time.perf_counter() - t0)
-            latency[str(m)] = {"decode_ms": 1e3 * float(np.median(dec_times)), "payload_bytes_fp32": 4 * m}
-    encode_ms = 1e3 * float(np.median(enc_times))
+        y, prec = codec.transmit(codec.encode(one), one.lens, 10.0, channel)
+        for prior in ("llm", "none"):
+            for m in codec.grans:
+                times = []
+                for _ in range(args.repeats):
+                    sync(device)
+                    t0 = time.perf_counter()
+                    codec.decode(y, m, prec, one.lens, prior)
+                    sync(device)
+                    times.append(time.perf_counter() - t0)
+                latency[f"{prior}_m{m}"] = 1e3 * float(np.median(times))
 
-    pre_h = int(cfg["pretrain"]["steps"]) / it_per_s / 3600
     stream_steps = len(scfg["domains"]) * int(scfg["cycles"]) * int(scfg["tau_slow"]) if scfg["kind"] == "hier" else int(scfg["temporal_steps"])
-    stream_h = stream_steps / stream_it_per_s / 3600
-    print(f"\ndevice                : {device}  (CPU threads: {torch.get_num_threads()})")
-    print(f"pretraining speed     : {it_per_s:.2f} it/s at batch size {batch_size}, {cfg['pretrain']['grans_per_step']} prefix length(s) per step")
-    print(f"stream speed          : {stream_it_per_s:.2f} it/s at batch size {scfg['batch_size']}")
-    print(f"encode latency        : {encode_ms:.1f} ms per message (independent of m: the encoder runs in full)")
-    for m, row in latency.items():
-        print(f"decode latency  m={m:>4}: {row['decode_ms']:.1f} ms  (payload {row['payload_bytes_fp32']} B at fp32)")
-    print(f"estimated pretraining : {pre_h:.1f} h for {cfg['pretrain']['steps']} steps (resumable)")
-    print(f"estimated stream run  : {stream_h:.2f} h per adaptive (method, seed) for {stream_steps} steps, plus probes; 'frozen' is about 3x faster")
+    pre_min = int(cfg["pretrain"]["steps"]) / pretrain_its / 60
+    tokens = int(one.lens[0])
+    print(f"\ndevice                  : {device}  (CPU threads: {torch.get_num_threads()})")
+    print(f"codebook pretraining    : {pretrain_its:.2f} it/s  ->  about {pre_min:.0f} min for {cfg['pretrain']['steps']} steps")
+    print(f"stream step, no training: {forward_its:.2f} it/s  (frozen, context_only)")
+    print(f"stream step, bias only  : {medium_its:.2f} it/s")
+    print(f"stream step, bias + LoRA: {full_its:.2f} it/s  (nested, single_rate, ewc, full_online)")
+    for m in codec.grans:
+        print(f"decode latency  m={m:>3}   : LLM prior {latency[f'llm_m{m}']:.0f} ms, no prior {latency[f'none_m{m}']:.1f} ms  ({tokens} tokens, {4 * m * tokens} B payload at fp32)")
+    print(f"estimated stream run    : {stream_steps / full_its / 60:.0f} min per adaptive (method, seed) for {stream_steps} steps, {stream_steps / forward_its / 60:.0f} min without training; probes come on top")
     out = Path(cfg["out_dir"]) / "eval" / "speed.json"
-    save_json(out, {"device": str(device), "threads": torch.get_num_threads(), "it_per_s": it_per_s, "stream_it_per_s": stream_it_per_s, "encode_ms": encode_ms, "latency": latency, "pretrain_hours": pre_h, "stream_hours": stream_h, "env": environment()})
+    save_json(
+        out,
+        {
+            "device": str(device),
+            "threads": torch.get_num_threads(),
+            "pretrain_it_per_s": pretrain_its,
+            "stream_forward_it_per_s": forward_its,
+            "stream_medium_it_per_s": medium_its,
+            "stream_full_it_per_s": full_its,
+            "decode_ms": latency,
+            "tokens": tokens,
+            "env": environment(),
+        },
+    )
     print(f"wrote {out}")
 
 

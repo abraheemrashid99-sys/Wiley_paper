@@ -10,3 +10,4 @@ venv/
 /runs/
 *.pt
 *.log
+/models/

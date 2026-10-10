@@ -3,8 +3,9 @@
     python scripts/check_env.py --config configs/main.yaml
 
 Checks, in order: library versions and device; that the backbone downloads
-and runs one training step on the selected device; that each corpus the
-config references can be built; and that the sentence-similarity model loads.
+and runs one adaptation step and one decode on the selected device; that each
+corpus the config references can be built; and that the sentence-similarity
+model loads.
 Each check prints PASS or FAIL with the reason, and the script exits non-zero
 if anything failed.
 """
@@ -49,13 +50,18 @@ def main() -> None:
         codec = build_codec(cfg, device)
         groups = codec.groups()
         sizes = {name: count_params(p for _, p in params) for name, params in groups.items()}
-        batch = codec.tokenize(["The network slice is reconfigured before the handover.", "Parliament adopted the resolution on energy policy."])
-        ce, acc = codec.loss_at(codec.encode(batch), batch, codec.grans[0], 10.0, Channel("awgn", 0))
+        texts = ["The network slice is reconfigured before the handover.", "Parliament adopted the resolution on energy policy."]
+        batch = codec.tokenize(texts)
+        for _, param in groups["rx_lora"] + groups["rx_bias"]:
+            param.requires_grad_(True)
+        channel = Channel("awgn", 0)
+        y, prec = codec.transmit(codec.encode(batch), batch.lens, 10.0, channel)
+        ce, _, _ = codec.loss_at(batch, y, prec, codec.grans[0], codec.prior_tf(batch))
         ce.mean().backward()
-        text = codec.reconstruct(["A short test sentence for the decoder."], codec.grans[-1], 10.0, Channel("awgn", 1)).texts[0]
         if not torch.isfinite(ce).all():
             raise RuntimeError("non-finite loss on this device")
-        return f"hidden={codec.hidden} groups={sizes} loss={ce.mean().item():.3f} untrained_decode={text[:40]!r}"
+        decoded = codec.reconstruct(texts[:1], codec.grans[-1], 20.0, Channel("awgn", 1)).texts[0]
+        return f"hidden={codec.hidden} vocab={codec.vocab} groups={sizes} loss={ce.mean().item():.3f} decode_at_max_rate={decoded[:48]!r}"
 
     results.append(check(f"backbone '{cfg['backbone']['name']}' forward/backward/generate on {device}", backbone))
 

@@ -1,20 +1,21 @@
-# Main config: SmolLM2-360M (about 360 M parameters, Apache-2.0).
-# The headline results of the paper are produced with this file. Run
-# scripts/benchmark_speed.py first to see what it costs on your machine.
+# Second, larger backbone: SmolLM2-360M (Apache-2.0).
+# Same method as configs/laptop.yaml with longer sentences and streams. It
+# repeats the headline experiments on a stronger language prior. Feasible on a
+# CPU for a reduced set of runs; comfortable on any GPU (a free Kaggle or
+# Colab T4 is enough). Run scripts/benchmark_speed.py first.
 name: main
 seed: 0
-device: auto            # MPS on Apple Silicon
+device: auto            # CUDA or Apple MPS when present, else CPU
 out_dir: runs/main
 backbone:
   name: HuggingFaceTB/SmolLM2-360M
-  train_backbone: false
 codec:
-  n_slots: 8
-  n_prompts: 8
-  granularities: [16, 32, 64, 128, 256]   # real channel symbols per message
+  granularities: [2, 4, 6, 8, 12, 16]     # real channel symbols per token
   max_tokens: 64
-  lora: {r: 8, alpha: 16, dropout: 0.0, targets: [q_proj, v_proj], tx_last_n: 0, rx_last_n: 8}
-  deproj_rank: 4
+  codebook_hidden: 256
+  peak_ratio: 4.0
+  lora: {r: 8, alpha: 16, dropout: 0.0, targets: [q_proj, v_proj], last_n: 8, slots: 2}
+context: {enabled: true, max_tokens: 64}   # fast memory: the conversation so far, as decoded
 channel: {type: awgn, snr_train: [0.0, 20.0]}
 data:
   cache_dir: data
@@ -23,43 +24,45 @@ data:
   max_words: 30
   max_sentences: 60000
 pretrain:
-  steps: 8000
-  batch_size: 16
-  lr: 5.0e-4
-  lora_lr: 2.0e-4
-  warmup: 200
-  grans_per_step: 2
-  eval_every: 500
-  eval_sentences: 256
+  steps: 3000
+  batch_tokens: 256
+  lr: 2.0e-3
+  warmup: 100
+  eval_every: 1000
+  eval_tokens: 2000
   log_every: 50
 stream:
   kind: hier
   domains: [ag_news, teleqna]
   cycles: 2
-  tau_slow: 400
-  tau_med: 80
+  tau_slow: 300
+  tau_med: 60
   kappa: 0.9
   temporal_corpus: huffpost
-  temporal_steps: 1500
-  temporal_eras: 5
+  temporal_steps: 1200
+  temporal_eras: 4
   batch_size: 16
   snr: {mean: 10.0, rho: 0.95, sigma: 4.0, min: 0.0, max: 20.0}
-  m_op: 64
-  extra_grans: 1
+  m_op: 6                 # reference fixed prefix; every prefix and the selective curve are logged too
+  thresholds: [0.5, 0.7, 0.9, 0.95, 0.99]
+  threshold: 0.9
+  target_acc: 0.9
   probe_size: 128
   gen_every: 50
   gen_sentences: 16
 nested:
-  periods: {fast: 1, medium: 20, slow: 100}
-  lrs: {fast: 5.0e-4, medium: 2.0e-4, slow: 1.0e-4}
-  ema: {enabled: true, decay: 0.99, beta: 0.9}
+  periods: {medium: 20, slow: 100}
+  lrs: {medium: 1.0e-3, slow: 5.0e-4}
+  rule: local
+  select_every: 10
+  select_margin: 0.05
   sync: {bits: 8, topk: 1.0}
   single_period: auto
-  single_lr: 2.0e-4
 eval:
   snrs: [0.0, 5.0, 10.0, 15.0, 20.0]
   channels: [awgn, rayleigh]
+  priors: [llm, unigram, none]
   n_test: 500
-  batch_size: 32
+  batch_size: 16
   sim_model: sentence-transformers/all-MiniLM-L6-v2
-refine: {quality: sim, gamma: 0.8, n_val: 300, n_test: 500}
+refine: {n_val: 300, n_test: 500, n_live: 200, live_thresholds: [0.5, 0.7, 0.9]}

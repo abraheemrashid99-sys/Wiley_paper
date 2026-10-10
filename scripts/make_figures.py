@@ -33,25 +33,24 @@ def smooth(values, window: int) -> np.ndarray:
 
 
 def rate_figures(out_dir: Path, figs: Path) -> None:
+    styles = {"llm": ("-", "o"), "unigram": ("--", "s"), "none": (":", "^")}
     for path in sorted(glob.glob(str(out_dir / "eval" / "rate_*.json"))):
         data = load_json(path)
         frame = pd.DataFrame(data["rows"])
         channels = list(dict.fromkeys(frame["channel"]))
-        fig, axes = plt.subplots(1, len(channels), figsize=(4.2 * len(channels), 3.2), squeeze=False)
+        fig, axes = plt.subplots(1, len(channels), figsize=(4.4 * len(channels), 3.4), squeeze=False)
         for ax, channel in zip(axes[0], channels):
             sub = frame[frame["channel"] == channel]
             colour = {snr: f"C{i}" for i, snr in enumerate(sorted(sub["snr_db"].unique()))}  # one colour per SNR
-            for snr, group in sub[sub["system"] == "dnsc"].groupby("snr_db"):
-                ax.plot(group["m"], group["bleu4"], marker="o", color=colour[snr], label=f"DN-SC, {snr:g} dB")
-            ref = sub[sub["system"] == "sep_lm_fbl"]
-            for snr, group in ref.groupby("snr_db"):
-                ax.plot(group["m"], group["delivered"], linestyle="--", alpha=0.6, color=colour[snr], label=f"ideal separation (LM, finite block), {snr:g} dB")
+            for prior, (line, marker) in styles.items():
+                for snr, group in sub[sub["system"] == f"dnsc_{prior}"].groupby("snr_db"):
+                    ax.plot(group["m"], group["bleu4"], linestyle=line, marker=marker, markersize=3, color=colour[snr], label=f"{prior} prior, {snr:g} dB")
             ax.set_xscale("log", base=2)
             ax.set_ylim(-0.02, 1.02)
-            ax.set_xlabel("real channel symbols per message, m")
-            ax.set_ylabel("BLEU-4  /  delivered fraction")
+            ax.set_xlabel("real channel symbols per token, m")
+            ax.set_ylabel("BLEU-4")
             ax.set_title(f"{data['corpus']} - {channel}")
-        axes[0][-1].legend(fontsize=6, ncol=2, loc="lower right")
+        axes[0][-1].legend(fontsize=5, ncol=3, loc="lower right")
         fig.savefig(figs / f"rate_{data['corpus']}.pdf")
         fig.savefig(figs / f"rate_{data['corpus']}.png")
         plt.close(fig)
@@ -95,18 +94,20 @@ def refine_figures(out_dir: Path, figs: Path) -> None:
         data = load_json(path)
         results = data["results"]
         channels = list(dict.fromkeys(r["channel"] for r in results))
-        fig, axes = plt.subplots(1, len(channels), figsize=(4.2 * len(channels), 3.2), squeeze=False)
+        fig, axes = plt.subplots(1, len(channels), figsize=(4.4 * len(channels), 3.4), squeeze=False)
         for ax, channel in zip(axes[0], channels):
             for res in (r for r in results if r["channel"] == channel):
                 curve = sorted(res["curve"], key=lambda c: c["symbols"])
-                (line,) = ax.plot([c["symbols"] for c in curve], [c["quality"] for c in curve], label=f"calibrated stop, {res['snr_db']:g} dB")
-                ax.plot([f["symbols"] for f in res["fixed"]], [f["quality"] for f in res["fixed"]], marker="s", linestyle=":", color=line.get_color(), alpha=0.7)
+                (line,) = ax.plot([c["symbols"] for c in curve], [c["quality"] for c in curve], label=f"selective, {res['snr_db']:g} dB")
+                ax.plot([f["symbols"] for f in res["fixed"]], [f["quality"] for f in res["fixed"]], marker="s", markersize=3, linestyle=":", color=line.get_color(), alpha=0.7)
                 ax.scatter([res["oracle"]["symbols"]], [res["oracle"]["quality"]], marker="*", color=line.get_color())
+                for point in res.get("free_running", []):
+                    ax.scatter([point["symbols"]], [point["gen_tok_acc"]], marker="x", color=line.get_color())
             ax.set_xscale("log", base=2)
             ax.set_ylim(-0.02, 1.02)
-            ax.set_xlabel("mean symbols per message")
-            ax.set_ylabel(f"mean {results[0]['quality_metric']}")
-            ax.set_title(f"{data['corpus']} - {channel}  (dotted: fixed rate, star: oracle)")
+            ax.set_xlabel("mean symbols per token")
+            ax.set_ylabel("token accuracy")
+            ax.set_title(f"{data['corpus']} - {channel}\n(dotted: fixed rate, star: oracle, x: free-running)", fontsize=8)
         axes[0][-1].legend(fontsize=6)
         fig.savefig(figs / f"refine_{data['corpus']}.pdf")
         fig.savefig(figs / f"refine_{data['corpus']}.png")
