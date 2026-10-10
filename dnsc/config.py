@@ -120,7 +120,7 @@ DEFAULTS: dict[str, Any] = {
     "eval": {
         "snrs": [0.0, 5.0, 10.0, 15.0, 20.0],
         "channels": ["awgn", "rayleigh"],
-        "priors": ["llm", "unigram", "none"],
+        "priors": ["llm_ctx", "llm", "unigram", "none"],  # llm_ctx: the LLM with the true earlier sentences as context
         "n_test": 500,
         "batch_size": 16,
         "sim_model": "sentence-transformers/all-MiniLM-L6-v2",
@@ -215,7 +215,7 @@ def validate(cfg: dict) -> None:
         raise ValueError("nested.periods must satisfy 1 <= medium <= slow")
     if cfg["nested"]["rule"] not in ("local", "chunk"):
         raise ValueError("nested.rule must be 'local' or 'chunk'")
-    unknown = set(cfg["eval"]["priors"]) - {"llm", "unigram", "none"}
+    unknown = set(cfg["eval"]["priors"]) - {"llm_ctx", "llm", "unigram", "none"}
     if unknown:
         raise ValueError(f"eval.priors contains unknown entries: {sorted(unknown)}")
     if cfg["channel"]["type"] not in ("awgn", "rayleigh"):

@@ -53,7 +53,7 @@ nested:
 eval:
   snrs: [0.0, 10.0, 20.0]
   channels: [awgn, rayleigh]
-  priors: [llm, unigram, none]
+  priors: [llm_ctx, llm, unigram, none]
   n_test: 64
   batch_size: 32
   sim_model: null

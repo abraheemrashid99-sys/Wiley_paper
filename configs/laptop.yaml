@@ -64,7 +64,7 @@ nested:
 eval:
   snrs: [0.0, 10.0, 20.0]
   channels: [awgn, rayleigh]
-  priors: [llm, unigram, none]
+  priors: [llm_ctx, llm, unigram, none]
   n_test: 200
   batch_size: 16
   sim_model: sentence-transformers/all-MiniLM-L6-v2

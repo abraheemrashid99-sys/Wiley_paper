@@ -24,7 +24,7 @@ from __future__ import annotations
 import numpy as np
 import torch
 
-from .channel import Channel
+from .channel import Channel, shell_slices
 from .codec import SemanticCodec
 from .metrics import expected_calibration_error, fidelity
 
@@ -44,17 +44,22 @@ def level_stats(codec: SemanticCodec, ids: torch.Tensor, y: torch.Tensor, weight
     if entropy:
         rows["entropy"] = []
     index = ids.unsqueeze(1)
-    for m in codec.grans:
-        score = log_prior + codec.lik_weight * codec.loglik_w(y[:, :m], weight[:, :m])  # unnormalised log-posterior
-        norm = torch.logsumexp(score, dim=-1)
-        best, decided = score.max(dim=-1)
+    code = codec.codebook().to(y.dtype)
+    scale = float(codec.lik_weight)
+    score = log_prior.clone()  # unnormalised log-posterior, built up shell by shell in place
+    buffer = torch.empty_like(score)
+    for sl in shell_slices(codec.grans):
+        # log-likelihood of this shell (see SemanticCodec.loglik_w), added to what the shorter prefix gave
+        shell, w = code[:, sl], weight[:, sl]
+        score.addmm_(torch.cat([w * y[:, sl], -0.5 * w], dim=1), torch.cat([shell, shell * shell], dim=1).t(), alpha=scale)
+        torch.log_softmax(score, dim=1, out=buffer)  # the normalised log-posterior at this prefix length
+        best, decided = buffer.max(dim=1)
         rows["correct"].append((decided == ids).float())
-        rows["conf"].append((best - norm).exp())
-        rows["ce"].append(norm - score.gather(1, index).squeeze(1))
+        rows["conf"].append(best.exp())
+        rows["ce"].append(-buffer.gather(1, index).squeeze(1))
         rows["decided"].append(decided)
         if entropy:
-            post = score - norm.unsqueeze(1)
-            rows["entropy"].append(-(post.exp() * post).sum(-1))
+            rows["entropy"].append(-(buffer.exp() * buffer).sum(-1))
     return {key: torch.stack(value, dim=1) for key, value in rows.items()}
 
 

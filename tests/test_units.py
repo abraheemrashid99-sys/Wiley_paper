@@ -19,7 +19,7 @@ from dnsc.linkbudget import crossover_traffic, net_semantic_rate, overhead_fract
 from dnsc.metrics import bleu_scores, expected_calibration_error, exact_match, sentence_bleu
 from dnsc.nested import Level, NestedOptimizer, quantize_delta
 from dnsc.refine import Calibrator, features, interpolate_fixed, random_matched, reference_policies, stop_levels, stopping_curve
-from dnsc.stats import equivalence, holm, mean_sd, paired_bootstrap, paired_permutation
+from dnsc.stats import block_bootstrap, equivalence, holm, mean_sd, paired_bootstrap, paired_permutation
 from dnsc.train import lr_at, sample_grans
 
 
@@ -436,3 +436,15 @@ def test_stop_levels_pick_the_first_confident_shell():
     assert stop_levels(conf, 0.9).tolist() == [2, 0, 2]  # the last shell when never confident
     assert stop_levels(conf, 0.5).tolist() == [1, 0, 2]
     assert stop_levels(conf, 0.0).tolist() == [0, 0, 0]
+
+
+def test_block_bootstrap_of_paired_differences():
+    rng = np.random.default_rng(0)
+    shifted = [0.2 + 0.5 * rng.standard_normal(200) for _ in range(3)]
+    ci = block_bootstrap(shifted, block=25)
+    assert ci["n_blocks"] == 24 and ci["ci_low"] < ci["delta"] < ci["ci_high"] and ci["excludes_zero"] and ci["delta"] == pytest.approx(0.2, abs=0.1)
+    null = [0.5 * rng.standard_normal(200) for _ in range(3)]
+    assert not block_bootstrap(null, block=25)["excludes_zero"]
+    assert block_bootstrap([np.ones(60)], block=25)["n_blocks"] == 2  # an incomplete last block is dropped
+    with pytest.raises(ValueError):
+        block_bootstrap([np.ones(10)], block=25)

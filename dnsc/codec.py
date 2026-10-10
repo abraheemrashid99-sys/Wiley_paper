@@ -55,6 +55,20 @@ _TINY_LM_CACHE: dict[str, dict] = {}  # trained tiny backbones of this process (
 PRIORS = ("llm", "unigram", "none")
 
 
+def _length_groups(lengths: list[int], overhead: int = 16) -> list[list[int]]:
+    """Partition row indices into groups of similar length (ascending). A row
+    joins the current group unless padding the group up to it would cost more
+    positions than ``overhead``, the rough price of one more forward call."""
+    order = sorted(range(len(lengths)), key=lambda i: lengths[i])
+    groups: list[list[int]] = []
+    for i in order:
+        if groups and len(groups[-1]) * (lengths[i] - lengths[groups[-1][-1]]) <= overhead:
+            groups[-1].append(i)
+        else:
+            groups.append([i])
+    return groups
+
+
 def join_context(sentences: list[list[int]], limit: int) -> list[int]:
     """The most recent whole sentences (token ids) that fit in ``limit``
     tokens, in order. A context never starts in the middle of a sentence,
@@ -375,17 +389,37 @@ class SemanticCodec(nn.Module):
         ``contexts`` optionally gives, per message, the token ids of the text
         that precedes it (an empty list for none). With ``flat`` the output
         layer is applied to the non-padding positions only and the result is
-        (N, V)."""
+        (N, V).
+
+        Every row is the sequence ``start, context, message`` padded on the
+        right. Rows of similar length are run together, so that a batch with
+        one long row does not make the LLM process padding for all the others.
+        """
         self._activate()
         bsz, width = batch.ids.shape
-        prefix, prefix_mask = self._prefix(contexts, bsz, batch.ids.device)
-        inputs = torch.cat([prefix, batch.ids[:, :-1]], dim=1)
-        mask = torch.cat([prefix_mask[:, :-1], batch.mask.long()], dim=1)
-        extra = {}
-        if prefix.shape[1] > 1:  # left padding: positions must count real tokens only
-            extra["position_ids"] = (mask.cumsum(dim=1) - 1).clamp_min(0)
-        hidden = self.lm.base_model(input_ids=inputs, attention_mask=mask, **extra).last_hidden_state[:, -width:]
-        return self._head(hidden[batch.mask]) if flat else self._head(hidden)
+        device = batch.ids.device
+        lens = batch.lens.tolist()
+        rows = []
+        for b in range(bsz):
+            context = list(contexts[b]) if contexts else []
+            rows.append([self.start_token] + context + batch.ids[b, : lens[b] - 1].tolist())
+        hidden = [None] * bsz  # per row: (len_b, H) states that predict its tokens
+        for group in _length_groups([len(r) for r in rows]):
+            longest = max(len(rows[b]) for b in group)
+            inputs = torch.full((len(group), longest), self.tok.pad_token_id, dtype=torch.long, device=device)
+            mask = torch.zeros(len(group), longest, dtype=torch.long, device=device)
+            for i, b in enumerate(group):
+                inputs[i, : len(rows[b])] = torch.tensor(rows[b], dtype=torch.long, device=device)
+                mask[i, : len(rows[b])] = 1
+            states = self.lm.base_model(input_ids=inputs, attention_mask=mask).last_hidden_state
+            for i, b in enumerate(group):
+                hidden[b] = states[i, len(rows[b]) - lens[b] : len(rows[b])]
+        if flat:
+            return self._head(torch.cat(hidden, dim=0))
+        padded = torch.zeros(bsz, width, hidden[0].shape[-1], dtype=hidden[0].dtype, device=device)
+        for b in range(bsz):
+            padded[b, : lens[b]] = hidden[b]
+        return self._head(padded)
 
     def prior_tf(self, batch: TokenBatch, cache: TokenCache | None = None, prior: str = "llm", contexts: list[list[int]] | None = None, flat: bool = False) -> torch.Tensor:
         """Teacher-forced log-prior over the vocabulary, shape (B, T, V), or

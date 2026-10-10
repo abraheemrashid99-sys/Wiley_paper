@@ -19,7 +19,7 @@ codec:
   codebook_hidden: 256
   peak_ratio: 4.0
   lora: {r: 8, alpha: 16, dropout: 0.0, targets: [c_attn], last_n: 6, slots: 2}
-context: {enabled: true, max_tokens: 64}   # fast memory: the conversation so far, as decoded
+context: {enabled: true, max_tokens: 48}   # fast memory: the conversation so far, as decoded
 channel: {type: awgn, snr_train: [0.0, 20.0]}
 data:
   cache_dir: data
@@ -46,15 +46,15 @@ stream:
   temporal_corpus: huffpost_gh
   temporal_steps: 600
   temporal_eras: 4
-  batch_size: 8
+  batch_size: 6           # parallel conversations
   snr: {mean: 10.0, rho: 0.95, sigma: 4.0, min: 0.0, max: 20.0}
   m_op: 6                 # reference fixed prefix; every prefix and the selective curve are logged too
   thresholds: [0.5, 0.7, 0.9, 0.95, 0.99]
   threshold: 0.9
   target_acc: 0.9
-  probe_size: 64
-  gen_every: 50
-  gen_sentences: 8
+  probe_size: 48
+  gen_every: 0            # free-running decoding is checked on the probes
+  gen_sentences: 4
 nested:
   periods: {medium: 10, slow: 50}
   lrs: {medium: 1.0e-3, slow: 5.0e-4}
@@ -66,7 +66,7 @@ nested:
 eval:
   snrs: [0.0, 10.0, 20.0]
   channels: [awgn, rayleigh]
-  priors: [llm, unigram, none]
+  priors: [llm_ctx, llm, unigram, none]
   n_test: 200
   batch_size: 16
   sim_model: null

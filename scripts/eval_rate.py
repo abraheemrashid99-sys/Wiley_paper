@@ -2,9 +2,11 @@
 separation-based references.
 
 For every channel, SNR and prefix length (symbols per token) this reports the
-fidelity of Bayesian decoding under three priors - the LLM, a unigram model
-and no prior at all - so the contribution of the language model is measured
-directly. At the same symbol budget and under the same fading distribution it
+fidelity of Bayesian decoding under four priors - the LLM with the earlier
+sentences of the document as context (``llm_ctx``; the true sentences, i.e.
+an upper reference for the context memory), the LLM on the sentence alone
+(``llm``), a unigram model and no prior at all - so the contribution of the
+language model and of its context is measured directly. At the same symbol budget and under the same fading distribution it
 also reports the delivery rate of ideal separate source-channel designs (see
 dnsc/classical.py).
 
@@ -22,6 +24,7 @@ from dnsc.classical import deflate_bits, delivered, lm_bits
 from dnsc.cli import make_parser, parse
 from dnsc.codec import load_codec
 from dnsc.data import get_corpus
+from dnsc.data.stream import _probes_from
 from dnsc.metrics import load_similarity
 from dnsc.train import evaluate_gen, evaluate_tf
 from dnsc.utils import Timer, environment, get_device, save_json, set_seed
@@ -42,9 +45,11 @@ def main() -> None:
     codec = load_codec(cfg, ckpt, device)
     codec.eval()
     ecfg = cfg["eval"]
-    texts = get_corpus(corpus_name, cfg["data"]).texts("test")
-    rng = np.random.default_rng(0)
-    texts = [texts[int(i)] for i in rng.permutation(len(texts))[: int(ecfg["n_test"])]]
+    # held-out sentences, each with the part of its document that precedes it
+    probes = _probes_from(get_corpus(corpus_name, cfg["data"]).documents("test"), int(ecfg["n_test"]), np.random.default_rng(0))
+    texts = [p.text for p in probes]
+    history = [codec.history_ids(p.history, int(cfg["context"]["max_tokens"])) for p in probes]
+    continued = [bool(p.history) for p in probes]
     sim = load_similarity(ecfg["sim_model"], device)
     batch_size = int(ecfg["batch_size"])
 
@@ -59,11 +64,13 @@ def main() -> None:
                 shown = {}
                 for prior in ecfg["priors"]:
                     row = {"system": f"dnsc_{prior}", "prior": prior, "channel": kind, "snr_db": float(snr), "m": int(m), "codebook_power": codec.codebook_power(all_ids, m)}
-                    row.update(evaluate_tf(codec, texts, m, snr, Channel(kind, seed=2024), prior=prior, batch_size=batch_size))
-                    gen = evaluate_gen(codec, texts, m, snr, Channel(kind, seed=2025), sim, prior=prior, batch_size=batch_size, return_texts=True)
+                    extra = {"contexts": history, "continued": continued} if prior == "llm_ctx" else {}
+                    base_prior = "llm" if prior == "llm_ctx" else prior
+                    row.update(evaluate_tf(codec, texts, m, snr, Channel(kind, seed=2024), prior=base_prior, batch_size=batch_size, **extra))
+                    gen = evaluate_gen(codec, texts, m, snr, Channel(kind, seed=2025), sim, prior=base_prior, batch_size=batch_size, return_texts=True, **extra)
                     references, hyps = gen.pop("refs"), gen.pop("hyps")
-                    if prior == "llm":  # kept so that further text metrics can be computed without re-running
-                        decoded.append({"channel": kind, "snr_db": float(snr), "m": int(m), "hyps": hyps})
+                    if prior.startswith("llm"):  # kept so that further text metrics can be computed without re-running
+                        decoded.append({"prior": prior, "channel": kind, "snr_db": float(snr), "m": int(m), "hyps": hyps})
                     row.update(gen)
                     rows.append(row)
                     shown[prior] = row
@@ -81,7 +88,7 @@ def main() -> None:
 
     source = {name: {"mean_bits": float(b.mean()), "p95_bits": float(np.quantile(b, 0.95)), "bits_per_token": float(b.sum() / n_tokens.sum())} for name, b in bits.items()}
     out = Path(cfg["out_dir"]) / "eval" / f"rate_{corpus_name}.json"
-    save_json(out, {"corpus": corpus_name, "n": len(texts), "mean_tokens": float(n_tokens.mean()), "rows": rows, "references": references, "decoded": decoded, "source_bits": source, "fbl_eps": FBL_EPS, "seconds": timer.elapsed(), "config": cfg.to_dict(), "env": environment()})
+    save_json(out, {"corpus": corpus_name, "n": len(texts), "mean_tokens": float(n_tokens.mean()), "rows": rows, "with_history": int(sum(continued)), "references": references, "decoded": decoded, "source_bits": source, "fbl_eps": FBL_EPS, "seconds": timer.elapsed(), "config": cfg.to_dict(), "env": environment()})
     print(f"[rate] wrote {out}")
 
 

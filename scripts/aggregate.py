@@ -19,7 +19,7 @@ import pandas as pd
 from dnsc.cli import make_parser, parse
 from dnsc.headroom import format_rows
 from dnsc.linkbudget import crossover_traffic, net_semantic_rate
-from dnsc.stats import holm, mean_sd, paired_permutation
+from dnsc.stats import block_bootstrap, holm, mean_sd, paired_permutation
 from dnsc.utils import ensure_dir, load_json
 
 
@@ -55,12 +55,68 @@ def recovery_steps(result: dict, window: int = 10, fraction: float = 0.9) -> flo
     return float(np.mean(out)) if out else float("nan")
 
 
+def run_tag(path: str, result: dict) -> str:
+    """The ``--tag`` a stream run was started with, read off its file name
+    (``<stream>_<method>_s<seed>[_<tag>].json``)."""
+    return Path(path).stem.split(f"_{result['method']}_s{result['seed']}", 1)[-1].lstrip("_")
+
+
+def _differences(a: dict, b: dict, prefix: str = "") -> list[str]:
+    """Config keys on which a variant run differs from its reference run."""
+    out = []
+    for key in sorted(set(a) | set(b)):
+        if key in ("out_dir", "threads", "name"):
+            continue
+        va, vb = a.get(key), b.get(key)
+        if isinstance(va, dict) and isinstance(vb, dict):
+            out += _differences(va, vb, f"{prefix}{key}.")
+        elif va != vb:
+            out.append(f"{prefix}{key}={va}")
+    return out
+
+
+def sensitivity_table(by_kind: dict, tagged: list, tables: Path) -> None:
+    """Variant runs next to the run they vary (same stream, method and seed)."""
+    rows = []
+    for tag, result in sorted(tagged, key=lambda item: (item[1]["stream"], item[1]["method"], item[0])):
+        reference = by_kind.get(result["stream"], {}).get(result["method"], {}).get(int(result["seed"]))
+        for label, run in (("(reference)", reference), (tag, result)):
+            if run is None or (label == "(reference)" and any(r["variant"] == label and r["stream"] == run["stream"] and r["method"] == run["method"] and r["seed"] == run["seed"] for r in rows)):
+                continue
+            summary = run["summary"]
+            need = summary["symbols_at_target_selective"]
+            rows.append(
+                {
+                    "stream": run["stream"],
+                    "method": run["method"],
+                    "seed": run["seed"],
+                    "variant": label,
+                    "changed": "-" if label == "(reference)" or reference is None else "; ".join(_differences(run["config"], reference["config"])) or "-",
+                    "prior bits/token": f"{summary['mean_prior_bits']:.4f}",
+                    "tok-acc @m_op": f"{summary['mean_tok_acc']:.4f}",
+                    "selective sym/token": f"{summary['sel_symbols']:.3f}",
+                    "selective tok-acc": f"{summary['sel_tok_acc']:.4f}",
+                    f"sym/token for {run['target_acc']:.0%}": "not reached" if need is None else f"{need:.3f}",
+                    "sync kbit/step": f"{summary['sync_bits_per_step'] / 1e3:.2f}",
+                    "slot switches": run.get("slot_switches", 0),
+                }
+            )
+    if rows:
+        write_table(pd.DataFrame(rows), tables / "sensitivity", "Variant runs (one seed each) next to their reference run on the same stream, messages and noise")
+
+
 def stream_tables(cfg, out_dir: Path, tables: Path, ref: str) -> None:
     files = sorted(glob.glob(str(out_dir / "stream" / "*.json")))
     by_kind: dict[str, dict[str, dict[int, dict]]] = defaultdict(lambda: defaultdict(dict))
+    tagged = []
     for path in files:
         result = load_json(path)
-        by_kind[result["stream"]][result["method"]][int(result["seed"])] = result
+        tag = run_tag(path, result)
+        if tag:  # a variant run (sensitivity study): kept out of the main tables
+            tagged.append((tag, result))
+        else:
+            by_kind[result["stream"]][result["method"]][int(result["seed"])] = result
+    sensitivity_table(by_kind, tagged, tables)
     metrics = [
         ("mean_tok_acc", "tok-acc @m_op"),
         ("mean_ce_bits", "bits/token @m_op"),
@@ -79,25 +135,41 @@ def stream_tables(cfg, out_dir: Path, tables: Path, ref: str) -> None:
             for key, label in metrics:
                 mean, sd = mean_sd([runs[s]["summary"][key] for s in seeds])
                 row[label] = f"{mean:.4f} ± {sd:.4f}"
-            row["recovery steps"] = f"{np.nanmean([recovery_steps(runs[s]) for s in seeds]):.1f}"
+            row["slot switches"] = f"{np.mean([runs[s].get('slot_switches', 0) for s in seeds]):.1f}"
             row["codebook power"] = f"{np.mean([runs[s]['summary']['mean_codebook_power'] for s in seeds]):.3f}"
             row["sync kbit/step"] = f"{np.mean([runs[s]['summary']['sync_bits_per_step'] for s in seeds]) / 1e3:.2f}"
             row["net rate (sym/msg)"] = f"{np.mean([runs[s]['summary']['net_rate'] for s in seeds]):.2f}"
             if ref in methods and method != ref:
                 shared = sorted(set(seeds) & set(methods[ref]))
                 if len(shared) >= 2:
-                    a = [methods[ref][s]["summary"]["mean_tok_acc"] for s in shared]
-                    b = [runs[s]["summary"]["mean_tok_acc"] for s in shared]
+                    a = [methods[ref][s]["summary"]["mean_prior_bits"] for s in shared]
+                    b = [runs[s]["summary"]["mean_prior_bits"] for s in shared]
                     pvals.append(paired_permutation(a, b))
                     plabels.append(method)
-                    row[f"Δ tok-acc ({ref} − this)"] = f"{np.mean(a) - np.mean(b):+.4f}"
+                    row[f"Δ prior bits ({ref} − this)"] = f"{np.mean(a) - np.mean(b):+.4f}"
             rows.append(row)
+        # paired per-step comparison with the reference method (same messages, same noise);
+        # 25-step blocks pooled over seeds are resampled
+        if ref in methods:
+            k_tau = [p["threshold"] for p in next(iter(methods[ref].values()))["selective_curve"]].index(next(iter(methods[ref].values()))["threshold"])
+            for row in rows:
+                method = row["method"]
+                shared = sorted(set(methods[method]) & set(methods[ref]))
+                if method == ref or not shared:
+                    continue
+                for key, label, pick in (("prior_bits", "prior bits", None), ("sel_symbols", "selective sym/token", k_tau), ("sel_acc", "selective tok-acc", k_tau)):
+                    series = []
+                    for seed in shared:
+                        mine, theirs = np.asarray(methods[method][seed]["log"][key], dtype=float), np.asarray(methods[ref][seed]["log"][key], dtype=float)
+                        series.append((mine - theirs) if pick is None else (mine[:, pick] - theirs[:, pick]))
+                    ci = block_bootstrap(series)
+                    row[f"{label}: this − {ref} [95% CI]"] = f"{ci['delta']:+.4f} [{ci['ci_low']:+.4f}, {ci['ci_high']:+.4f}]" + ("*" if ci["excludes_zero"] else "")
         if pvals:
             adjusted = dict(zip(plabels, holm(pvals)))
             for row in rows:
                 row["p (Holm)"] = f"{adjusted[row['method']]:.4f}" if row["method"] in adjusted else "-"
         frame = pd.DataFrame(rows).fillna("-")
-        write_table(frame, tables / f"stream_{kind}", f"Online adaptation on the '{kind}' drift stream (mean ± SD over seeds; paired sign-flip permutation test vs '{ref}', Holm-corrected)")
+        write_table(frame, tables / f"stream_{kind}", f"Online adaptation on the '{kind}' drift stream (mean ± SD over seeds; per-step paired differences to '{ref}' with a 95% block-bootstrap interval, * = excludes zero; seed-level sign-flip permutation test, Holm-corrected)")
 
         # Net semantic rate against traffic volume, and the adaptation crossover.
         # Payload: the symbols per token each method needs to reach the target
@@ -109,6 +181,7 @@ def stream_tables(cfg, out_dir: Path, tables: Path, ref: str) -> None:
             return float("nan") if any(v is None for v in values) else float(np.mean(values))
 
         frozen_need = needed(methods["frozen"]) if "frozen" in methods else float("nan")
+        context_need = needed(methods["context_only"]) if "context_only" in methods else float("nan")
         sweep = []
         for method, runs in sorted(methods.items()):
             any_run = next(iter(runs.values()))
@@ -123,12 +196,38 @@ def stream_tables(cfg, out_dir: Path, tables: Path, ref: str) -> None:
                 row["payload (sym/msg)"] = f"{payload:.1f}"
                 for traffic in (1, 10, 100, 1000, 10000, 100000):
                     row[f"N={traffic}"] = f"{net_semantic_rate(payload, bits, any_run['n_steps'], traffic, snr):.1f}"
-                if bits > 0 and not np.isnan(frozen_need):  # traffic above which adapting beats not adapting
-                    saved = (frozen_need - need) * tokens
-                    star = crossover_traffic(bits / any_run["n_steps"], saved, snr)
-                    row["N* (vs frozen)"] = "never" if np.isinf(star) else f"{star:.0f}"
+                # traffic per adaptation step above which shipping updates beats a receiver that ships nothing
+                for label, reference in (("frozen", frozen_need), ("context_only", context_need)):
+                    if bits > 0 and not np.isnan(reference):
+                        star = crossover_traffic(bits / any_run["n_steps"], (reference - need) * tokens, snr)
+                        row[f"N* (vs {label})"] = "never" if np.isinf(star) else f"{star:.0f}"
             sweep.append(row)
         write_table(pd.DataFrame(sweep).fillna("-"), tables / f"netrate_{kind}", f"Derived net semantic rate (real symbols per message, payload at equal fidelity plus amortised synchronisation) on the '{kind}' stream as a function of messages carried per adaptation step N, at {snr:g} dB")
+
+        # where the gains come from: the same metrics per slow regime label (domain or era)
+        per_domain = []
+        for method, runs in sorted(methods.items()):
+            first = next(iter(runs.values()))
+            k_tau = [p["threshold"] for p in first["selective_curve"]].index(first["threshold"])
+            labels = list(dict.fromkeys(first["log"]["domain"]))
+            for label in labels:
+                cells = defaultdict(list)
+                for run in runs.values():
+                    pick = np.asarray(run["log"]["domain"]) == label
+                    cells["prior bits/token"].append(np.asarray(run["log"]["prior_bits"])[pick].mean())
+                    cells["tok-acc @m_op"].append(np.asarray(run["log"]["tok_acc"])[pick].mean())
+                    cells["selective sym/token"].append(np.asarray(run["log"]["sel_symbols"])[pick][:, k_tau].mean())
+                    cells["selective tok-acc"].append(np.asarray(run["log"]["sel_acc"])[pick][:, k_tau].mean())
+                row = {"method": method, "regime": label, "seeds": len(runs)}
+                for key, values in cells.items():
+                    mean, sd = mean_sd(values)
+                    row[key] = f"{mean:.4f} ± {sd:.4f}"
+                final = [run["probes"][-1]["domains"].get(label) for run in runs.values()]
+                if all(final):
+                    row["held-out prior bits (end)"] = f"{np.mean([f['prior_bits'] for f in final if 'prior_bits' in f]):.4f}" if all("prior_bits" in f for f in final) else "-"
+                    row["held-out tok-acc (end)"] = f"{np.mean([f['tok_acc'] for f in final]):.4f}"
+                per_domain.append(row)
+        write_table(pd.DataFrame(per_domain).fillna("-"), tables / f"regimes_{kind}", f"The '{kind}' stream by slow regime: prequential metrics while the regime is active, and held-out probes of it at the end of the stream (mean ± SD over seeds)")
 
         # operating curves of every method: fixed prefix lengths and selective refinement
         curves = []

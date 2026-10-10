@@ -2,8 +2,8 @@
 
 Four public text corpora, all small enough for a 16 GB laptop: the raw
 downloads total well under 200 MB and each is capped at 60 000 sentences after
-filtering. Every corpus is reduced to single sentences of 4–30 words (the
-length protocol used by DeepSC and most text semantic-communication papers),
+filtering. Every corpus is reduced to sentences of 4–30 words (the length
+protocol used by DeepSC and most text semantic-communication papers),
 de-duplicated, and split 80/10/10 **by document**.
 
 | Corpus | Role in the study | What it supplies | Size used | Source | Licence |
@@ -19,9 +19,40 @@ All four loaders have been run against the real sources. With the default
 42 categories) sentences. `configs/laptop.yaml` uses 4–20 words and a 40 000
 cap to keep CPU runs affordable.
 
-`configs/rehearsal.yaml` needs only AG News and TeleQnA, both served from
-GitHub, so it also runs where Hugging Face is unreachable. It trains its own
+## GitHub-sourced variants (used for the GPT-2 results)
+
+For machines that cannot reach Hugging Face, two corpora are also available
+from fixed GitHub sources. They are different subsets, so they carry their own
+names, and both downloads are checked against a SHA-256 digest.
+
+| Name | What it is | Sentences used | Source |
+| --- | --- | --- | --- |
+| `europarl_nltk` | the Europarl sample distributed with NLTK: ten sittings of the European Parliament, 17 January – 17 February 2000 | 14 006 (4–30 words) | `nltk/nltk_data`, `packages/corpora/europarl_raw.zip` |
+| `huffpost_gh` | a mirror of the News Category Dataset v3 holding 186 041 of its 209 527 records (5 Oct 2012 – 23 Sep 2022, 42 categories) | 40 000 (capped) | `roahn-w/NLP-News-Category-Classifier` |
+
+`configs/gpt2.yaml` uses `europarl_nltk` as the base corpus, AG News and
+TeleQnA (both from GitHub anyway) as stream domains and `huffpost_gh` for the
+temporal stream. The mirror of the HuffPost data is a third-party copy that
+lacks the first nine months of 2012; for the paper, re-run the temporal
+stream on the official release (`huffpost`) where Hugging Face is reachable,
+or state the subset as above.
+
+The pretrained GPT-2 weights are the OpenAI release (modified MIT licence) as
+redistributed in the ONNX Model Zoo; `scripts/fetch_gpt2.py` documents the
+exact file and checksum.
+
+`configs/rehearsal.yaml` needs only AG News and TeleQnA. It trains its own
 small language model on AG News and is a check of the code, not a result.
+
+## Documents
+
+Sentences keep their document and their order in it: an AG News document is a
+title and its description, a TeleQnA document a question, its explanation and
+its answer, a HuffPost document a headline and its summary, a Europarl
+"document" a run of 50 consecutive lines of a sitting. When a corpus is
+capped, whole documents are kept. The streams send the sentences of a
+document in order, so a receiver can use what it has already decoded as
+context for what follows.
 
 ## Why these four
 
@@ -37,13 +68,6 @@ to suit the method:
 - **Slow** — the knowledge domain (parliamentary → news → telecom) in the
   `hier` stream, and real calendar time in the `temporal` stream.
 
-Sentences keep their document id and order (a TeleQnA document is a question,
-its answer and the explanation; an AG News document is a title and its
-description). The streams currently draw sentences independently within a
-topic; `scripts/headroom.py` measures what the preceding sentence of the same
-document would be worth as context for the LLM, which decides whether
-document-coherent streams are the next step.
-
 The `temporal` stream is the important control. HuffPost is replayed in
 chronological order with no regime boundaries placed by us, so a method cannot
 win there because a benchmark generator was tuned in its favour. If the
@@ -52,14 +76,21 @@ will be reported as one.
 
 ## Two streams
 
+Both streams carry `batch_size` parallel conversations; each sends the
+sentences of one document after the other and then opens a new document.
+
 `stream.kind=hier` — domains are visited for `tau_slow` steps each and the tour
 is repeated (`cycles`), so each domain is *revisited*: retention of earlier
 knowledge is measured directly on held-out probes at every regime boundary.
-Within a domain the topic switches every `tau_med` steps; `kappa` is the share
-of each batch drawn from the current topic.
+Within a domain the topic that new documents are drawn from switches every
+`tau_med` steps; `kappa` is the probability that a new document comes from the
+current topic. A domain switch ends every conversation.
 
-`stream.kind=temporal` — a window slides through the date-sorted corpus; probes
-are held-out sentences from each of `temporal_eras` equal-sized eras.
+`stream.kind=temporal` — a window slides through the date-sorted documents;
+probes are held-out sentences from each of `temporal_eras` equal-sized eras.
+
+A probe is a held-out sentence together with the part of its document that
+precedes it.
 
 ## Citations
 

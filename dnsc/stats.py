@@ -67,3 +67,26 @@ def equivalence(a, b, margin: float, n_boot: int = 2000, alpha: float = 0.05, se
     out["margin"] = margin
     out["equivalent"] = bool(-margin < out["ci_low"] and out["ci_high"] < margin)
     return out
+
+
+def block_bootstrap(series, block: int = 25, n_boot: int = 2000, alpha: float = 0.05, seed: int = 0) -> dict:
+    """Percentile CI of the mean of per-step paired differences.
+
+    ``series`` is one sequence of differences per run (the same stream scored
+    by two methods, so the channel noise and the messages cancel). Consecutive
+    steps are correlated, so whole blocks of ``block`` steps, pooled over the
+    runs, are resampled rather than single steps."""
+    blocks = []
+    for run in series:
+        run = np.asarray(run, dtype=float)
+        usable = len(run) - len(run) % block
+        if usable:
+            blocks.append(run[:usable].reshape(-1, block).mean(axis=1))
+    if not blocks:
+        raise ValueError("every run is shorter than one block")
+    means = np.concatenate(blocks)
+    rng = np.random.default_rng(seed)
+    idx = rng.integers(0, len(means), size=(n_boot, len(means)))
+    boot = means[idx].mean(axis=1)
+    lo, hi = np.quantile(boot, [alpha / 2, 1 - alpha / 2])
+    return {"delta": float(means.mean()), "ci_low": float(lo), "ci_high": float(hi), "n_blocks": int(len(means)), "excludes_zero": bool(lo > 0 or hi < 0)}

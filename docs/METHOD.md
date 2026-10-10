@@ -32,11 +32,11 @@ text ─► tokens ─► semantic codebook (M real symbols per token, nested) �
                                                    ▼
 text ◄─ MAP decision per token ◄─ posterior ∝ prior(token | decoded so far) × likelihood(received | token)
                                               ▲
-                     frozen LLM + three memories (cache, logit bias, LoRA)
+              frozen LLM + three memories (context, logit bias, LoRA slots)
 ```
 
-Both ends hold the same frozen LLM. The transmitter uses only its tokenizer and
-embedding table; the receiver uses the LLM as a **language prior**.
+Both ends hold the same frozen LLM. The transmitter uses its tokenizer and
+embedding table to encode; the receiver uses the LLM as a **language prior**.
 
 ### 2.1 Semantic codebook, nested in rate
 
@@ -55,15 +55,16 @@ granularities `m_1 < … < m_K = M`.
   once: incremental refinement is exact.
 
 The codebook is trained once, without the LLM, by maximising the channel-only
-posterior of the transmitted token at randomly drawn prefix lengths and SNRs.
-Training takes minutes on a CPU.
+posterior of the transmitted token at randomly drawn prefix lengths and SNRs;
+a quarter of every batch is drawn uniformly from the vocabulary so that tokens
+the base corpus never uses are separated too.
 
 ### 2.2 Receiver
 
 For token position `t` the receiver computes, over the whole vocabulary,
 
 ```
-log p(v | y, past) = w_p · log p_LLM(v | decoded tokens before t) + b_v + w_l · log p(y_t | c_v) + const
+log p(v | y, past) = w_p · log p_LLM(v | context, decoded tokens before t) + b_v + w_l · log p(y_t | c_v) + const
 ```
 
 with the exact Gaussian likelihood of the received prefix, and decides the
@@ -76,70 +77,91 @@ contribution: `llm` (above), `unigram` (token frequencies only) and `none`
 
 | Level | What | Changes | Synchronisation cost |
 | --- | --- | --- | --- |
-| fast | token cache: decayed counts of the receiver's own recent decisions, mixed into the prior | every message | none |
-| medium | `w_p`, `w_l`, cache share, and a logit bias `b = E·u` in embedding space (one vector `u`) | every `C_med` messages | a few kilobits |
-| slow | LoRA adapter of the LLM, EMA-anchored | every `C_slow` messages | megabits |
+| fast | **context**: the messages of the same conversation that the receiver has already decoded, placed in front of the message being decoded | every message | none |
+| medium | `w_p`, `w_l` and a logit bias `b = E·u` in embedding space (one vector `u`) | every `C_med` messages | a few kilobits |
+| slow | **LoRA slots**: a small number of adapters of the LLM, one active at a time | every `C_slow` messages | megabits |
 
-The gradient levels need the true text, so they are learned at the
-transmitter, which keeps a *working copy*: it takes one optimiser step per
+*Fast.* A stream carries parallel conversations; each sends the sentences of
+a document in order. A message that continues a document is tokenised as
+running text and decoded with the receiver's own reconstruction of the
+earlier messages as context. This is the LLM's native memory and costs
+nothing on the air. Its errors propagate: a wrongly decoded message is a
+wrong context.
+
+*Medium and slow.* These need the true text, so they are learned at the
+transmitter, which keeps a *working copy* and takes one optimiser step per
 message. Once per period of a level the transmitter ships the **quantised**
 difference between its working copy and the receiver's copy; both ends apply
-the quantised difference, so the copies are bit-identical right after a
-shipment. Between shipments the receiver decodes with a stale copy. A level's
-period therefore trades staleness against air time, and nothing else: all
-methods learn in the same way and differ only in *when* each level reaches the
-receiver. Every shipped bit is recorded by an exact ledger.
+it, so the copies are bit-identical right after a shipment and the receiver
+is stale in between. A level's period therefore trades staleness against air
+time, and nothing else: all methods learn in the same way and differ only in
+*when* each level reaches the receiver. Every shipped bit is recorded by an
+exact ledger.
+
+*Slots.* Adapting to one domain damages the prior for another (measured: see
+the headroom table). The slow memory is therefore a set of `K` adapters. Every
+`select_every` messages the transmitter evaluates, on the text it is about to
+send, the receiver's copy of every adapter and the frozen prior, and signals a
+switch when another choice is better by a margin; if the frozen prior is the
+best the receiver has and an unused adapter exists, that adapter is started.
+Only the active adapter learns. A returning domain finds its adapter intact
+— recall costs `⌈log2(K+1)⌉` signalling bits instead of a re-synchronisation —
+and the receiver is never left with an adapter that is worse than no adapter.
 
 Information pattern, stated once: the transmitter knows the text, the
-codebook, the fed-back average SNR and its own working copy. It does not know
-the receiver's noise or decisions; it trains on its own simulation of the
-channel and mirrors the cache with the true tokens.
+codebook, the fed-back average SNR and its own working copies. It does not
+know the receiver's noise or decisions; it trains with the *true* earlier
+messages as context and on a channel realisation of its own.
 
 (`nested.rule: chunk` switches to the literal chunked rule of the continuum
 memory system — gradients accumulated at fixed parameters and applied once
 per period — as an ablation. It keeps the two copies equal at all times but
-learns `C` times more slowly.)
+learns `C` times more slowly. An optional token cache and an EMA pull of the
+slow level exist as switches; both are off by default.)
 
 ### 2.4 Net semantic rate
 
 ```
-R_net = m · T + B_sync / ( C(snr) · N_msg )          real symbols per message
+R_net = S · T + B_sync / ( C(snr) · N_msg )          real symbols per message
 ```
 
-`T` is the number of tokens per message, `B_sync` is measured by the ledger,
-`C(snr)` is the capacity at which sync bits are assumed to travel (optimistic,
-and equally so for every adaptive method), `N_msg` is the traffic carried.
-From it,
+`S` is the number of symbols per token a method needs to reach a target token
+accuracy (read off its measured operating curve), `T` the tokens per message,
+`B_sync` is measured by the ledger, `C(snr)` is the capacity at which sync
+bits are assumed to travel (optimistic, and equally so for every adaptive
+method), `N_msg` the traffic carried. From it,
 
 ```
-N* = b_sync_per_step / ( C(snr) · Δm · T )
+N* = b_sync_per_step / ( C(snr) · (S_frozen − S_method) · T )
 ```
 
-is the traffic per adaptation step above which adapting is cheaper than not
-adapting and sending `Δm` more symbols per token for the same fidelity. These
-are derived quantities and are labelled as such.
+is the traffic per adaptation step above which a method is cheaper than a
+receiver without memory. These are derived quantities and are labelled so.
 
 ### 2.5 Calibrated selective refinement
 
 The posterior gives every token a confidence. The receiver decodes from the
 shortest prefix and requests the next shell **only for the tokens whose
-calibrated confidence is below a threshold** — a token-level incremental
-redundancy scheme driven by the LLM's own uncertainty. Calibration (Platt
-scaling on the confidence and the level) is fitted on validation text; its
-error is reported before and after. Controls: the fixed-rate curve
-(time-sharing between granularities), an oracle that knows which tokens are
-wrong, and a random policy with the same request rate.
+confidence is below a threshold** — a token-level incremental redundancy
+scheme driven by the LLM's own uncertainty. On the base corpus the confidence
+is calibrated (Platt scaling on the confidence and the level, fitted on
+validation text; error reported before and after) and compared with the
+fixed-rate curve (time-sharing between granularities), an oracle that knows
+which tokens are wrong, and a random policy with the same request rate. On
+the streams every method is scored at every prefix length and at every
+threshold, so each has a complete symbols-versus-accuracy curve; a better
+prior shows up as fewer requested symbols at equal accuracy.
 
 ## 3. Baselines
 
 | Name | What it isolates |
 | --- | --- |
-| `frozen` | the cost of drift itself |
-| `cache_only` | how far free, receiver-only adaptation gets |
-| `single_rate` | **the matched ablation**: both gradient levels shipped at one period, chosen so the sync budget equals the nested method's |
+| `frozen` | no memory at all: the per-message receiver of the literature |
+| `context_only` | how far the free memory gets |
+| `single_rate` | **the matched ablation**: context, and both gradient levels shipped at one period chosen so the sync budget equals the nested method's; one adapter |
 | `ewc` | a standard continual-learning regulariser on top of `single_rate` |
 | `full_online` | shipped after every message: adaptivity upper reference at prohibitive cost |
-| `nested_no_ema`, `nested_no_cache`, `nested_two_level` | each component of the proposal |
+| `nested_no_slots`, `nested_no_context`, `nested_two_level` | each component of the proposal |
 | `unigram` / `none` receivers | the value of the LLM prior itself |
 | ideal separation: DEFLATE or same-LLM arithmetic coding, with an asymptotic and a finite-block-length (normal approximation) channel code | the strongest classical opponent, as a derived bound |
 
@@ -148,22 +170,23 @@ wrong, and a random policy with the same request rate.
 1. **An LLM prior buys rate.** At equal fidelity the `llm` receiver needs
    fewer symbols per token than `unigram`/`none`. *Refuted if* the curves
    coincide. (Expected to hold; it is the starting point, not the novelty.)
-2. **Rate nesting is free**: one nested codebook matches codebooks trained for
-   a single prefix length. *Refuted if* single-length training is better
-   beyond a margin fixed in advance (equivalence test).
-3. **Time nesting beats single-rate adaptation at equal sync budget** on
-   prequential fidelity. *Refuted if* `single_rate` matches or beats `nested`
-   — as it might: in your own H-BAYO study pooled training beat meta-learning,
-   and in Nested-MARL the EMA anchor was dormant.
-4. **The gain needs hierarchical drift**: it should shrink on streams without
-   timescale separation. *Tested by* varying `tau_med`, `tau_slow`, `kappa`,
-   and by the `temporal` stream.
-5. **Adaptation has a crossover**: below a traffic volume `N*` a frozen
-   receiver with a longer prefix is the better engineering choice. This is a
-   result whichever side a deployment falls on.
-6. **Uncertainty-triggered refinement saves symbols at equal fidelity**
-   against fixed rates and beats the random control. *Refuted if* it does not
-   beat the random control.
+2. **The free memory comes first.** Context alone recovers a large part of
+   what drift costs, at zero sync. *Refuted if* `context_only` ≈ `frozen`.
+3. **Shipping pays only above a traffic volume.** The gradient levels buy a
+   further reduction, but only above a crossover `N*`; below it a receiver
+   with context alone is the better engineering choice. This is a result
+   whichever side a deployment falls on.
+4. **Time nesting beats single-rate adaptation at equal sync budget.**
+   *Refuted if* `single_rate` matches or beats `nested` — as it might: in your
+   own H-BAYO study pooled training beat meta-learning, and in Nested-MARL the
+   EMA anchor was dormant.
+5. **Slots prevent the loss on return.** With alternating domains, one
+   adapter is dragged back and forth; slots keep both. *Refuted if*
+   `nested_no_slots` matches `nested` on the revisits.
+6. **The gain needs hierarchical drift**: it should shrink on the `temporal`
+   stream, where nothing about the drift is designed.
+7. **Uncertainty-triggered refinement saves symbols at equal fidelity**
+   against fixed rates and beats the random control.
 
 Reporting rule: whichever way each falls, it is reported.
 
@@ -212,6 +235,10 @@ in the roadmap is its empirical check.
 - Uncoded symbol-level transmission of tokens; no outer channel code.
 - The sentence length is assumed known at the receiver.
 - Greedy free-running decoding; beam search would help at the lowest rates.
+- On the streams, refinement and context are emulated teacher-forced (the
+  receiver's own decisions feed its context, but each token is scored given
+  the true tokens before it); free-running decoding is checked separately.
+- Slots are allocated greedily and never recycled.
 - Text only; the call also invites multimodal work.
 - Sync bits are charged at capacity, which understates real overhead.
 - The transmitter must run the LLM to learn the receiver's prior, so

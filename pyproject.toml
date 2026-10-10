@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "dnsc"
-version = "0.1.0"
-description = "Doubly Nested Semantic Communication: rate- and time-nested LLM codecs for drift-resilient 6G links"
+version = "0.2.0"
+description = "Doubly Nested Semantic Communication: rate- and time-nested LLM receivers for drift-resilient 6G links"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
@@ -26,6 +26,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0"]
+gpt2 = ["onnx>=1.15"]  # only for scripts/fetch_gpt2.py
 
 [tool.setuptools.packages.find]
 include = ["dnsc*"]
