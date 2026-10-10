@@ -31,8 +31,8 @@ Receiver     Bayesian decoding. For every position the receiver combines
 Because the receiver always knows how many symbol groups arrived, it knows the
 sentence length; no end-of-sentence token is transmitted.
 
-This replaces an earlier sentence-level soft-prompt codec (git tag
-``v0.1-sentence-codec``), which needed far more training than a CPU can give.
+This replaces an earlier sentence-level soft-prompt codec (commit
+``cd8932d``), which needed far more training than a CPU can give.
 """
 
 from __future__ import annotations

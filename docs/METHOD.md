@@ -247,7 +247,7 @@ in the roadmap is its empirical check.
 
 ## 8. What was tried first (negative result, kept on purpose)
 
-Version 0.1 (git tag `v0.1-sentence-codec`) compressed a whole sentence into
+Version 0.1 (commit `cd8932d`) compressed a whole sentence into
 8 memory tokens and regenerated it from soft prompts (an ICAE-style
 autoencoder over the channel). After 13.6 h of CPU pretraining with
 SmolLM2-135M it reached a teacher-forced token accuracy of 0.41–0.44 and
