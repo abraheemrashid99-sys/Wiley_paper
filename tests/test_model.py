@@ -660,10 +660,19 @@ def test_command_line_pipeline(tmp_path):
     run("benchmark_speed.py", "--steps", "2", "--repeats", "2")
     run("aggregate.py")
     run("make_figures.py")
+    run("export_results.py", "--to", str(tmp_path / "export"))
+    run("write_report.py", "--to", str(tmp_path / "export"))
     out = tmp_path / "run"
     expected = ["tables/stream_hier.md", "tables/netrate_hier.csv", "tables/rate_toy_a_bleu4.tex", "tables/rate_toy_a_power.md", "tables/refine_toy_a.md", "tables/refine_toy_a_live.md", "tables/headroom.md", "eval/headroom.json", "figures/stream_hier.png", "figures/rate_toy_a.pdf", "figures/refine_toy_a.png", "eval/speed.json"]
     for name in expected:
         assert (out / name).exists(), name
+    exported = tmp_path / "export"
+    for name in ["TABLES.md", "raw_streams.tar.gz", "base/codec.pt", "tables/stream_hier.md", "tables/regimes_hier.md", "tables/curves_hier.md", "figures/curves_hier.png", "stream/hier_nested_s0.json", "eval/headroom.json"]:
+        assert (exported / name).exists(), name
+    report = (exported / "TABLES.md").read_text(encoding="utf-8")
+    assert "Headline, hier stream" in report and "frozen, fixed prefix length" in report
+    compact = json.loads((exported / "stream" / "hier_nested_s0.json").read_text())
+    assert "log" not in compact and len(compact["trace"]["prior_bits"]) == -(-compact["n_steps"] // compact["trace_every"]) and len(compact["regimes"]) == 2
 
 
 def test_pipeline_runner_plans_every_stage():

@@ -1,0 +1,207 @@
+{
+  "config": {
+    "name": "gpt2",
+    "seed": 0,
+    "device": "cpu",
+    "threads": 1,
+    "out_dir": "runs/gpt2_fixed8",
+    "backbone": {
+      "name": "models/gpt2",
+      "tiny": {
+        "hidden": 96,
+        "layers": 2,
+        "heads": 4,
+        "vocab": 600,
+        "lm_steps": 0,
+        "lm_lr": 0.003,
+        "lm_focus": "",
+        "lm_other_share": 1.0,
+        "corpora": []
+      }
+    },
+    "codec": {
+      "granularities": [
+        8
+      ],
+      "max_tokens": 48,
+      "codebook_hidden": 256,
+      "peak_ratio": 4.0,
+      "lora": {
+        "r": 8,
+        "alpha": 16,
+        "dropout": 0.0,
+        "targets": [
+          "c_attn"
+        ],
+        "last_n": 6,
+        "slots": 2
+      }
+    },
+    "context": {
+      "enabled": true,
+      "max_tokens": 48
+    },
+    "cache": {
+      "enabled": false,
+      "decay": 0.98,
+      "weight": 0.05,
+      "min_mass": 50.0
+    },
+    "channel": {
+      "type": "awgn",
+      "snr_train": [
+        0.0,
+        20.0
+      ]
+    },
+    "data": {
+      "cache_dir": "data",
+      "base": [
+        "europarl_nltk"
+      ],
+      "min_words": 4,
+      "max_words": 30,
+      "max_sentences": 40000
+    },
+    "pretrain": {
+      "steps": 2000,
+      "batch_tokens": 256,
+      "grans_per_step": 3,
+      "uniform_share": 0.25,
+      "lr": 0.002,
+      "warmup": 100,
+      "weight_decay": 0.0,
+      "grad_clip": 1.0,
+      "eval_every": 500,
+      "eval_tokens": 2000,
+      "log_every": 50
+    },
+    "stream": {
+      "kind": "hier",
+      "domains": [
+        "ag_news",
+        "teleqna"
+      ],
+      "cycles": 2,
+      "tau_slow": 150,
+      "tau_med": 30,
+      "kappa": 0.9,
+      "temporal_corpus": "huffpost_gh",
+      "temporal_steps": 600,
+      "temporal_eras": 4,
+      "batch_size": 6,
+      "snr": {
+        "mean": 10.0,
+        "rho": 0.95,
+        "sigma": 4.0,
+        "min": 0.0,
+        "max": 20.0
+      },
+      "m_op": 8,
+      "extra_grans": 1,
+      "thresholds": [
+        0.5,
+        0.7,
+        0.9,
+        0.95,
+        0.99
+      ],
+      "threshold": 0.9,
+      "target_acc": 0.9,
+      "probe_size": 48,
+      "gen_every": 0,
+      "gen_sentences": 4
+    },
+    "nested": {
+      "periods": {
+        "medium": 10,
+        "slow": 50
+      },
+      "lrs": {
+        "medium": 0.001,
+        "slow": 0.0005
+      },
+      "rule": "local",
+      "select_every": 10,
+      "select_margin": 0.05,
+      "ema": {
+        "enabled": false,
+        "decay": 0.99,
+        "beta": 0.9
+      },
+      "sync": {
+        "bits": 8,
+        "topk": 1.0
+      },
+      "grad_clip": 1.0,
+      "adapt_codebook": false,
+      "codebook_lr": 0.0001,
+      "single_period": "auto",
+      "ewc_lambda": 10.0,
+      "ewc_batches": 20
+    },
+    "link": {
+      "traffic_per_step": 1000
+    },
+    "eval": {
+      "snrs": [
+        0.0,
+        10.0,
+        20.0
+      ],
+      "channels": [
+        "awgn",
+        "rayleigh"
+      ],
+      "priors": [
+        "llm_ctx",
+        "llm",
+        "unigram",
+        "none"
+      ],
+      "n_test": 200,
+      "batch_size": 16,
+      "sim_model": null
+    },
+    "refine": {
+      "n_val": 150,
+      "n_test": 200,
+      "n_live": 64,
+      "live_thresholds": [
+        0.5,
+        0.7,
+        0.9
+      ]
+    }
+  },
+  "env": {
+    "python": "3.13.16",
+    "platform": "Linux-6.18.44-fc-v114-x86_64-with-glibc2.39",
+    "machine": "x86_64",
+    "torch": "2.14.1+cu130",
+    "threads": 1,
+    "transformers": "5.19.0",
+    "git": "6b803f7",
+    "time": "2026-10-11 02:13:42"
+  },
+  "steps": 2000,
+  "seconds": 2054.7113144540053,
+  "history": [
+    {
+      "step": 500,
+      "8": 0.8639999980926514
+    },
+    {
+      "step": 1000,
+      "8": 0.8765
+    },
+    {
+      "step": 1500,
+      "8": 0.8825000019073487
+    },
+    {
+      "step": 2000,
+      "8": 0.8889999980926514
+    }
+  ]
+}

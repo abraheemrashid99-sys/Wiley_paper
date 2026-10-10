@@ -158,7 +158,7 @@ def stream_tables(cfg, out_dir: Path, tables: Path, ref: str) -> None:
                     row[f"Δ prior bits ({ref} − this)"] = f"{np.mean(a) - np.mean(b):+.4f}"
             rows.append(row)
         # paired per-step comparison with the reference method (same messages, same noise);
-        # 25-step blocks pooled over seeds are resampled
+        # 25-step blocks (shorter on very short streams) pooled over seeds are resampled
         if ref in methods:
             k_tau = [p["threshold"] for p in next(iter(methods[ref].values()))["selective_curve"]].index(next(iter(methods[ref].values()))["threshold"])
             for row in rows:
@@ -171,7 +171,7 @@ def stream_tables(cfg, out_dir: Path, tables: Path, ref: str) -> None:
                     for seed in shared:
                         mine, theirs = np.asarray(methods[method][seed]["log"][key], dtype=float), np.asarray(methods[ref][seed]["log"][key], dtype=float)
                         series.append((mine - theirs) if pick is None else (mine[:, pick] - theirs[:, pick]))
-                    ci = block_bootstrap(series)
+                    ci = block_bootstrap(series, block=max(1, min(25, len(series[0]) // 4)))
                     row[f"{label}: this − {ref} [95% CI]"] = f"{ci['delta']:+.4f} [{ci['ci_low']:+.4f}, {ci['ci_high']:+.4f}]" + ("*" if ci["excludes_zero"] else "")
         if pvals:
             adjusted = dict(zip(plabels, holm(pvals)))

@@ -65,6 +65,13 @@ bound at a fixed rate (85.7 % token accuracy at 6 symbols); what it offers
 instead is graceful degradation and, with selective refinement, 99.1 % token
 accuracy at 6.57 symbols (Section 4).
 
+**Is rate nesting free?** A codebook trained for 8 symbols per token only
+(same training budget) reaches a channel-only token accuracy of 0.8890 at
+10 dB; the nested codebook, read at its 8-symbol prefix, reaches 0.8885
+(2 000 held-out tokens; `fixed8/pretrain_summary.json` and
+`base/pretrain_summary.json`). At this prefix length nesting costs nothing
+measurable; other lengths were not tested.
+
 ## 4. Selective refinement and calibration (base corpus)
 
 Free-running, multi-round decoding at 10 dB:
@@ -152,6 +159,22 @@ era, 6.47 in the last) while the adapted receivers stay near 5.8–5.9. But
 return, slots have nothing to recall. The context memory also helps less
 (a headline and its summary). `full_online` was run for one seed only (5.845
 bits/token on seed 0, against 5.859 for `nested` on the same seed).
+
+### Rayleigh block fading on the stream (one seed)
+
+Same stream, messages and seed, with every message seeing one fading
+realisation for all of its shells (no diversity between refinement rounds
+here, unlike Section 4):
+
+| Receiver | Prior bits/token | Token accuracy at 6 symbols | Symbols/token for 90 % (selective) | (fixed prefix) |
+| --- | --- | --- | --- | --- |
+| `frozen` | 6.843 | 0.671 | not reached (0.894 at 10.4 symbols) | not reached (0.896 at 16) |
+| `context_only` | 5.832 | 0.723 | 8.62 | 14.71 |
+| `nested` | 5.427 | 0.744 | 7.87 | 13.71 |
+
+The ordering of the receivers is unchanged, and the memories matter more
+than on the AWGN stream: without them the 90 % target is out of reach within
+16 symbols per token.
 
 ## 7. When does shipping pay? (derived)
 
