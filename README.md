@@ -72,6 +72,27 @@ stream run takes about 30 minutes; `scripts/benchmark_speed.py` prints the
 figures for your machine. Where Hugging Face is reachable, skip the first two
 lines and add `backbone.name=openai-community/gpt2` to every command.
 
+### Checking the reproduction on a GPU (Google Colab)
+
+[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/abraheemrashid99-sys/Wiley_paper/blob/main/notebooks/reproduce_gpt2_colab.ipynb)
+
+`notebooks/reproduce_gpt2_colab.ipynb` re-runs the whole GPT-2 study on a T4
+GPU and compares every number with `results/gpt2`. It first runs the complete
+protocol on a tiny model as a GPU self-test, then calls
+
+```
+python scripts/reproduce.py --config configs/gpt2.yaml --out runs/gpt2_repro \
+    --export results_repro/gpt2 --reference results/gpt2 device=cuda
+```
+
+which runs exactly the experiments behind `results/gpt2` (it can be repeated
+after an interruption; finished runs are skipped) and ends with
+`scripts/compare_results.py`, whose report `COMPARISON.md` lists the published
+and the reproduced value of every number, checks the headline numbers against
+a tolerance and checks each conclusion. A CPU and a GPU do not produce
+bit-identical numbers, so this is the meaningful test; on the same machine the
+runs are repeatable.
+
 ### A second backbone on a CPU-only laptop (`configs/laptop.yaml`)
 
 Same method with SmolLM2-135M and the Hugging Face corpora:
@@ -126,10 +147,12 @@ dnsc/            library
   metrics.py     BLEU-1..4, sacreBLEU, sentence similarity, ECE
   stats.py       paired bootstrap / permutation, block bootstrap, Holm, equivalence test
   data/          corpus loaders and document-coherent drift streams
-scripts/         one entry point per experiment stage
+scripts/         one entry point per experiment stage; reproduce.py runs them all
+notebooks/       Colab notebook that reproduces results/gpt2 on a GPU
 configs/         experiment definitions
 results/         exported tables, figures and compact result files
 tests/           unit and integration tests
+tools/           device audit (virtual GPU on a CPU-only machine)
 docs/            method, datasets, roadmap
 ```
 
@@ -154,7 +177,11 @@ commands above on two CPU cores.
 - a second backbone (`configs/laptop.yaml` is ready for it);
 - sentence-embedding similarity (needs a model from Hugging Face; the decoded
   texts are stored by `eval_rate.py`, so it can be added without re-running);
-- execution on CUDA or Apple MPS.
+- execution on a physical GPU by the authors. The device handling was checked
+  on a CPU with a virtual second device (`tools/device_audit`: every tensor is
+  tagged with the device it would live on, and the complete protocol runs
+  without a single cross-device operation), and the Colab notebook starts with
+  a GPU self-test of the complete protocol. Apple MPS is untested.
 
 ## Reproducibility rules this repository follows
 

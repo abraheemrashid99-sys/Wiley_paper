@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import copy
 import json
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -673,6 +674,49 @@ def test_command_line_pipeline(tmp_path):
     assert "Headline, hier stream" in report and "frozen, fixed prefix length" in report
     compact = json.loads((exported / "stream" / "hier_nested_s0.json").read_text())
     assert "log" not in compact and len(compact["trace"]["prior_bits"]) == -(-compact["n_steps"] // compact["trace_every"]) and len(compact["regimes"]) == 2
+
+    # the reproduction check: a folder agrees with itself, and a changed number is noticed
+    def compare(new_dir) -> str:
+        cmd = [sys.executable, str(ROOT / "scripts" / "compare_results.py"), "--reference", str(exported), "--new", str(new_dir)]
+        done = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=ROOT, timeout=120)
+        assert done.returncode == 0, done.stderr[-2000:]
+        return done.stdout
+
+    assert "REPRODUCED" in compare(exported) and (exported / "COMPARISON.md").exists()
+    changed = tmp_path / "changed"
+    shutil.copytree(exported, changed)
+    run_file = changed / "stream" / "hier_nested_s0.json"
+    data = json.loads(run_file.read_text())
+    data["summary"]["mean_prior_bits"] *= 1.2
+    run_file.write_text(json.dumps(data))
+    (changed / "stream" / "hier_frozen_s1.json").unlink()
+    (changed / "eval" / "headroom.json").unlink()
+    report = compare(changed)
+    assert "CHECK NEEDED" in report and "hier/nested: headline numbers differ" in report and "1 stream runs of the reference are missing" in report and "headroom.json is missing" in report
+    assert "CHECK NEEDED" in compare(tmp_path / "does_not_exist")  # nothing to compare is reported, not raised
+
+
+def test_reproduction_runner_plans_the_published_protocol():
+    cmd = [sys.executable, str(ROOT / "scripts" / "reproduce.py"), "--config", "configs/gpt2.yaml", "--out", "runs/x", "--export", "results_repro/x", "--reference", "results/gpt2", "--dry-run", "device=cuda"]
+    done = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=ROOT, timeout=60)
+    assert done.returncode == 0, done.stderr
+    plan = done.stdout
+    assert plan.count("=====") == 20
+    assert "run_stream.py --config configs/gpt2.yaml --methods frozen,context_only,single_rate,nested,full_online,nested_no_slots --seeds 0,1,2 out_dir=runs/x stream.kind=hier device=cuda" in plan
+    assert "--tag rayleigh out_dir=runs/x stream.kind=hier channel.type=rayleigh device=cuda" in plan
+    assert "pretrain.py --config configs/gpt2.yaml out_dir=runs/x_fixed codec.granularities=[8] stream.m_op=8 device=cuda" in plan
+    # every published stream run is in the plan
+    planned = set()
+    for line in plan.splitlines():
+        if "run_stream.py" not in line:
+            continue
+        words = line.split()
+        methods, seeds = words[words.index("--methods") + 1].split(","), words[words.index("--seeds") + 1].split(",")
+        tag = "_" + words[words.index("--tag") + 1] if "--tag" in words else ""
+        kind = next(w.split("=")[1] for w in words if w.startswith("stream.kind="))
+        planned |= {f"{kind}_{m}_s{s}{tag}" for m in methods for s in seeds}
+    published = {path.stem for path in (ROOT / "results" / "gpt2" / "stream").glob("*.json")}
+    assert planned == published
 
 
 def test_pipeline_runner_plans_every_stage():

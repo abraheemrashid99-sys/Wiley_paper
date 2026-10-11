@@ -11,3 +11,4 @@ venv/
 *.pt
 *.log
 /models/
+/results_repro/

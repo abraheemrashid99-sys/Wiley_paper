@@ -264,3 +264,24 @@ Variant runs: `scripts/run_stream.py --methods nested --seeds 0 --tag <name>
 nested.periods.slow=100`; `nested.lrs.slow=0.0`; `channel.type=rayleigh`.
 The trained codebook used for all of the above is `base/codec.pt`; the
 per-step logs are in `raw_streams.tar.gz`.
+
+One command runs the complete set (every run above, including the variants
+and the fixed-rate codebook) and compares the outcome with this folder:
+
+```
+python scripts/reproduce.py --config configs/gpt2.yaml --out runs/gpt2_repro \
+    --export results_repro/gpt2 --reference results/gpt2
+```
+
+It writes `results_repro/gpt2/COMPARISON.md`: the published and the reproduced
+value of every number, a tolerance check of the headline numbers and a check
+of each conclusion. `notebooks/reproduce_gpt2_colab.ipynb` does the same on a
+Colab GPU.
+
+Repeatability on the same machine was checked by running `context_only` and
+`nested` (seed 0, hierarchical stream) a second time from the stored
+codebook: both runs reproduce the published ones bit for bit (identical
+summaries and identical per-step logs). Across machines, and between a CPU and
+a GPU, floating-point results differ in the last digits and the online
+adaptation carries such differences along, so agreement there is a matter of
+tolerance, which is what `COMPARISON.md` reports.

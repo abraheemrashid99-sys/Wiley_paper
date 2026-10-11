@@ -254,8 +254,8 @@ def pretrain(cfg, force: bool = False) -> Path:
     codec.invalidate_codebook()
     codec.eval()
     extra = {"steps": steps, "seconds": timer.elapsed(), "history": history}
-    save_codec(codec, out_dir, extra)
     save_json(out_dir / "pretrain_summary.json", {"config": cfg.to_dict(), "env": environment(), **extra})
+    save_codec(codec, out_dir, extra)  # last: the checkpoint marks the step as finished
     logger.close()
     print(f"[pretrain] saved {out_dir / 'codec.pt'} in {timer.elapsed() / 60:.1f} min")
     return out_dir

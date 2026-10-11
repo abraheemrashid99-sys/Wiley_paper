@@ -39,6 +39,7 @@ from __future__ import annotations
 
 import json
 import math
+import os
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -572,8 +573,10 @@ def build_codec(cfg, device: torch.device, tokenizer_dir: str | Path | None = No
 def save_codec(codec: SemanticCodec, directory: str | Path, extra: dict | None = None) -> None:
     directory = Path(directory)
     directory.mkdir(parents=True, exist_ok=True)
-    torch.save({"state": codec.codec_state(), "extra": extra or {}}, directory / "codec.pt")
     codec.tok.save_pretrained(str(directory / "tokenizer"))
+    tmp = directory / "codec.pt.tmp"  # written last and atomically: its presence marks a finished checkpoint
+    torch.save({"state": codec.codec_state(), "extra": extra or {}}, tmp)
+    os.replace(tmp, directory / "codec.pt")
 
 
 def load_codec(cfg, directory: str | Path, device: torch.device) -> SemanticCodec:

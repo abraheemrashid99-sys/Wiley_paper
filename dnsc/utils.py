@@ -108,6 +108,13 @@ def git_revision() -> str:
         return "unknown"
 
 
+def gpu_name() -> str:
+    try:
+        return torch.cuda.get_device_name(0) if torch.cuda.is_available() else ""
+    except Exception:  # provenance must never stop an experiment
+        return "unknown"
+
+
 def environment() -> dict[str, Any]:
     """Fingerprint stored with every result file, so no number is orphaned."""
     import transformers
@@ -119,6 +126,7 @@ def environment() -> dict[str, Any]:
         "torch": torch.__version__,
         "threads": torch.get_num_threads(),
         "transformers": transformers.__version__,
+        "gpu": gpu_name(),
         "git": git_revision(),
         "time": time.strftime("%Y-%m-%d %H:%M:%S"),
     }
