@@ -20,13 +20,17 @@ from dnsc.utils import load_json
 
 ORDER = ["frozen", "context_only", "single_rate", "ewc", "nested_no_context", "nested_no_slots", "nested_two_level", "nested", "full_online"]
 SECTIONS = [
-    ("Rate and fidelity on the base corpus", ["rate_*_bleu4", "rate_*_gen_tok_acc", "rate_*_tok_acc", "rate_*_separation", "rate_*_power"]),
+    ("Rate and fidelity on the base corpus", ["rate_*_bleu4", "rate_*_sim", "rate_*_chrf", "rate_*_wer", "rate_*_gen_tok_acc", "rate_*_tok_acc", "rate_*_separation", "rate_*_power"]),
     ("Selective refinement on the base corpus", ["refine_*"]),
     ("What each memory could buy (diagnostic with oracle inputs)", ["headroom"]),
-    ("Hierarchical drift stream", ["stream_hier", "regimes_hier", "curves_hier", "netrate_hier"]),
-    ("Temporal drift stream", ["stream_temporal", "regimes_temporal", "curves_temporal", "netrate_temporal"]),
+    ("Hierarchical drift stream", ["stream_hier", "refine_cost_hier", "refine_start_hier", "targets_hier", "equivalence_hier", "regimes_hier", "curves_hier", "netrate_hier"]),
+    ("Temporal drift stream", ["stream_temporal", "refine_cost_temporal", "refine_start_temporal", "targets_temporal", "equivalence_temporal", "regimes_temporal", "curves_temporal", "netrate_temporal"]),
     ("Variant runs", ["sensitivity"]),
+    ("Measured computational cost", ["cost"]),
 ]
+
+
+STREAM_REFINE = ("refine_cost_", "refine_start_")
 
 
 def headline(stream_dir: Path, kind: str) -> list[str]:
@@ -40,8 +44,11 @@ def headline(stream_dir: Path, kind: str) -> list[str]:
         return []
 
     def need(method: str, key: str) -> tuple[float, int]:
-        values = [r["summary"][key] for r in runs[method].values()]
+        values = [r["summary"].get(key) for r in runs[method].values()]
         return (float("nan") if any(v is None for v in values) else float(np.mean(values))), len(values)
+
+    def show(value: float, pattern: str = "{:.3f}") -> str:
+        return "n/a" if np.isnan(value) else pattern.format(value)
 
     target = next(iter(runs["frozen"].values()))["target_acc"]
     fixed, n_fixed = need("frozen", "symbols_at_target_fixed")
@@ -49,17 +56,19 @@ def headline(stream_dir: Path, kind: str) -> list[str]:
     lines = [
         f"Real symbols per token needed for {target:.0%} token accuracy on the '{kind}' stream (mean over seeds; read off each method's measured operating curve).",
         "",
-        "| Receiver | Seeds | Prior bits/token | Symbols/token | vs. frozen at a fixed rate | vs. frozen with refinement | Sync kbit/step |",
-        "| --- | --- | --- | --- | --- | --- | --- |",
-        f"| frozen, fixed prefix length | {n_fixed} | {need('frozen', 'mean_prior_bits')[0]:.3f} | {fixed:.3f} | — | — | 0 |",
+        "| Receiver | Seeds | Prior bits/token | Symbols/token | vs. frozen at a fixed rate | vs. frozen with refinement | Sync kbit/step | Symbols/token incl. feedback (entropy) | vs. frozen at a fixed rate, feedback charged |",
+        "| --- | --- | --- | --- | --- | --- | --- | --- | --- |",
+        f"| frozen, fixed prefix length | {n_fixed} | {need('frozen', 'mean_prior_bits')[0]:.3f} | {show(fixed)} | — | — | 0 | {show(fixed)} | — |",
     ]
     for method in [m for m in ORDER if m in runs] + sorted(m for m in runs if m not in ORDER):
         value, n = need(method, "symbols_at_target_selective")
         prior, _ = need(method, "mean_prior_bits")
         sync, _ = need(method, "sync_bits_per_step")
         label = "frozen, selective refinement" if method == "frozen" else f"{method}, selective refinement"
-        versus = "—" if method == "frozen" else f"{value / base - 1:+.1%}"
-        lines.append(f"| {label} | {n} | {prior:.3f} | {value:.3f} | {value / fixed - 1:+.1%} | {versus} | {sync / 1e3:.2f} |")
+        versus = "—" if method == "frozen" else show(value / base - 1, "{:+.1%}")
+        total, _ = need(method, "symbols_at_target_selective_fb_entropy")
+        lines.append(f"| {label} | {n} | {prior:.3f} | {show(value)} | {show(value / fixed - 1, '{:+.1%}')} | {versus} | {sync / 1e3:.2f} | {show(total)} | {show(total / fixed - 1, '{:+.1%}')} |")
+    lines += ["", "\"Incl. feedback\": forward symbols plus the return-link signalling of the refinement requests, charged at its entropy and at the capacity of the mean SNR (derived; see the refinement-cost table for the bitmap variant and the free-running audit). n/a: not recorded by the code version that produced the run, or the target is not reached."]
     return lines + [""]
 
 
@@ -76,12 +85,18 @@ def main() -> None:
             lines += [f"## Headline, {kind} stream", ""] + block
     used = set()
     for title, patterns in SECTIONS:
-        files = [f for pattern in patterns for f in sorted(tables.glob(pattern + ".md")) if f not in used]
+        files = []
+        for pattern in patterns:  # a table is printed once, under the first pattern that matches it
+            for path in sorted(tables.glob(pattern + ".md")):
+                if pattern == "refine_*" and path.stem.startswith(STREAM_REFINE):
+                    continue  # stream tables with a "refine_" name belong to the stream sections below
+                if path not in used:
+                    used.add(path)
+                    files.append(path)
         if not files:
             continue
         lines += [f"## {title}", ""]
         for path in files:
-            used.add(path)
             lines += [path.read_text(encoding="utf-8").strip(), ""]
     rest = [f for f in sorted(tables.glob("*.md")) if f not in used]
     if rest:

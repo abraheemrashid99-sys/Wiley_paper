@@ -69,6 +69,24 @@ def equivalence(a, b, margin: float, n_boot: int = 2000, alpha: float = 0.05, se
     return out
 
 
+def min_attainable_p(n_pairs: int) -> float:
+    """Smallest two-sided p-value an exact sign-flip test can return with
+    ``n_pairs`` pairs: 2 / 2^n. With three seeds that is 0.25, so no
+    seed-level test can be significant; six seeds are needed for 0.03."""
+    return float(min(1.0, 2.0 / 2.0 ** int(n_pairs)))
+
+
+def block_equivalence(series, margin: float, block: int = 25, n_boot: int = 2000, alpha: float = 0.05, seed: int = 0) -> dict:
+    """Two-one-sided-tests decision on per-step paired differences:
+    equivalent iff the (1 - 2 alpha) block-bootstrap interval of the mean
+    difference lies strictly inside (-margin, +margin). The margin must be
+    fixed before the results are inspected."""
+    out = block_bootstrap(series, block=block, n_boot=n_boot, alpha=2 * alpha, seed=seed)
+    out["margin"] = float(margin)
+    out["equivalent"] = bool(-margin < out["ci_low"] and out["ci_high"] < margin)
+    return out
+
+
 def block_bootstrap(series, block: int = 25, n_boot: int = 2000, alpha: float = 0.05, seed: int = 0) -> dict:
     """Percentile CI of the mean of per-step paired differences.
 

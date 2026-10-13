@@ -95,15 +95,21 @@ class JsonlLogger:
 
 
 def git_revision() -> str:
+    """Short revision of the code that produced a result. In a git checkout
+    it is read from git (with ``+dirty`` when tracked files are modified); in
+    an unpacked release archive from the ``REVISION`` file written when the
+    archive was built."""
+    root = Path(__file__).resolve().parent.parent
     try:
-        out = subprocess.run(
-            ["git", "rev-parse", "--short", "HEAD"],
-            capture_output=True,
-            text=True,
-            cwd=Path(__file__).resolve().parent,
-            timeout=5,
-        )
-        return out.stdout.strip() or "unknown"
+        out = subprocess.run(["git", "rev-parse", "--short", "HEAD"], capture_output=True, text=True, cwd=root, timeout=5)
+        revision = out.stdout.strip()
+        if out.returncode == 0 and revision and (root / ".git").exists():
+            status = subprocess.run(["git", "status", "--porcelain", "--untracked-files=no"], capture_output=True, text=True, cwd=root, timeout=10)
+            return revision + ("+dirty" if status.stdout.strip() else "")
+    except Exception:
+        pass
+    try:
+        return (root / "REVISION").read_text(encoding="utf-8").split()[0]
     except Exception:
         return "unknown"
 

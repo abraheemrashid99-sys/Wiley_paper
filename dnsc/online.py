@@ -25,6 +25,15 @@ fed-back average SNR and its own working copies. It does not know the
 receiver's noise or decisions, so it trains with the *true* earlier messages
 as context and on a channel realisation of its own.
 
+Selective refinement is scored on every message teacher-forced (each token
+is judged given the true tokens before it), which costs one LLM pass per
+step. Two things keep that emulation honest. The return-link signalling it
+implies is counted for every threshold and every choice of the first shell
+(``refine_grid``; see :class:`dnsc.refine.FeedbackMeter`). And every
+``stream.live_every`` steps the same received symbols are decoded for real -
+free-running, round by round - so the emulated and the real operating curve
+are reported side by side (``live_curve``).
+
 Methods
 -------
 frozen             no memory at all: every message is decoded on its own
@@ -50,14 +59,14 @@ from pathlib import Path
 import numpy as np
 import torch
 
-from .channel import Channel
+from .channel import Channel, capacity_real
 from .codec import SemanticCodec, TokenCache, join_context, load_codec, slot_group
 from .data import build_stream, get_corpus
 from .data.stream import build_probes
 from .linkbudget import net_semantic_rate, symbols_at_accuracy
 from .metrics import expected_calibration_error, load_similarity
 from .nested import Level, NestedOptimizer
-from .refine import level_stats, stop_levels
+from .refine import FeedbackMeter, feedback_bits_per_token, level_stats, progressive_decode, rounds_per_message, stop_levels
 from .train import LN2, evaluate_gen, evaluate_tf, sample_grans
 from .utils import Timer, environment, get_device, save_json, set_seed
 
@@ -282,7 +291,7 @@ def run_stream(cfg, method: str, seed: int, ckpt_dir: str | Path, out_path: str 
         with the memories it holds at this moment. With several slots, the
         slot is chosen for each probe set as it would be if that regime
         returned."""
-        row = {"step": step, "regime": regime, "domains": {}}
+        row = {"step": step, "regime": regime, "domains": {}, "staleness": optimizer.staleness(step)}
         was_training, codec.train_codebook = codec.train_codebook, False
         with optimizer.receiver_view():
             codec.invalidate_codebook()
@@ -305,7 +314,15 @@ def run_stream(cfg, method: str, seed: int, ckpt_dir: str | Path, out_path: str 
         return row
 
     timer = Timer()
-    log = {k: [] for k in ("ce_bits", "tok_acc", "prior_bits", "acc_by_m", "ce_by_m", "sel_symbols", "sel_acc", "slot", "snr_db", "codebook_power", "domain", "topic", "regime")}
+    log = {k: [] for k in ("ce_bits", "tok_acc", "prior_bits", "acc_by_m", "ce_by_m", "sel_symbols", "sel_acc", "sel_fb_bits", "sel_rounds", "slot", "snr_db", "codebook_power", "domain", "topic", "regime")}
+    # selective refinement for every first shell and threshold: running sums of
+    # (symbols, token accuracy, bitmap feedback bits, rounds per message) and the feedback decisions
+    n_levels = len(codec.grans)
+    grid_sum = np.zeros((n_levels, len(thresholds), 4))
+    grid_meter = [[FeedbackMeter(n_levels) for _ in thresholds] for _ in range(n_levels)]
+    live_every = int(scfg["live_every"])
+    live_log: list[dict] = []
+    live_meter = [FeedbackMeter(n_levels) for _ in thresholds]
     conf_all, correct_all = [], []  # for the calibration error of the receiver's confidence over the stream
     gen_log, probe_log = [], [probe(0, -1)]
     n_steps, n_tokens, n_messages = len(stream), 0, 0
@@ -349,6 +366,15 @@ def run_stream(cfg, method: str, seed: int, ckpt_dir: str | Path, out_path: str 
                 rx_prior = codec._adjust_prior(logits, cache)
                 stats = level_stats(codec, ids, y_flat, w_flat, rx_prior)  # (tokens, K) at every prefix length
                 prior_ce = -rx_prior.gather(1, ids.unsqueeze(1)).mean().item() / LN2
+                live_now = None
+                if live_every > 0 and item.t % live_every == 0:
+                    # the same received symbols, decoded for real: free-running, round by round
+                    live_now = []
+                    for index, tau in enumerate(thresholds):
+                        out = progressive_decode(codec, y, prec, batch.lens, tau, rx_contexts, cache)
+                        hits = sum(int(a == b) for row, length, got in zip(batch.ids.tolist(), batch.lens.tolist(), out["token_ids"]) for a, b in zip(row[:length], got))
+                        live_meter[index].merge(out["meter"])
+                        live_now.append({"symbols": out["symbols"], "tok_acc": hits / max(out["n_tokens"], 1), "feedback_bits": out["feedback_bits"], "rounds": out["rounds"]})
         # selective refinement, emulated teacher-forced: every token stops at the
         # first shell at which the receiver's own confidence reaches the threshold
         selective = {}
@@ -356,6 +382,22 @@ def run_stream(cfg, method: str, seed: int, ckpt_dir: str | Path, out_path: str 
             stop = stop_levels(stats["conf"], tau)
             selective[tau] = (sizes[stop].mean().item(), stats["correct"].gather(1, stop.unsqueeze(1)).mean().item())
         decided = stats["decided"].gather(1, stop_levels(stats["conf"], tau_op).unsqueeze(1)).squeeze(1)
+        # the same policy for every choice of the first shell, with the return-link signalling it needs
+        lengths = batch.lens.tolist()
+        for first in range(n_levels):
+            for index, tau in enumerate(thresholds):
+                stop = stop_levels(stats["conf"], tau, first)
+                grid_sum[first, index] += (
+                    sizes[stop].mean().item(),
+                    stats["correct"].gather(1, stop.unsqueeze(1)).mean().item(),
+                    feedback_bits_per_token(stop, n_levels, first).mean().item(),
+                    rounds_per_message(stop, lengths, first),
+                )
+                grid_meter[first][index].add_stops(stop, first)
+                if first == 0:
+                    selective[tau] = selective[tau] + (feedback_bits_per_token(stop, n_levels).mean().item(), rounds_per_message(stop, lengths))
+        if live_now is not None:
+            live_log.append({"step": item.t, "live": live_now, "emulated": [{"symbols": selective[tau][0], "tok_acc": selective[tau][1]} for tau in thresholds]})
 
         if levels:  # ---- what the transmitter does: learn from the true text
             if codec.train_codebook:  # its own simulation of the channel, through the working codebook
@@ -396,6 +438,8 @@ def run_stream(cfg, method: str, seed: int, ckpt_dir: str | Path, out_path: str 
         log["ce_by_m"].append(ce_by_m)
         log["sel_symbols"].append([selective[tau][0] for tau in thresholds])
         log["sel_acc"].append([selective[tau][1] for tau in thresholds])
+        log["sel_fb_bits"].append([selective[tau][2] for tau in thresholds])
+        log["sel_rounds"].append([selective[tau][3] for tau in thresholds])
         log["slot"].append(-1 if active is None else int(active))
         conf_all.append(stats["conf"][:, k_op].cpu().numpy())
         correct_all.append(stats["correct"][:, k_op].cpu().numpy())
@@ -423,8 +467,49 @@ def run_stream(cfg, method: str, seed: int, ckpt_dir: str | Path, out_path: str 
     traffic = float(cfg["link"]["traffic_per_step"])
     fixed_curve = [{"m": m, "tok_acc": a, "ce_bits": c} for m, a, c in zip(codec.grans, np.mean(log["acc_by_m"], axis=0).tolist(), np.mean(log["ce_by_m"], axis=0).tolist())]
     selective_curve = [{"threshold": tau, "symbols": s, "tok_acc": a} for tau, s, a in zip(thresholds, np.mean(log["sel_symbols"], axis=0).tolist(), np.mean(log["sel_acc"], axis=0).tolist())]
-    operating = selective_curve[thresholds.index(tau_op)]
     target = float(scfg["target_acc"])
+
+    # Return-link signalling of selective refinement. Request bits are converted to real
+    # symbols at the capacity of the mean SNR - the same optimistic assumption under which
+    # synchronisation bits are charged - so "total" is forward symbols plus signalling.
+    capacity = capacity_real(snr_mean)
+
+    def curve_cost(points: list[dict]) -> dict:
+        """Symbols per token at the target accuracy: forward only, and with the
+        signalling charged as an explicit bitmap or at its entropy."""
+        accuracy = [p["tok_acc"] for p in points]
+        return {
+            "symbols_at_target": _finite(symbols_at_accuracy([p["symbols"] for p in points], accuracy, target)),
+            "symbols_at_target_fb": _finite(symbols_at_accuracy([p["symbols_total"] for p in points], accuracy, target)),
+            "symbols_at_target_fb_entropy": _finite(symbols_at_accuracy([p["symbols_total_entropy"] for p in points], accuracy, target)),
+        }
+
+    def with_totals(point: dict) -> dict:
+        point["symbols_total"] = point["symbols"] + point["feedback_bits"] / capacity
+        point["symbols_total_entropy"] = point["symbols"] + point["feedback_entropy_bits"] / capacity
+        return point
+
+    refine_grid = []
+    for first in range(n_levels):
+        points = []
+        for index, tau in enumerate(thresholds):
+            symbols, accuracy, bitmap, rounds = (grid_sum[first, index] / max(n_steps, 1)).tolist()
+            points.append(with_totals({"threshold": tau, "symbols": symbols, "tok_acc": accuracy, "feedback_bits": bitmap, "feedback_entropy_bits": grid_meter[first][index].entropy_bits(), "rounds": rounds}))
+        refine_grid.append({"first_m": codec.grans[first], "points": points, **curve_cost(points)})
+    for point, full in zip(selective_curve, refine_grid[0]["points"]):  # the policy of the paper: first shell = shortest prefix
+        point.update({key: full[key] for key in ("feedback_bits", "feedback_entropy_bits", "rounds", "symbols_total", "symbols_total_entropy")})
+    operating = selective_curve[thresholds.index(tau_op)]
+
+    # free-running audit: the real and the emulated operating curve on the same steps and symbols
+    live_curve, live_cost, emulated_cost = [], {}, {}
+    if live_log:
+        for index, tau in enumerate(thresholds):
+            live = {key: float(np.mean([row["live"][index][key] for row in live_log])) for key in ("symbols", "tok_acc", "feedback_bits", "rounds")}
+            live["feedback_entropy_bits"] = live_meter[index].entropy_bits()
+            emulated = {key: float(np.mean([row["emulated"][index][key] for row in live_log])) for key in ("symbols", "tok_acc")}
+            live_curve.append({"threshold": tau, **with_totals(live), "emulated_symbols": emulated["symbols"], "emulated_tok_acc": emulated["tok_acc"]})
+        live_cost = curve_cost(live_curve)
+        emulated_cost = {"symbols_at_target": _finite(symbols_at_accuracy([p["emulated_symbols"] for p in live_curve], [p["emulated_tok_acc"] for p in live_curve], target))}
     summary = {
         "mean_tok_acc": float(np.mean(log["tok_acc"])),
         "mean_ce_bits": float(np.mean(log["ce_bits"])),
@@ -436,6 +521,23 @@ def run_stream(cfg, method: str, seed: int, ckpt_dir: str | Path, out_path: str 
         # (None when the curve never reaches the target)
         "symbols_at_target_selective": _finite(symbols_at_accuracy([p["symbols"] for p in selective_curve], [p["tok_acc"] for p in selective_curve], target)),
         "symbols_at_target_fixed": _finite(symbols_at_accuracy([float(p["m"]) for p in fixed_curve], [p["tok_acc"] for p in fixed_curve], target)),
+        # the same with the return-link signalling of refinement charged (bitmap / entropy of the requests)
+        "symbols_at_target_selective_fb": refine_grid[0]["symbols_at_target_fb"],
+        "symbols_at_target_selective_fb_entropy": refine_grid[0]["symbols_at_target_fb_entropy"],
+        "sel_feedback_bits": operating["feedback_bits"],
+        "sel_feedback_entropy_bits": operating["feedback_entropy_bits"],
+        "sel_rounds": operating["rounds"],
+        "feedback_capacity": capacity,
+        # free-running audit (None when stream.live_every is 0)
+        "live_steps": len(live_log),
+        "live_symbols_at_target": live_cost.get("symbols_at_target"),
+        "live_symbols_at_target_fb": live_cost.get("symbols_at_target_fb"),
+        "live_symbols_at_target_fb_entropy": live_cost.get("symbols_at_target_fb_entropy"),
+        "live_emulated_symbols_at_target": emulated_cost.get("symbols_at_target"),
+        "live_sel_symbols": live_curve[thresholds.index(tau_op)]["symbols"] if live_curve else None,
+        "live_sel_tok_acc": live_curve[thresholds.index(tau_op)]["tok_acc"] if live_curve else None,
+        "live_emulated_sel_symbols": live_curve[thresholds.index(tau_op)]["emulated_symbols"] if live_curve else None,
+        "live_emulated_sel_tok_acc": live_curve[thresholds.index(tau_op)]["emulated_tok_acc"] if live_curve else None,
         "mean_codebook_power": float(np.mean(log["codebook_power"])),
         "final_probe_tok_acc": float(np.mean([v["tok_acc"] for v in final.values()])),
         "final_probe_prior_bits": float(np.mean([v["prior_bits"] for v in final.values()])),
@@ -464,6 +566,10 @@ def run_stream(cfg, method: str, seed: int, ckpt_dir: str | Path, out_path: str 
         "target_acc": target,
         "fixed_curve": fixed_curve,
         "selective_curve": selective_curve,
+        "refine_grid": refine_grid,
+        "live_every": live_every,
+        "live_curve": live_curve,
+        "live": live_log,
         "levels": [
             {"name": lv.name, "side": lv.side, "period": lv.period, "lr": lv.lr, "ema": lv.ema, "n_params": lv.n_params, "bits_per_update": optimizer.expected_bits_per_update(lv)}
             for lv in levels

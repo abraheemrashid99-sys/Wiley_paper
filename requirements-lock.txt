@@ -1,0 +1,18 @@
+# Exact versions with which results/gpt2 was produced and the test suite was last run
+# (Python 3.13, Linux x86-64, CPU). Install with:  python -m pip install -r requirements-lock.txt
+# Other versions satisfying pyproject.toml work too; numbers then agree within the tolerance
+# reported by scripts/compare_results.py rather than bit for bit.
+torch==2.14.1
+transformers==5.19.0
+tokenizers==0.23.3
+datasets==5.1.0
+numpy==2.5.3
+scipy==1.18.1
+pandas==3.0.5
+matplotlib==3.11.2
+PyYAML==6.0.3
+sacrebleu==2.6.0
+pyzipper==0.4.0
+tqdm==4.70.1
+pytest==9.1.1
+onnx==1.23.2

@@ -62,6 +62,32 @@ def exact_match(references: list[str], hypotheses: list[str]) -> float:
     return float(np.mean([words(r) == words(h) for r, h in zip(references, hypotheses)]))
 
 
+def chrf(references: list[str], hypotheses: list[str]) -> float:
+    """Corpus-level chrF (character n-gram F-score, sacreBLEU defaults), in
+    [0, 1]. Unlike BLEU-4 it gives partial credit inside a word, so it does
+    not collapse to zero as soon as one token of a 4-gram is wrong."""
+    import sacrebleu
+
+    return float(sacrebleu.corpus_chrf(hypotheses, [references]).score) / 100.0
+
+
+def _edit_distance(a: list[str], b: list[str]) -> int:
+    previous = list(range(len(b) + 1))
+    for i, x in enumerate(a, start=1):
+        current = [i]
+        for j, y in enumerate(b, start=1):
+            current.append(min(previous[j] + 1, current[j - 1] + 1, previous[j - 1] + (x != y)))
+        previous = current
+    return previous[-1]
+
+
+def word_error_rate(references: list[str], hypotheses: list[str]) -> float:
+    """Corpus-level word error rate: word-level edit distance summed over the
+    sentences, divided by the number of reference words."""
+    errors = sum(_edit_distance(words(r), words(h)) for r, h in zip(references, hypotheses))
+    return float(errors / max(sum(len(words(r)) for r in references), 1))
+
+
 class SentenceSimilarity:
     """Cosine similarity of mean-pooled sentence embeddings.
 
@@ -108,6 +134,8 @@ def fidelity(references: list[str], hypotheses: list[str], sim=None) -> dict[str
     out = bleu_scores(references, hypotheses)
     out["sacrebleu"] = sacre_bleu(references, hypotheses)
     out["exact"] = exact_match(references, hypotheses)
+    out["chrf"] = chrf(references, hypotheses)
+    out["wer"] = word_error_rate(references, hypotheses)
     if sim is not None:
         out["sim"] = float(np.mean(sim(references, hypotheses)))
     return out

@@ -11,6 +11,13 @@ The receiver's confidence is *calibrated* on held-out data, so the stopping
 threshold means something (a target probability that the token is right),
 and the calibration error is reported before and after.
 
+Refinement is not free on the return link: after every round the receiver
+has to say which tokens it wants more of. That signalling is counted here
+(:class:`FeedbackMeter`) in two forms - an explicit bitmap, one bit per token
+still open, and the entropy of those decisions, which is what an ideal
+entropy coder of the bitmap would need - and it is reported next to the
+forward symbols wherever a refinement result is reported.
+
 Two evaluations are provided:
 
 * a teacher-forced sweep of the whole rate-accuracy curve, which costs one LLM
@@ -20,6 +27,8 @@ Two evaluations are provided:
 """
 
 from __future__ import annotations
+
+import math
 
 import numpy as np
 import torch
@@ -63,12 +72,151 @@ def level_stats(codec: SemanticCodec, ids: torch.Tensor, y: torch.Tensor, weight
     return {key: torch.stack(value, dim=1) for key, value in rows.items()}
 
 
-def stop_levels(conf: torch.Tensor, threshold: float) -> torch.Tensor:
-    """Index of the first shell at which the confidence (N, K) reaches the
-    threshold; the last shell if it never does."""
+def stop_levels(conf: torch.Tensor, threshold: float, start: int = 0) -> torch.Tensor:
+    """Index of the first shell, from shell ``start`` on, at which the
+    confidence (N, K) reaches the threshold; the last shell if it never does.
+    ``start`` is the shell sent in the first round (0: the shortest prefix)."""
     hit = conf >= threshold
+    if start > 0:
+        hit = hit.clone()
+        hit[:, :start] = False
     last = conf.shape[1] - 1
     return torch.where(hit.any(dim=1), hit.float().argmax(dim=1), torch.full_like(hit[:, 0], last, dtype=torch.long))
+
+
+def binary_entropy(p: float) -> float:
+    """Entropy of a Bernoulli(p) decision in bits."""
+    if p <= 0.0 or p >= 1.0:
+        return 0.0
+    return float(-p * math.log2(p) - (1.0 - p) * math.log2(1.0 - p))
+
+
+class FeedbackMeter:
+    """Return-link signalling of selective refinement.
+
+    Protocol: round ``r`` delivers shell ``r`` of every token that is still
+    open. After the round the receiver tells the transmitter, for each open
+    token, whether it wants the next shell; a token that is not continued is
+    closed for good, and after the last shell nothing has to be said. With
+    ``K`` shells there are therefore at most ``K - 1`` decisions per token.
+
+    Two costs are derived from the decisions that were actually taken:
+
+    ``bitmap_bits``   one bit per open token and round (an explicit bitmap);
+    ``entropy_bits``  the empirical entropy of the decisions of every round,
+                      i.e. what an ideal entropy coder of the bitmap that
+                      knows the request rate of each round would spend. It is
+                      a lower reference, not an implemented code.
+
+    Both are bits per transmitted token."""
+
+    def __init__(self, n_levels: int):
+        self.n_levels = int(n_levels)
+        self.open = np.zeros(max(self.n_levels - 1, 0), dtype=np.float64)  # tokens deciding after round r
+        self.cont = np.zeros(max(self.n_levels - 1, 0), dtype=np.float64)  # of which: continue
+        self.tokens = 0.0
+
+    def add_round(self, round_index: int, n_open: int, n_continue: int) -> None:
+        if round_index < self.n_levels - 1:
+            self.open[round_index] += n_open
+            self.cont[round_index] += n_continue
+
+    def add_tokens(self, n: int) -> None:
+        self.tokens += n
+
+    def add_stops(self, stop, start: int = 0) -> None:
+        """Account for tokens that stop at shell index ``stop`` (array-like)
+        when the first round sends shell ``start``."""
+        stop = np.asarray(stop.detach().cpu() if isinstance(stop, torch.Tensor) else stop).reshape(-1)
+        self.tokens += stop.size
+        for r in range(start, self.n_levels - 1):
+            self.open[r] += float((stop >= r).sum())
+            self.cont[r] += float((stop > r).sum())
+
+    def bitmap_bits(self) -> float:
+        return float(self.open.sum() / self.tokens) if self.tokens else 0.0
+
+    def entropy_bits(self) -> float:
+        if not self.tokens:
+            return 0.0
+        total = sum(n * binary_entropy(c / n) for n, c in zip(self.open, self.cont) if n > 0)
+        return float(total / self.tokens)
+
+    def merge(self, other: "FeedbackMeter") -> None:
+        self.open += other.open
+        self.cont += other.cont
+        self.tokens += other.tokens
+
+    def summary(self) -> dict[str, float]:
+        return {"feedback_bits": self.bitmap_bits(), "feedback_entropy_bits": self.entropy_bits()}
+
+
+def feedback_bits_per_token(stop: torch.Tensor, n_levels: int, start: int = 0) -> torch.Tensor:
+    """Bitmap feedback of every token (float tensor like ``stop``): one
+    decision after each round it takes part in, none after the last shell."""
+    return ((stop + 1).clamp(max=n_levels - 1) - start).clamp(min=0).to(torch.float32)
+
+
+def rounds_per_message(stop: torch.Tensor, lengths: list[int], start: int = 0) -> float:
+    """Mean number of transmission rounds per message when every token stops
+    at shell index ``stop`` (flat, one entry per token; ``lengths`` cuts it
+    into messages)."""
+    if not lengths:
+        return 0.0
+    return float(np.mean([int(part.max()) - start + 1 for part in stop.split(lengths)]))
+
+
+@torch.no_grad()
+def progressive_decode(codec: SemanticCodec, y: torch.Tensor, prec: torch.Tensor, lens: torch.Tensor, threshold: float, contexts: list[list[int]] | None = None, cache=None, start: int = 0) -> dict:
+    """Selective refinement decoded for real (free-running) on symbols that
+    were transmitted once with :meth:`SemanticCodec.transmit`.
+
+    The receiver first reads shell ``start`` of every token and decodes the
+    sentence with its own earlier decisions as the language-model input. A
+    token whose posterior confidence reaches ``threshold`` is closed; for the
+    others the next shell is read and the whole sentence is decoded again,
+    until every token is closed or has all its shells. This is exactly the
+    policy that the stream runner emulates teacher-forced, on the same
+    received symbols, so the difference between the two is the effect of
+    free-running decoding and nothing else.
+
+    Returns the final decisions (``token_ids``, ``texts``), the mean number
+    of symbols per token, the feedback account and the mean number of rounds
+    per message."""
+    grans = codec.grans
+    n_levels = len(grans)
+    sizes = torch.tensor(grans, dtype=torch.long, device=y.device)
+    bsz, width, _ = y.shape
+    mask = torch.arange(width, device=y.device).unsqueeze(0) < lens.to(y.device).unsqueeze(1)
+    level = torch.full((bsz, width), int(start), dtype=torch.long, device=y.device)
+    is_open = mask.clone()
+    rounds = torch.ones(bsz, dtype=torch.long, device=y.device)
+    meter = FeedbackMeter(n_levels)
+    meter.add_tokens(int(mask.sum()))
+    decoded = None
+    for round_index in range(start, n_levels):
+        decoded = codec.decode(y, sizes[level], prec, lens, "llm", cache, contexts)
+        if round_index == n_levels - 1 or not bool(is_open.any()):
+            break
+        conf = decoded.token_logprob.exp().to(y.device)
+        request = is_open & (conf < threshold)
+        meter.add_round(round_index, int(is_open.sum()), int(request.sum()))
+        is_open = request
+        if not bool(request.any()):
+            break
+        level = level + request.long()
+        rounds = rounds + request.any(dim=1).long()
+    n_tokens = max(int(mask.sum()), 1)
+    return {
+        "token_ids": decoded.token_ids,
+        "texts": decoded.texts,
+        "level": level,
+        "symbols": float(sizes[level][mask].sum()) / n_tokens,
+        "rounds": float(rounds.float().mean()),
+        "n_tokens": int(mask.sum()),
+        "meter": meter,
+        **meter.summary(),
+    }
 
 
 @torch.no_grad()
@@ -138,7 +286,9 @@ def stopping_curve(prob: np.ndarray, quality: np.ndarray, grans: list[int], thre
         hit = prob >= tau
         stop = np.where(hit.any(1), hit.argmax(1), k - 1)
         q = quality[np.arange(n), stop]
-        rows.append({"threshold": float(tau), "symbols": float(sizes[stop].mean()), "quality": float(q.mean()), "success": float((q >= gamma).mean()), "rounds": float((stop + 1).mean())})
+        meter = FeedbackMeter(k)
+        meter.add_stops(stop)
+        rows.append({"threshold": float(tau), "symbols": float(sizes[stop].mean()), "quality": float(q.mean()), "success": float((q >= gamma).mean()), "rounds": float((stop + 1).mean()), **meter.summary()})
     return rows
 
 
@@ -184,6 +334,7 @@ def selective_decode(codec: SemanticCodec, texts: list[str], snr_db: float, chan
     edges = [0] + list(grans)
     refs, hyps = [], []
     symbols = tokens = correct = requests = rounds_used = batches = 0
+    meter = FeedbackMeter(len(grans))
     for i in range(0, len(texts), batch_size):
         chunk = texts[i : i + batch_size]
         batch = codec.tokenize(chunk)
@@ -196,6 +347,7 @@ def selective_decode(codec: SemanticCodec, texts: list[str], snr_db: float, chan
         weight = torch.zeros_like(x)  # noise precision of every received symbol; 0 = not received
         level = torch.full_like(batch.ids, -1)  # index of the last shell received, per token
         send = batch.mask.clone()  # tokens that receive their next shell this round
+        alive = torch.ones(bsz, dtype=torch.bool, device=x.device)  # messages that still exchange feedback
         decoded = None
         for round_index in range(len(grans)):
             nxt = (level + 1).clamp(max=len(grans) - 1)
@@ -216,18 +368,24 @@ def selective_decode(codec: SemanticCodec, texts: list[str], snr_db: float, chan
                 break
             feats = features(decoded.token_logprob.exp().numpy(), decoded.token_entropy.numpy(), level.clamp(min=0).cpu().numpy().astype(float), len(grans))
             prob = torch.as_tensor(calibrator.predict(feats.reshape(-1, feats.shape[-1])).reshape(bsz, width), device=x.device)
-            send = (prob < threshold) & batch.mask & (level < len(grans) - 1)
+            can = batch.mask & (level < len(grans) - 1)
+            send = (prob < threshold) & can
+            # return link: one decision per token that can still be refined, in every message
+            # that has not yet answered "nothing more" (such a message is finished)
+            meter.add_round(round_index, int((can & alive.unsqueeze(1)).sum()), int((send & alive.unsqueeze(1)).sum()))
+            alive = alive & send.any(dim=1)
             if not bool(send.any()):
                 break
             requests += int(send.sum())
         refs.extend(codec.reference_texts(chunk))
         hyps.extend(decoded.texts)
         tokens += int(batch.lens.sum())
+        meter.add_tokens(int(batch.lens.sum()))
         batches += 1
         for row, length, got in zip(batch.ids.tolist(), batch.lens.tolist(), decoded.token_ids):
             correct += sum(int(a == b) for a, b in zip(row[:length], got))
     out = fidelity(refs, hyps, sim)
-    out.update({"threshold": float(threshold), "symbols": symbols / max(tokens, 1), "gen_tok_acc": correct / max(tokens, 1), "requests_per_token": requests / max(tokens, 1), "rounds_per_batch": rounds_used / max(batches, 1)})
+    out.update({"threshold": float(threshold), "symbols": symbols / max(tokens, 1), "gen_tok_acc": correct / max(tokens, 1), "requests_per_token": requests / max(tokens, 1), "rounds_per_batch": rounds_used / max(batches, 1), **meter.summary()})
     return out
 
 

@@ -448,3 +448,84 @@ def test_block_bootstrap_of_paired_differences():
     assert block_bootstrap([np.ones(60)], block=25)["n_blocks"] == 2  # an incomplete last block is dropped
     with pytest.raises(ValueError):
         block_bootstrap([np.ones(10)], block=25)
+
+
+# ------------------------------------------------- refinement signalling, statistics, text metrics (v0.3)
+def test_feedback_meter_counts_one_decision_per_open_token_and_round():
+    from dnsc.refine import FeedbackMeter, binary_entropy, feedback_bits_per_token
+
+    meter = FeedbackMeter(4)  # shells 0..3: at most three decisions per token
+    stop = torch.tensor([0, 1, 3, 3])
+    meter.add_stops(stop)
+    assert meter.open.tolist() == [4.0, 3.0, 2.0] and meter.cont.tolist() == [3.0, 2.0, 2.0]
+    assert meter.bitmap_bits() == pytest.approx((1 + 2 + 3 + 3) / 4)
+    assert feedback_bits_per_token(stop, 4).tolist() == [1.0, 2.0, 3.0, 3.0]
+    expected = (4 * binary_entropy(3 / 4) + 3 * binary_entropy(2 / 3) + 2 * binary_entropy(1.0)) / 4
+    assert meter.entropy_bits() == pytest.approx(expected) and meter.entropy_bits() <= meter.bitmap_bits()
+    assert binary_entropy(0.5) == pytest.approx(1.0) and binary_entropy(0.0) == 0.0 and binary_entropy(1.0) == 0.0
+
+    late = FeedbackMeter(4)  # the first round already sends shell 1: one decision fewer
+    late.add_stops(torch.tensor([1, 3, 3]), start=1)
+    assert late.open.tolist() == [0.0, 3.0, 2.0] and late.bitmap_bits() == pytest.approx((1 + 2 + 2) / 3)
+    assert feedback_bits_per_token(torch.tensor([1, 3, 3]), 4, start=1).tolist() == [1.0, 2.0, 2.0]
+
+    both = FeedbackMeter(4)
+    both.merge(meter)
+    both.merge(late)
+    assert both.tokens == 7 and both.open.tolist() == [4.0, 6.0, 4.0]
+    single = FeedbackMeter(1)  # one shell only: nothing to ask for
+    single.add_stops(torch.tensor([0, 0]))
+    assert single.bitmap_bits() == 0.0 and single.entropy_bits() == 0.0
+
+
+def test_stop_levels_respects_the_first_shell_and_rounds_are_per_message():
+    from dnsc.refine import rounds_per_message, stop_levels
+
+    conf = torch.tensor([[0.95, 0.2, 0.99, 0.99], [0.1, 0.2, 0.3, 0.4], [0.1, 0.92, 0.5, 0.99]])
+    assert stop_levels(conf, 0.9).tolist() == [0, 3, 1]
+    assert stop_levels(conf, 0.9, start=1).tolist() == [2, 3, 1]  # shell 0 is not an option any more
+    assert stop_levels(conf, 0.9, start=3).tolist() == [3, 3, 3]
+    assert conf.tolist()[0][0] == pytest.approx(0.95)  # the input is not modified
+    stop = torch.tensor([0, 2, 1, 1])
+    assert rounds_per_message(stop, [2, 2]) == pytest.approx((3 + 2) / 2)  # a message needs as many rounds as its slowest token
+    assert rounds_per_message(stop, [2, 2], start=1) == pytest.approx((2 + 1) / 2)
+
+
+def test_seed_level_tests_state_what_they_can_show():
+    from dnsc.stats import block_equivalence, min_attainable_p, paired_permutation
+
+    assert min_attainable_p(3) == pytest.approx(0.25) and min_attainable_p(6) == pytest.approx(0.03125) and min_attainable_p(1) == 1.0
+    # three seeds, all in favour of one method: the exact test still cannot go below its floor
+    assert paired_permutation([1.0, 1.1, 1.2], [0.0, 0.1, 0.2]) == pytest.approx(0.25)
+    assert paired_permutation([1.0, 1.1, 1.2, 1.3, 1.4, 1.5], [0.0, 0.1, 0.2, 0.3, 0.4, 0.5]) == pytest.approx(0.03125)
+    rng = np.random.default_rng(0)
+    tight = [rng.normal(0.0, 0.01, size=200) for _ in range(3)]
+    shifted = [rng.normal(0.2, 0.01, size=200) for _ in range(3)]
+    assert block_equivalence(tight, margin=0.05)["equivalent"] and not block_equivalence(shifted, margin=0.05)["equivalent"]
+    wide = block_equivalence([rng.normal(0.0, 2.0, size=200)], margin=0.05)
+    assert not wide["equivalent"] and wide["ci_low"] < 0 < wide["ci_high"]  # too noisy to call: not "equivalent"
+
+
+def test_chrf_and_word_error_rate():
+    from dnsc.metrics import chrf, fidelity, word_error_rate
+
+    refs = ["the council adopts the budget", "a late goal in extra time"]
+    assert chrf(refs, refs) == pytest.approx(1.0) and word_error_rate(refs, refs) == 0.0
+    one_wrong = ["the council adopts the budgets", "a late goal in extra time"]
+    assert 0.5 < chrf(refs, one_wrong) < 1.0  # partial credit inside a word, unlike BLEU-4
+    assert word_error_rate(refs, one_wrong) == pytest.approx(1 / 11)
+    assert word_error_rate(["a b c"], ["a c"]) == pytest.approx(1 / 3) and word_error_rate(["a b c"], [""]) == pytest.approx(1.0)
+    out = fidelity(refs, one_wrong)
+    assert {"bleu4", "sacrebleu", "exact", "chrf", "wer"} <= set(out) and out["exact"] == 0.5
+
+
+def test_code_revision_is_read_from_the_release_file_outside_git(tmp_path, monkeypatch):
+    import dnsc.utils as utils
+
+    package = tmp_path / "dnsc"
+    package.mkdir()
+    (tmp_path / "REVISION").write_text("abc1234 built 2026-10-13\n", encoding="utf-8")
+    monkeypatch.setattr(utils, "__file__", str(package / "utils.py"))
+    assert utils.git_revision() == "abc1234"
+    (tmp_path / "REVISION").unlink()
+    assert utils.git_revision() == "unknown"

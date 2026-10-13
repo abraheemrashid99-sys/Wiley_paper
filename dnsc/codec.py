@@ -585,10 +585,21 @@ def load_codec(cfg, directory: str | Path, device: torch.device) -> SemanticCode
         raise FileNotFoundError(f"no checkpoint at {directory}/codec.pt - run scripts/pretrain.py first")
     codec = build_codec(cfg, device, tokenizer_dir=directory / "tokenizer", warm=False)
     payload = torch.load(directory / "codec.pt", map_location="cpu")
-    missing, unexpected = codec.load_state_dict(payload["state"], strict=False)
+    # Adapters are never trained before deployment (they start as the identity: B = 0). A run may
+    # therefore ask for adapters the checkpoint does not hold - more slots, or another rank - and
+    # those keep their fresh initialisation, which depends only on the seed of the run. Everything
+    # else (the codebook, the fusion weights, the token statistics) must be in the checkpoint.
+    is_lora = lambda key: "lora_A." in key or "lora_B." in key  # noqa: E731
+    own = codec.state_dict()
+    reshaped = {key for key, value in payload["state"].items() if is_lora(key) and key in own and own[key].shape != value.shape}
+    saved_slots = {key.rsplit(".s", 1)[1] for key in payload["state"] if is_lora(key)}
+    missing, unexpected = codec.load_state_dict({key: value for key, value in payload["state"].items() if key not in reshaped}, strict=False)
     if unexpected:
         raise RuntimeError(f"unexpected keys in checkpoint: {unexpected[:5]} - was it written by the earlier sentence-level codec? Re-run scripts/pretrain.py --force")
-    not_backbone = [k for k in missing if not k.startswith("lm.") or "lora_" in k]
+    fresh = lambda key: is_lora(key) and (key in reshaped or (bool(saved_slots) and key.rsplit(".s", 1)[1] not in saved_slots))  # noqa: E731
+    not_backbone = [k for k in missing if (not k.startswith("lm.") or "lora_" in k) and not fresh(k)]
     if not_backbone:
         raise RuntimeError(f"checkpoint is missing codec weights: {not_backbone[:5]}")
+    if reshaped:
+        print(f"[codec] {len(reshaped)} adapter tensors have another shape than in the checkpoint (different rank): freshly initialised")
     return codec

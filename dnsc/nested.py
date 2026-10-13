@@ -143,6 +143,7 @@ class NestedOptimizer:
         self.on_change = on_change  # called whenever parameter values are replaced
         self.ledger = SyncLedger()
         self._opt, self._acc, self._count, self._ema, self._rx, self._dirty = {}, {}, {}, {}, {}, {}
+        self._last_sync: dict[str, int] = {}  # step of the last shipment of every level (0: never shipped)
         for lv in self.levels:
             tensors = [p for _, p in lv.params]
             self._opt[lv.name] = torch.optim.Adam(tensors, lr=lv.lr)
@@ -150,6 +151,7 @@ class NestedOptimizer:
             self._count[lv.name] = 0
             self._rx[lv.name] = [p.detach().clone() for p in tensors]  # the receiver's copy
             self._dirty[lv.name] = False  # working copy differs from the receiver's
+            self._last_sync[lv.name] = 0
             if lv.ema:
                 self._ema[lv.name] = [p.detach().clone() for p in tensors]
 
@@ -165,6 +167,12 @@ class NestedOptimizer:
     @property
     def in_sync(self) -> bool:
         return not any(self._dirty.values())
+
+    def staleness(self, t: int) -> dict[str, int]:
+        """Steps since every receiver-side level was last shipped, at step
+        ``t``. Reported with every probe: two methods are compared fairly on a
+        probe only when their copies are equally fresh."""
+        return {lv.name: int(t) - self._last_sync[lv.name] for lv in self.levels if lv.side == "rx"}
 
     def _swap(self, level: Level) -> None:
         held = self._rx[level.name]
@@ -221,6 +229,7 @@ class NestedOptimizer:
                 p.copy_(held)
                 bits += cost
             self.ledger.add(t, level.name, bits)
+            self._last_sync[level.name] = int(t)
         self._dirty[level.name] = False
 
     @torch.no_grad()

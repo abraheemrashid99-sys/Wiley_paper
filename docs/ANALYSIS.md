@@ -20,9 +20,10 @@ The decision is the maximiser. Two facts follow without further assumptions.
 - *The decoder is calibrated if the prior is.* The posterior is exact given
   the prior and the channel law, so the confidence `max_v p(v | y, past)` is
   the probability of a correct decision whenever `p(v | past)` is the true
-  conditional law of the text. Measured: expected calibration error of
-  0.005–0.007 on the streams for every method (stream table), about 0.01 on
-  the base corpus (refinement table). Miscalibration is therefore a
+  conditional law of the text. Measured (version 0.2 result set): expected
+  calibration error of 0.002–0.009 over the single stream runs, 0.003–0.006
+  as per-method means (stream table), and 0.004–0.021 on the base corpus
+  before any correction (refinement table). Miscalibration is therefore a
   *diagnostic of the prior*, which is why confidence can drive refinement.
 - *Nesting is exact.* The exponent is a sum over symbols, so the posterior
   after shells `1..k+1` equals the posterior after shells `1..k` multiplied
@@ -97,9 +98,14 @@ C_l* = sqrt( 2 τ b_l / ( κ T g_l C N ) ).
   below the corresponding traffic, slots that are filled once and recalled
   are the only form in which the slow memory is worth having.
 
-Checks in the result set: the period variants of the sensitivity table
-(`slow25`, `slow100`), and the comparison of `single_rate` (both levels at
-one period) with `nested` at the same budget.
+Empirical checks. The version 0.2 result set contains none for the period
+law: the only run in which nothing but the periods differs,
+`nested_two_level`, has one seed (+0.018 bits/token against `nested`). The
+checks are part of the reproduction profiles of version 0.3 and have not
+been run yet: `nested_two_level` on six seeds (`core`), and the slow and the
+medium period halved and doubled (`slow_half`, `slow_double`, `medium_half`,
+`medium_double` in `paper`). Until they exist, the square-root law is a
+design argument, not a finding.
 
 ## 5. Why slots
 
@@ -112,11 +118,42 @@ bits and no staleness. The saving per return is about one full shipment plus
 number of returns, which is why the gain of slots appears on the second visit
 of every domain and on the retention probes.
 
-## 6. Limits of these arguments
+## 6. What refinement costs on the return link
+
+Selective refinement with `K` shells asks, after each of the first `K − 1`
+rounds, one question per token that is still open: continue or stop. Let
+`n_r` be the number of open tokens after round `r` and `q_r` the fraction of
+them that continue. Per transmitted token (`N` tokens in total),
+
+```
+bitmap bits   = Σ_r n_r / N                       (one bit per open token and round)
+entropy bits  = Σ_r n_r · H2(q_r) / N             (ideal coding of each round's bitmap)
+```
+
+and, with the return link charged at the capacity `C` of the mean SNR,
+
+```
+S_total = S_forward + bits / C        symbols per token.
+```
+
+Three consequences guide the design. (i) The cost is paid by every token in
+every round it is open, so starting at a very short first shell — which
+nearly every token outgrows — spends signalling on decisions whose outcome
+is almost certain; their entropy is small, but an explicit bitmap pays a
+full bit for each. (ii) Starting at a later shell removes those rounds and
+their signalling at the price of forward symbols for the tokens that would
+have stopped earlier; which first shell minimises `S_total` is an empirical
+question, answered by the first-shell table. (iii) A better prior lowers
+both terms: fewer forward symbols and fewer open tokens per round. The
+fixed-prefix receiver has `bits = 0`, which is why it is the reference of the
+primary endpoint (`docs/METHOD.md`, section 9).
+
+## 7. Limits of these arguments
 
 - `κ` is treated as a constant; it depends on the operating accuracy.
 - Learning time is ignored in Section 4; it sets a floor on useful periods.
-- Synchronisation is charged at capacity; a real control channel costs more,
-  which raises `N*` and lengthens the optimal periods.
+- Synchronisation and the refinement requests are charged at capacity and
+  assumed error-free; a real control channel costs more, which raises `N*`,
+  lengthens the optimal periods and favours fewer refinement rounds.
 - The regime length `τ` is known here; in practice it has to be estimated,
   e.g. from the slot selector's switches.

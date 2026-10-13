@@ -52,6 +52,7 @@ stream:
   probe_size: 48
   gen_every: 0            # free-running decoding is checked on the probes
   gen_sentences: 4
+  live_every: 20          # every 20th step is also decoded for real (free-running refinement audit)
 nested:
   periods: {medium: 10, slow: 50}
   lrs: {medium: 1.0e-3, slow: 5.0e-4}

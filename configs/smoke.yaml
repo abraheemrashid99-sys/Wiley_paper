@@ -46,6 +46,7 @@ stream:
   probe_size: 48
   gen_every: 40
   gen_sentences: 8
+  live_every: 10          # every 10th step is also decoded for real (free-running refinement audit)
 nested:
   periods: {medium: 5, slow: 20}
   lrs: {medium: 2.0e-3, slow: 5.0e-4}

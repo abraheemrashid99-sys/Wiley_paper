@@ -6,12 +6,17 @@ Communication Systems* special issue "Next-Generation 6G Mobile Networks and
 Services: LLM-Enabled Semantic Communications" (submission deadline
 31 March 2027).
 
-**Status: v0.2.** The method, the full experiment pipeline and a first
-complete set of results with a pretrained LLM (GPT-2, 124M) are in this
-repository: see [`results/gpt2/RESULTS.md`](results/gpt2/RESULTS.md).
-Version 0.1 (a sentence-level soft-prompt autoencoder) could not be trained on
-a CPU; that negative result is recorded in
-[`docs/METHOD.md`](docs/METHOD.md), section 8.
+**Status: v0.3 (review release).** The method, the full experiment pipeline
+and a first complete set of results with a pretrained LLM (GPT-2, 124M) are
+in this repository: see [`results/gpt2/RESULTS.md`](results/gpt2/RESULTS.md).
+That result set (version 0.2) was then reviewed strictly:
+[`docs/REVIEW.md`](docs/REVIEW.md) lists every finding and what was done
+about it. Version 0.3 fixes what can be fixed in code and in the write-up and
+adds the confirmatory protocol ([`docs/METHOD.md`](docs/METHOD.md),
+section 9); **the confirmatory runs themselves have not been made yet**, so
+the numbers in `results/gpt2` are to be read as a pilot. Version 0.1 (a
+sentence-level soft-prompt autoencoder) could not be trained on a CPU; that
+negative result is recorded in `docs/METHOD.md`, section 8.
 
 ## The idea in five lines
 
@@ -30,11 +35,14 @@ a CPU; that negative result is recorded in
   above which traffic volume.
 - **Selective refinement.** The receiver asks for more symbols only for the
   tokens it is unsure about: token-level incremental redundancy driven by the
-  LLM's calibrated uncertainty.
+  LLM's calibrated uncertainty. The requests travel on the return link, and
+  that signalling is counted too.
 
-Details: [`docs/METHOD.md`](docs/METHOD.md) · datasets:
+Details: [`docs/METHOD.md`](docs/METHOD.md) · review:
+[`docs/REVIEW.md`](docs/REVIEW.md) · datasets:
 [`docs/DATASETS.md`](docs/DATASETS.md) · plan:
-[`docs/ROADMAP.md`](docs/ROADMAP.md).
+[`docs/ROADMAP.md`](docs/ROADMAP.md) · changes:
+[`CHANGELOG.md`](CHANGELOG.md).
 
 ## Quick start
 
@@ -53,45 +61,56 @@ python scripts/run_pipeline.py --config configs/smoke.yaml --stage smoke
 `pytest` runs the unit and integration tests offline; the `smoke` stage runs
 the whole pipeline on a tiny offline model. Both take a few minutes.
 
-### Reproducing the GPT-2 results (`configs/gpt2.yaml`)
+**In VS Code** the same steps, and the reproduction below, are ready-made
+tasks (Terminal → Run Task…): see [`RUN_IN_VSCODE.md`](RUN_IN_VSCODE.md).
+
+### Reproducing and extending the GPT-2 study (`configs/gpt2.yaml`)
 
 Everything this configuration needs comes from GitHub, so it also runs where
-Hugging Face is unreachable.
+Hugging Face is unreachable. One command runs a whole study from scratch and
+compares it with the published numbers:
 
 ```
-python -m pip install onnx
+python -m pip install -e ".[dev,gpt2]"
 python scripts/fetch_gpt2.py --out models/gpt2
-python scripts/run_pipeline.py --config configs/gpt2.yaml --stage base
-python scripts/run_pipeline.py --config configs/gpt2.yaml --stage pilot
-python scripts/run_pipeline.py --config configs/gpt2.yaml --stage streams --seeds 0,1,2
-python scripts/run_pipeline.py --config configs/gpt2.yaml --stage report
+python scripts/reproduce.py --config configs/gpt2.yaml --out runs/gpt2_published \
+    --export results_repro/gpt2_published --reference results/gpt2 --profile published
 ```
 
-On two CPU cores the codebook trains in about 40 minutes and an adaptive
-stream run takes about 30 minutes; `scripts/benchmark_speed.py` prints the
-figures for your machine. Where Hugging Face is reachable, skip the first two
-lines and add `backbone.name=openai-community/gpt2` to every command.
+| `--profile` | Runs | Purpose |
+| --- | --- | --- |
+| `published` | the 37 stream runs behind `results/gpt2` and every evaluation | check the published numbers |
+| `core` | main methods and the time-nesting ablation on six seeds on both streams; other ablations and the Rayleigh stream on three | the confirmatory protocol of `docs/METHOD.md`, section 9 |
+| `paper` | `core` plus the sensitivity studies (shipping periods, quantiser, drift speed, mean SNR, context length, adapter rank, three domains against two and three slots) | everything the paper reports |
+
+Each profile contains the one before it under the same file names. The
+command can be repeated after an interruption (finished runs are skipped) and
+ends with `COMPARISON.md` in the export folder: provenance, the published and
+the reproduced value of every number, a tolerance check of the headline
+numbers, a check of each conclusion, and what only the new run measures (the
+signalling of refinement, the free-running audit). `--dry-run` prints the
+plan.
+
+On two CPU cores the codebook trains in about 40 minutes, an adaptive stream
+run takes about 30 minutes and one without adaptation about 10; the second
+step of the command measures the figures for your machine. Where Hugging
+Face is reachable, `backbone.name=openai-community/gpt2` at the end of the
+command replaces the second line. The stages of the study can also be run
+one by one with `scripts/run_pipeline.py --stage base|pilot|streams|report`.
 
 ### Checking the reproduction on a GPU (Google Colab)
 
 [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/abraheemrashid99-sys/Wiley_paper/blob/main/notebooks/reproduce_gpt2_colab.ipynb)
 
-`notebooks/reproduce_gpt2_colab.ipynb` re-runs the whole GPT-2 study on a T4
-GPU and compares every number with `results/gpt2`. It first runs the complete
-protocol on a tiny model as a GPU self-test, then calls
-
-```
-python scripts/reproduce.py --config configs/gpt2.yaml --out runs/gpt2_repro \
-    --export results_repro/gpt2 --reference results/gpt2 device=cuda
-```
-
-which runs exactly the experiments behind `results/gpt2` (it can be repeated
-after an interruption; finished runs are skipped) and ends with
-`scripts/compare_results.py`, whose report `COMPARISON.md` lists the published
-and the reproduced value of every number, checks the headline numbers against
-a tolerance and checks each conclusion. A CPU and a GPU do not produce
-bit-identical numbers, so this is the meaningful test; on the same machine the
-runs are repeatable.
+`notebooks/reproduce_gpt2_colab.ipynb` runs the same command on a T4 GPU:
+it installs the repository, runs the test suite and the complete protocol on
+a tiny model as a GPU self-test, then the chosen profile with GPT-2, and
+displays `COMPARISON.md`. A CPU and a GPU do not produce bit-identical
+numbers, so the comparison against a tolerance and against the conclusions
+is the meaningful test; on the same machine, with the same library versions,
+the runs are repeatable bit for bit (`requirements-lock.txt` lists the
+versions behind `results/gpt2`). The notebook has not been executed on a GPU
+by the authors yet.
 
 ### A second backbone on a CPU-only laptop (`configs/laptop.yaml`)
 
@@ -147,13 +166,16 @@ dnsc/            library
   metrics.py     BLEU-1..4, sacreBLEU, sentence similarity, ECE
   stats.py       paired bootstrap / permutation, block bootstrap, Holm, equivalence test
   data/          corpus loaders and document-coherent drift streams
-scripts/         one entry point per experiment stage; reproduce.py runs them all
+scripts/         one entry point per experiment stage; reproduce.py runs them all,
+                 compare_results.py checks a run against published numbers,
+                 make_release.py / verify_package.py build and check the archive
 notebooks/       Colab notebook that reproduces results/gpt2 on a GPU
+.vscode/         ready-made tasks for VS Code (see RUN_IN_VSCODE.md)
 configs/         experiment definitions
 results/         exported tables, figures and compact result files
 tests/           unit and integration tests
 tools/           device audit (virtual GPU on a CPU-only machine)
-docs/            method, datasets, roadmap
+docs/            method, review, analysis notes, datasets, roadmap
 ```
 
 ## What has and has not been verified

@@ -1,0 +1,59 @@
+# Changelog
+
+## 0.3.0 — review release
+
+A strict review of version 0.2 (`docs/REVIEW.md`) found measurement and
+reporting gaps. This release closes the ones that can be closed in code and
+fixes the write-up. It changes **no** number of the published result set:
+every addition is a new measurement next to the existing ones (verified by
+test and on the real model).
+
+Measurement
+- Selective refinement now carries its return-link signalling: request bits
+  per token as an explicit bitmap and at their entropy, rounds per message,
+  and symbols per token at the target accuracy with the signalling charged
+  (`refine_grid`, `symbols_at_target_selective_fb*`).
+- The same policy is scored for every choice of the first shell.
+- Free-running audit on the streams: every `stream.live_every` steps the
+  received symbols are decoded for real at every threshold and compared with
+  the teacher-forced emulation on the same steps (`live_curve`).
+- Every probe records how stale the receiver's copy is.
+- chrF and word error rate next to BLEU; decoded texts are exported
+  (`eval/*.texts.json.gz`) and `scripts/add_similarity.py` adds sentence
+  similarity from them without re-running.
+- Speed benchmark records parameter counts and peak memory; a cost table is
+  generated.
+
+Statistics
+- Seed-level permutation p-values are printed raw and Holm-corrected,
+  together with the smallest p-value the number of seeds can give.
+- Equivalence tests (two one-sided tests on per-step differences) with
+  margins fixed in the configuration.
+- Tables for other target accuracies; tables restricted to a subset of seeds.
+
+Reproduction
+- `scripts/reproduce.py --profile {published,core,paper}`: the published
+  runs, the six-seed confirmatory protocol, and the sensitivity studies.
+- `scripts/compare_results.py` reports provenance, flags mixed code
+  revisions, checks the conclusions on all seeds, and lists the new
+  measurements.
+- Release archive with checksums (`scripts/make_release.py`,
+  `scripts/verify_package.py`), VS Code tasks, version lock file, Colab
+  notebook.
+- A checkpoint serves runs with more adapter slots or another adapter rank.
+
+Fixes
+- `TABLES.md` printed one table twice.
+- The crossover traffic of a variant run was computed against a context-only
+  run that had carried different messages.
+- The code revision of a result is recorded in an unpacked archive as well.
+
+## 0.2.0
+
+Token-level redesign (LLM-prior decoding, context memory, LoRA slots) and the
+first complete result set with GPT-2 (`results/gpt2`).
+
+## 0.1.0
+
+Sentence-level soft-prompt codec; could not be trained on a CPU
+(`docs/METHOD.md`, section 8).

@@ -92,6 +92,10 @@ DEFAULTS: dict[str, Any] = {
         "probe_size": 128,
         "gen_every": 50,
         "gen_sentences": 16,
+        # every "live_every" steps the received symbols are also decoded for real
+        # (free-running selective refinement at every threshold), next to the
+        # teacher-forced emulation that scores every step; 0 switches the audit off
+        "live_every": 0,
     },
     "nested": {
         # the fast level is the context (every message, no gradient, no sync)
@@ -117,6 +121,11 @@ DEFAULTS: dict[str, Any] = {
         "ewc_batches": 20,
     },
     "link": {"traffic_per_step": 1000},
+    # Margins of the equivalence tests ("no meaningful difference"), fixed here
+    # before the confirmatory runs: two methods are called equivalent when the
+    # 90% block-bootstrap interval of their paired per-step difference lies
+    # inside (-margin, +margin). See docs/METHOD.md, section 9.
+    "stats": {"equiv_margin_bits": 0.05, "equiv_margin_symbols": 0.05, "min_seeds_for_test": 6},
     "eval": {
         "snrs": [0.0, 5.0, 10.0, 15.0, 20.0],
         "channels": ["awgn", "rayleigh"],

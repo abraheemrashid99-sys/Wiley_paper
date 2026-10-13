@@ -9,6 +9,9 @@ venv/
 /data/
 /runs/
 *.pt
+# ... except the trained codebooks that belong to a published result set
+!/results/**/codec.pt
 *.log
 /models/
 /results_repro/
+/dist/

@@ -20,7 +20,7 @@ from dnsc.data import get_corpus
 from dnsc.lora import LoRALinear, inject_lora
 from dnsc.online import METHODS, SlotSelector, build_levels, matched_period, run_stream
 from dnsc.headroom import format_rows, run_headroom
-from dnsc.refine import Calibrator, _grid_features, collect, level_stats, run_refinement, selective_decode
+from dnsc.refine import Calibrator, _grid_features, collect, feedback_bits_per_token, level_stats, progressive_decode, run_refinement, selective_decode, stop_levels
 from dnsc.train import evaluate_gen, evaluate_tf, pretrain
 
 TEXTS = ["The council adopts the budget on trade today.", "The striker scores a late goal in extra time.", "The scheduler allocates resource blocks in every slot."]
@@ -449,6 +449,132 @@ def test_stream_reports_every_prefix_length_and_the_selective_curve(cfg, checkpo
         validate(cfg)
 
 
+def test_stream_charges_the_signalling_of_refinement(cfg, checkpoint, tmp_path):
+    """Every selective operating point comes with the return-link bits it
+    needs, for every choice of the first shell."""
+    result = run_stream(cfg, "context_only", 0, checkpoint, tmp_path / "r.json")
+    grans, thresholds = cfg["codec"]["granularities"], cfg["stream"]["thresholds"]
+    grid, selective, summary = result["refine_grid"], result["selective_curve"], result["summary"]
+    assert [g["first_m"] for g in grid] == grans and all(len(g["points"]) == len(thresholds) for g in grid)
+    for mine, full in zip(selective, grid[0]["points"]):  # the paper's policy is the first row of the grid
+        assert mine["symbols"] == pytest.approx(full["symbols"]) and mine["tok_acc"] == pytest.approx(full["tok_acc"])
+        assert mine["feedback_bits"] == full["feedback_bits"] and mine["symbols_total"] == full["symbols_total"]
+    capacity = summary["feedback_capacity"]
+    assert capacity == pytest.approx(0.5 * np.log2(1 + 10 ** (cfg["stream"]["snr"]["mean"] / 10)))
+    for first, entry in enumerate(grid):
+        for point in entry["points"]:
+            assert grans[first] <= point["symbols"] <= grans[-1] + 1e-9  # nothing shorter than the first shell is ever sent
+            assert 0.0 <= point["feedback_entropy_bits"] <= point["feedback_bits"] + 1e-9 <= len(grans) - 1 - first + 1e-9
+            assert point["symbols_total"] == pytest.approx(point["symbols"] + point["feedback_bits"] / capacity)
+            assert point["symbols_total_entropy"] <= point["symbols_total"] + 1e-9 and 1.0 <= point["rounds"] <= len(grans) - first
+    last = grid[-1]["points"]  # the first round already sends everything: a fixed-rate system, no signalling at all
+    assert all(p["symbols"] == pytest.approx(grans[-1]) and p["feedback_bits"] == 0.0 and p["rounds"] == 1.0 for p in last)
+    assert all(p["tok_acc"] == pytest.approx(result["fixed_curve"][-1]["tok_acc"]) for p in last)
+    k_op = thresholds.index(cfg["stream"]["threshold"])
+    assert summary["sel_feedback_bits"] == selective[k_op]["feedback_bits"] and summary["sel_rounds"] == selective[k_op]["rounds"]
+    assert np.mean([row[k_op] for row in result["log"]["sel_fb_bits"]]) == pytest.approx(summary["sel_feedback_bits"])
+    for key in ("symbols_at_target_selective", "symbols_at_target_selective_fb_entropy", "symbols_at_target_selective_fb"):
+        assert key in summary
+    reached = [summary[k] for k in ("symbols_at_target_selective", "symbols_at_target_selective_fb_entropy", "symbols_at_target_selective_fb") if summary[k] is not None]
+    assert reached == sorted(reached)  # charging the signalling never makes a target cheaper
+    assert summary["live_steps"] == 0 and result["live_curve"] == [] and summary["live_symbols_at_target"] is None  # the audit is off here
+
+
+def test_free_running_audit_measures_and_changes_nothing_else(cfg, checkpoint, tmp_path):
+    """Decoding some steps for real must not move any other number: it uses
+    the symbols that were received anyway and no random number."""
+    plain = run_stream(cfg, "nested", 0, checkpoint, tmp_path / "a.json")
+    cfg["stream"]["live_every"] = 3
+    audited = run_stream(cfg, "nested", 0, checkpoint, tmp_path / "b.json")
+    assert audited["log"] == plain["log"] and audited["probes"] == plain["probes"] and audited["ledger"] == plain["ledger"]
+    for key, value in plain["summary"].items():
+        if not key.startswith("live_") and key != "seconds":
+            assert audited["summary"][key] == value, key
+    steps = [row["step"] for row in audited["live"]]
+    assert steps == [t for t in range(1, audited["n_steps"] + 1) if t % 3 == 0] and audited["summary"]["live_steps"] == len(steps)
+    thresholds, grans = cfg["stream"]["thresholds"], cfg["codec"]["granularities"]
+    curve = audited["live_curve"]
+    assert [p["threshold"] for p in curve] == thresholds
+    k_op = thresholds.index(cfg["stream"]["threshold"])
+    for index, point in enumerate(curve):
+        assert grans[0] <= point["symbols"] <= grans[-1] and 0.0 <= point["tok_acc"] <= 1.0
+        assert 0.0 <= point["feedback_entropy_bits"] <= point["feedback_bits"] + 1e-9 <= len(grans) - 1
+        # "emulated" is the teacher-forced figure of exactly the audited steps
+        assert point["emulated_symbols"] == pytest.approx(np.mean([plain["log"]["sel_symbols"][t - 1][index] for t in steps]))
+        assert point["emulated_tok_acc"] == pytest.approx(np.mean([plain["log"]["sel_acc"][t - 1][index] for t in steps]))
+    assert audited["summary"]["live_sel_symbols"] == curve[k_op]["symbols"] and audited["summary"]["live_emulated_sel_tok_acc"] == curve[k_op]["emulated_tok_acc"]
+    assert all(max(row.values()) <= audited["n_steps"] for row in [p["staleness"] for p in audited["probes"]] if row)
+
+
+def test_probes_report_how_stale_the_receiver_is(cfg, checkpoint, tmp_path):
+    cfg["nested"]["periods"] = {"medium": 2, "slow": 4}  # regimes end at steps 6 and 12
+    nested = run_stream(cfg, "nested_no_slots", 0, checkpoint, tmp_path / "n.json")
+    assert nested["probes"][0]["staleness"] == {"rx_bias": 0, "rx_lora": 0}
+    assert nested["probes"][1]["staleness"] == {"rx_bias": 0, "rx_lora": 2}  # step 6: bias just shipped, adapter shipped at step 4
+    assert nested["probes"][2]["staleness"] == {"rx_bias": 0, "rx_lora": 0}  # step 12: both just shipped
+    frozen = run_stream(cfg, "frozen", 0, checkpoint, tmp_path / "f.json")
+    assert all(p["staleness"] == {} for p in frozen["probes"])  # nothing is ever shipped
+
+
+def test_progressive_decode_is_the_emulated_policy_decoded_for_real(cfg, checkpoint):
+    codec = load_codec(cfg, checkpoint, CPU)
+    grans = codec.grans
+    batch = codec.tokenize(get_corpus("toy_a", cfg["data"]).texts("test")[:12])
+    with torch.no_grad():
+        y, prec = codec.transmit(codec.encode(batch), batch.lens, 5.0, Channel("awgn", 3))
+    n_tokens = int(batch.lens.sum())
+
+    never = progressive_decode(codec, y, prec, batch.lens, 0.0)  # every token is closed after the first round
+    assert never["symbols"] == pytest.approx(grans[0]) and never["rounds"] == 1.0 and never["feedback_bits"] == pytest.approx(1.0) and never["feedback_entropy_bits"] == 0.0
+    assert never["token_ids"] == codec.decode(y, grans[0], prec, batch.lens).token_ids
+    always = progressive_decode(codec, y, prec, batch.lens, 2.0)  # no confidence reaches 2: every shell of every token
+    assert always["symbols"] == pytest.approx(grans[-1]) and always["rounds"] == len(grans) and always["feedback_bits"] == pytest.approx(len(grans) - 1)
+    assert always["token_ids"] == codec.decode(y, grans[-1], prec, batch.lens).token_ids and always["n_tokens"] == n_tokens
+    middle = progressive_decode(codec, y, prec, batch.lens, 0.8)
+    assert never["symbols"] <= middle["symbols"] <= always["symbols"] and middle["feedback_entropy_bits"] <= middle["feedback_bits"]
+    late = progressive_decode(codec, y, prec, batch.lens, 0.8, start=1)
+    assert late["symbols"] >= grans[1] and late["feedback_bits"] <= len(grans) - 2 and int(late["level"].min()) >= 1
+
+    # A one-token message has no earlier decisions, so free-running and teacher-forced decoding
+    # coincide: there the real decoder must reproduce the emulation token for token.
+    first = TokenBatch(batch.ids[:, :1].contiguous(), torch.ones_like(batch.lens))
+    with torch.no_grad():
+        y1, prec1 = codec.transmit(codec.encode(first), first.lens, 5.0, Channel("awgn", 4))
+        stats = level_stats(codec, *codec.flat_channel(first, y1, prec1), codec.prior_tf(first, flat=True))
+    for tau in (0.3, 0.6, 0.9):
+        stop = stop_levels(stats["conf"], tau)
+        clear = (stats["conf"] - tau).abs().min(dim=1).values > 1e-4  # not within rounding of the threshold
+        out = progressive_decode(codec, y1, prec1, first.lens, tau)
+        assert bool((out["level"][:, 0][clear] == stop[clear]).all())
+        if bool(clear.all()):
+            assert out["symbols"] == pytest.approx(float(torch.tensor(grans, dtype=torch.float32)[stop].mean()))
+            assert out["feedback_bits"] == pytest.approx(float(feedback_bits_per_token(stop, len(grans)).mean()))
+            assert [row[0] for row in out["token_ids"]] == stats["decided"].gather(1, stop.unsqueeze(1)).squeeze(1).tolist()
+
+
+def test_a_checkpoint_serves_more_slots_and_another_adapter_rank(cfg, checkpoint, tmp_path, capsys):
+    """Adapters are untrained at deployment, so a run may use more of them,
+    or another rank, than the codebook checkpoint was saved with."""
+    reference = load_codec(cfg, checkpoint, CPU)
+    cfg["codec"]["lora"]["slots"] = 3
+    three = load_codec(cfg, checkpoint, CPU)
+    assert three.n_slots == 3 and torch.equal(three.codebook(), reference.codebook())
+    result = run_stream(cfg, "nested", 0, checkpoint, tmp_path / "k3.json")
+    assert result["slots"] == 3 and np.isfinite(result["log"]["ce_bits"]).all()
+    cfg["codec"]["lora"].update({"slots": 2, "r": 4, "alpha": 8})
+    wide = load_codec(cfg, checkpoint, CPU)
+    assert "freshly initialised" in capsys.readouterr().out
+    assert all(p.shape[0 if "lora_A" in n else 1] == 4 for n, p in wide.named_parameters() if "lora_" in n)
+    batch = wide.tokenize(TEXTS)
+    with torch.no_grad():  # a fresh adapter is the identity: the prior is the one of the reference codec
+        assert torch.allclose(wide.prior_tf(batch), reference.prior_tf(batch), atol=1e-5)
+    payload = torch.load(Path(checkpoint) / "codec.pt", map_location="cpu")
+    del payload["state"]["bias_u"]
+    torch.save(payload, Path(checkpoint) / "codec.pt")
+    with pytest.raises(RuntimeError, match="missing codec weights"):  # anything else missing is still an error
+        load_codec(cfg, checkpoint, CPU)
+
+
 def test_level_stats_match_the_per_level_loss(codec):
     batch = codec.tokenize(TEXTS)
     with torch.no_grad():
@@ -672,6 +798,26 @@ def test_command_line_pipeline(tmp_path):
         assert (exported / name).exists(), name
     report = (exported / "TABLES.md").read_text(encoding="utf-8")
     assert "Headline, hier stream" in report and "frozen, fixed prefix length" in report
+    # version 0.3: what refinement costs, the free-running audit, honest statistics, measured cost
+    for name in ["tables/refine_cost_hier.md", "tables/refine_start_hier.md", "tables/targets_hier.md", "tables/equivalence_hier.md", "tables/cost.md", "tables/rate_toy_a_chrf.md", "tables/rate_toy_a_wer.md", "eval/rate_toy_a.texts.json.gz"]:
+        assert (exported / name).exists(), name
+    captions = [line for line in report.splitlines() if line.startswith("**")]
+    assert len(captions) == len(set(captions)), "a table is printed twice in TABLES.md"
+    assert "Symbols/token incl. feedback (entropy)" in report and "smallest attainable p" in report and "Measured computational cost" in report
+    cost = (exported / "tables" / "refine_cost_hier.md").read_text(encoding="utf-8")
+    assert "free-running, forward only" in cost and "n/a" not in cost.split("\n", 2)[2].split("| frozen |")[1].split("\n")[0]  # recorded for every run of this version
+    import gzip
+
+    with gzip.open(exported / "eval" / "rate_toy_a.texts.json.gz", "rt", encoding="utf-8") as handle:
+        texts = json.load(handle)
+    rate = json.loads((exported / "eval" / "rate_toy_a.json").read_text())
+    assert "decoded" not in rate and len(texts["references"]) == rate["n"]
+    assert {item["prior"] for item in texts["decoded"]} == {"llm_ctx", "llm", "unigram", "none"} and all(len(item["hyps"]) == rate["n"] for item in texts["decoded"])
+    similarity = subprocess.run([sys.executable, str(ROOT / "scripts" / "add_similarity.py"), "--results", str(exported), "--model", str(tmp_path / "no-such-model")], capture_output=True, text=True, cwd=ROOT, timeout=120)
+    assert similarity.returncode != 0 and "nothing was changed" in similarity.stderr  # without the encoder the files stay as they are
+    assert json.loads((exported / "eval" / "rate_toy_a.json").read_text()) == rate
+    summary = json.loads((exported / "stream" / "hier_nested_s0.json").read_text())
+    assert summary["live_every"] == 10 and summary["summary"]["live_steps"] > 0 and len(summary["refine_grid"]) == 4 and "staleness" in summary["probes"][-1]
     compact = json.loads((exported / "stream" / "hier_nested_s0.json").read_text())
     assert "log" not in compact and len(compact["trace"]["prior_bits"]) == -(-compact["n_steps"] // compact["trace_every"]) and len(compact["regimes"]) == 2
 
@@ -682,7 +828,9 @@ def test_command_line_pipeline(tmp_path):
         assert done.returncode == 0, done.stderr[-2000:]
         return done.stdout
 
-    assert "REPRODUCED" in compare(exported) and (exported / "COMPARISON.md").exists()
+    same = compare(exported)
+    assert "REPRODUCED" in same and (exported / "COMPARISON.md").exists()
+    assert "## Provenance" in same and "Measured by the reproduction only" in same
     changed = tmp_path / "changed"
     shutil.copytree(exported, changed)
     run_file = changed / "stream" / "hier_nested_s0.json"
@@ -696,27 +844,57 @@ def test_command_line_pipeline(tmp_path):
     assert "CHECK NEEDED" in compare(tmp_path / "does_not_exist")  # nothing to compare is reported, not raised
 
 
-def test_reproduction_runner_plans_the_published_protocol():
-    cmd = [sys.executable, str(ROOT / "scripts" / "reproduce.py"), "--config", "configs/gpt2.yaml", "--out", "runs/x", "--export", "results_repro/x", "--reference", "results/gpt2", "--dry-run", "device=cuda"]
+def _planned_runs(*extra: str) -> tuple[str, set[str]]:
+    """The plan printed by scripts/reproduce.py and the stream result files it would write."""
+    cmd = [sys.executable, str(ROOT / "scripts" / "reproduce.py"), "--config", "configs/gpt2.yaml", "--out", "runs/x", "--export", "results_repro/x", "--reference", "results/gpt2", "--dry-run", *extra, "device=cuda"]
     done = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=ROOT, timeout=60)
     assert done.returncode == 0, done.stderr
-    plan = done.stdout
-    assert plan.count("=====") == 20
-    assert "run_stream.py --config configs/gpt2.yaml --methods frozen,context_only,single_rate,nested,full_online,nested_no_slots --seeds 0,1,2 out_dir=runs/x stream.kind=hier device=cuda" in plan
-    assert "--tag rayleigh out_dir=runs/x stream.kind=hier channel.type=rayleigh device=cuda" in plan
-    assert "pretrain.py --config configs/gpt2.yaml out_dir=runs/x_fixed codec.granularities=[8] stream.m_op=8 device=cuda" in plan
-    # every published stream run is in the plan
     planned = set()
-    for line in plan.splitlines():
+    for line in done.stdout.splitlines():
         if "run_stream.py" not in line:
             continue
         words = line.split()
         methods, seeds = words[words.index("--methods") + 1].split(","), words[words.index("--seeds") + 1].split(",")
         tag = "_" + words[words.index("--tag") + 1] if "--tag" in words else ""
         kind = next(w.split("=")[1] for w in words if w.startswith("stream.kind="))
-        planned |= {f"{kind}_{m}_s{s}{tag}" for m in methods for s in seeds}
+        runs = {f"{kind}_{m}_s{s}{tag}" for m in methods for s in seeds}
+        assert not runs & planned, f"planned twice: {sorted(runs & planned)}"
+        planned |= runs
+    return done.stdout, planned
+
+
+def test_reproduction_runner_plans_the_published_protocol():
+    plan, planned = _planned_runs()
+    assert plan.count("=====") == 21
+    assert "run_stream.py --config configs/gpt2.yaml --methods frozen,context_only,single_rate,nested,full_online,nested_no_slots --seeds 0,1,2 out_dir=runs/x stream.kind=hier device=cuda" in plan
+    assert "--tag rayleigh out_dir=runs/x stream.kind=hier channel.type=rayleigh device=cuda" in plan
+    assert "pretrain.py --config configs/gpt2.yaml out_dir=runs/x_fixed codec.granularities=[8] stream.m_op=8 device=cuda" in plan
+    assert "benchmark_speed.py --config configs/gpt2.yaml out_dir=runs/x device=cuda" in plan
+    # every published stream run is in the plan, and nothing else
     published = {path.stem for path in (ROOT / "results" / "gpt2" / "stream").glob("*.json")}
     assert planned == published
+
+
+def test_reproduction_profiles_contain_each_other():
+    """A larger profile repeats every run of a smaller one under the same file
+    name, so it can always be compared with a smaller reference."""
+    _, published = _planned_runs("--profile", "published")
+    core_plan, core = _planned_runs("--profile", "core")
+    paper_plan, paper = _planned_runs("--profile", "paper")
+    assert published < core < paper
+    main = ["frozen", "context_only", "single_rate", "nested", "full_online", "nested_no_slots", "nested_two_level"]
+    assert all(f"hier_{m}_s{s}" in core for m in main for s in range(6))  # six seeds: a seed-level test can reach p = 0.03
+    assert all(f"temporal_{m}_s{s}" in core for m in ["frozen", "context_only", "single_rate", "nested"] for s in range(6))
+    assert all(f"hier_{m}_s{s}_rayleigh" in core for m in ["frozen", "context_only", "nested"] for s in range(3))
+    for tag in ("slow_half", "slow_double", "medium_half", "medium_double", "bits2", "rank_half", "rank_double"):
+        assert f"hier_nested_s0_{tag}" in paper and f"hier_nested_s0_{tag}" not in core
+    for tag in ("drift_fast", "drift_slow", "snr_low", "snr_high", "three_domains"):
+        assert all(f"hier_{m}_s0_{tag}" in paper for m in ["context_only", "single_rate", "nested_no_slots", "nested"])  # a changed stream needs its own baselines
+    assert "nested.periods.slow=25" in paper_plan and "nested.periods.slow=100" in paper_plan and "stream.snr.mean=5.0" in paper_plan
+    assert "stream.tau_slow=75 stream.tau_med=15 stream.cycles=4" in paper_plan and "stream.tau_slow=300 stream.tau_med=60 stream.cycles=1" in paper_plan
+    assert "stream.domains=[ag_news,teleqna,huffpost_gh] codec.lora.slots=3" in paper_plan
+    _, ten = _planned_runs("--profile", "core", "--seeds", "0,1,2,3,4,5,6,7,8,9")
+    assert "hier_nested_s9" in ten and "temporal_nested_s9" in ten and core < ten
 
 
 def test_pipeline_runner_plans_every_stage():

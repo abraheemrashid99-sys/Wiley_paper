@@ -69,8 +69,8 @@ def main() -> None:
                     row.update(evaluate_tf(codec, texts, m, snr, Channel(kind, seed=2024), prior=base_prior, batch_size=batch_size, **extra))
                     gen = evaluate_gen(codec, texts, m, snr, Channel(kind, seed=2025), sim, prior=base_prior, batch_size=batch_size, return_texts=True, **extra)
                     references, hyps = gen.pop("refs"), gen.pop("hyps")
-                    if prior.startswith("llm"):  # kept so that further text metrics can be computed without re-running
-                        decoded.append({"prior": prior, "channel": kind, "snr_db": float(snr), "m": int(m), "hyps": hyps})
+                    # kept so that further text metrics (e.g. sentence similarity) can be computed without re-running
+                    decoded.append({"prior": prior, "channel": kind, "snr_db": float(snr), "m": int(m), "hyps": hyps})
                     row.update(gen)
                     rows.append(row)
                     shown[prior] = row

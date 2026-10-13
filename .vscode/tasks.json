@@ -1,0 +1,250 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "DN-SC 0: create environment and install",
+      "type": "shell",
+      "command": "python3 -m venv .venv && .venv/bin/python -m pip install --upgrade pip && .venv/bin/python -m pip install -e \".[dev,gpt2]\"",
+      "windows": {
+        "command": "python -m venv .venv; if ($?) { .\\.venv\\Scripts\\python.exe -m pip install --upgrade pip }; if ($?) { .\\.venv\\Scripts\\python.exe -m pip install -e \".[dev,gpt2]\" }"
+      },
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "detail": "Once: a private Python environment in .venv with everything the project needs (a few minutes; needs internet).",
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "DN-SC 1: verify the package (checksums)",
+      "type": "process",
+      "command": "${workspaceFolder}/.venv/bin/python",
+      "windows": {
+        "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe"
+      },
+      "args": [
+        "scripts/verify_package.py"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "detail": "Checks every file of the release against MANIFEST.sha256 (seconds).",
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": false
+      }
+    },
+    {
+      "label": "DN-SC 2: run the tests",
+      "type": "process",
+      "command": "${workspaceFolder}/.venv/bin/python",
+      "windows": {
+        "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe"
+      },
+      "args": [
+        "-m",
+        "pytest"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "detail": "Unit and integration tests on a tiny offline model (5-15 minutes).",
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": false
+      },
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "DN-SC 3: smoke run of the whole pipeline",
+      "type": "process",
+      "command": "${workspaceFolder}/.venv/bin/python",
+      "windows": {
+        "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe"
+      },
+      "args": [
+        "scripts/run_pipeline.py",
+        "--config",
+        "configs/smoke.yaml",
+        "--stage",
+        "smoke"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "detail": "Every script end to end on a tiny offline model (a few minutes). Its numbers mean nothing.",
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": false
+      }
+    },
+    {
+      "label": "DN-SC 4: fetch GPT-2 (once, about 650 MB)",
+      "type": "process",
+      "command": "${workspaceFolder}/.venv/bin/python",
+      "windows": {
+        "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe"
+      },
+      "args": [
+        "scripts/fetch_gpt2.py",
+        "--out",
+        "models/gpt2"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "detail": "Builds the pretrained GPT-2 from files on GitHub; checksum verified.",
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": false
+      }
+    },
+    {
+      "label": "DN-SC 5: reproduce the published results and compare",
+      "type": "process",
+      "command": "${workspaceFolder}/.venv/bin/python",
+      "windows": {
+        "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe"
+      },
+      "args": [
+        "scripts/reproduce.py",
+        "--config",
+        "configs/gpt2.yaml",
+        "--out",
+        "runs/gpt2_published",
+        "--export",
+        "results_repro/gpt2_published",
+        "--reference",
+        "results/gpt2",
+        "--profile",
+        "published",
+        "device=auto"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "detail": "Re-runs the 37 published stream runs and every evaluation, then writes results_repro/gpt2_published/COMPARISON.md. Can be stopped and restarted.",
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": false
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "DN-SC 6: confirmatory study (six seeds) and compare",
+      "type": "process",
+      "command": "${workspaceFolder}/.venv/bin/python",
+      "windows": {
+        "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe"
+      },
+      "args": [
+        "scripts/reproduce.py",
+        "--config",
+        "configs/gpt2.yaml",
+        "--out",
+        "runs/gpt2_core",
+        "--export",
+        "results_repro/gpt2_core",
+        "--reference",
+        "results/gpt2",
+        "--profile",
+        "core",
+        "device=auto"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "detail": "The protocol of docs/METHOD.md section 9. Contains task 5. Long; can be stopped and restarted.",
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": false
+      }
+    },
+    {
+      "label": "DN-SC 7: full paper study (with sensitivity runs) and compare",
+      "type": "process",
+      "command": "${workspaceFolder}/.venv/bin/python",
+      "windows": {
+        "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe"
+      },
+      "args": [
+        "scripts/reproduce.py",
+        "--config",
+        "configs/gpt2.yaml",
+        "--out",
+        "runs/gpt2_paper",
+        "--export",
+        "results_repro/gpt2_paper",
+        "--reference",
+        "results/gpt2",
+        "--profile",
+        "paper",
+        "device=auto"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "detail": "Contains task 6 plus all sensitivity studies. Longest; can be stopped and restarted.",
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": false
+      }
+    },
+    {
+      "label": "DN-SC 8: list what task 7 would run (no computation)",
+      "type": "process",
+      "command": "${workspaceFolder}/.venv/bin/python",
+      "windows": {
+        "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe"
+      },
+      "args": [
+        "scripts/reproduce.py",
+        "--config",
+        "configs/gpt2.yaml",
+        "--out",
+        "runs/gpt2_paper",
+        "--export",
+        "results_repro/gpt2_paper",
+        "--reference",
+        "results/gpt2",
+        "--profile",
+        "paper",
+        "device=auto",
+        "--dry-run"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "detail": "Prints the plan only.",
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": false
+      }
+    }
+  ]
+}

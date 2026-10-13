@@ -5,7 +5,11 @@ LLM Receivers for Drift-Resilient 6G Links.**
 
 This document fixes the method and the claims *before* results exist, so that
 the results can go against us. Section 8 records what was tried first and
-failed.
+failed. Section 9 is the confirmatory protocol: it was written after the
+first result set (version 0.2, `results/gpt2`) had been reviewed
+(`docs/REVIEW.md`) and before any run of version 0.3, and it fixes the seeds,
+the primary endpoint, the tests and the equivalence margins of the runs the
+paper reports.
 
 ## 1. Problem
 
@@ -152,6 +156,34 @@ the streams every method is scored at every prefix length and at every
 threshold, so each has a complete symbols-versus-accuracy curve; a better
 prior shows up as fewer requested symbols at equal accuracy.
 
+**Refinement is not free on the return link.** After every round the receiver
+has to say which tokens it wants more of. The protocol: round `r` delivers
+shell `r` of every token that is still open; the receiver answers with one
+decision per open token; a token that is not continued is closed for good,
+and nothing is said after the last shell. With `K` shells that is at most
+`K − 1` decisions per token. Two costs are derived from the decisions
+actually taken, in bits per token: an explicit **bitmap** (one bit per open
+token and round) and the **entropy** of the decisions of each round (what an
+ideal entropy coder of the bitmap would spend; a lower reference, not an
+implemented code). Both are converted to real symbols at the capacity of the
+mean SNR — the assumption under which synchronisation bits are charged — and
+added to the forward symbols. Every refinement result is reported forward
+only and with signalling; the fixed-prefix receiver needs none.
+
+*First shell.* Starting at the shortest prefix maximises the number of rounds.
+The same policy is therefore also scored with every later shell as the first
+one (fewer rounds and less signalling for more forward symbols). The paper's
+policy is the shortest first shell; the other rows are exploratory.
+
+*Emulation and audit.* On the streams the policy is emulated teacher-forced
+on every message (each token is judged given the true tokens before it; one
+LLM pass per step). Every `stream.live_every` steps the same received
+symbols are in addition decoded for real — free-running, round by round,
+with the receiver's own decisions as the language-model input — at every
+threshold. The emulated and the real operating curve on exactly those steps
+are reported side by side; the audit draws no random number and changes no
+other result (tested).
+
 ## 3. Baselines
 
 | Name | What it isolates |
@@ -186,7 +218,9 @@ prior shows up as fewer requested symbols at equal accuracy.
 6. **The gain needs hierarchical drift**: it should shrink on the `temporal`
    stream, where nothing about the drift is designed.
 7. **Uncertainty-triggered refinement saves symbols at equal fidelity**
-   against fixed rates and beats the random control.
+   against fixed rates and beats the random control. *Refuted if* the saving
+   disappears once the return-link signalling is charged (Section 2.5), or if
+   free-running decoding does not confirm the emulated curve (Section 9).
 
 Reporting rule: whichever way each falls, it is reported.
 
@@ -235,9 +269,17 @@ in the roadmap is its empirical check.
 - Uncoded symbol-level transmission of tokens; no outer channel code.
 - The sentence length is assumed known at the receiver.
 - Greedy free-running decoding; beam search would help at the lowest rates.
-- On the streams, refinement and context are emulated teacher-forced (the
-  receiver's own decisions feed its context, but each token is scored given
-  the true tokens before it); free-running decoding is checked separately.
+- On the streams, refinement and context are emulated teacher-forced on every
+  step (the receiver's own decisions feed its context, but each token is
+  scored given the true tokens before it). Free-running decoding of the same
+  symbols is measured on a subset of the steps (Section 2.5); the receiver's
+  context is always built from the emulated decisions.
+- Return-link signalling is charged at capacity and assumed error-free; the
+  delay of several rounds is counted (rounds per message) but not modelled.
+- A held-out probe scores the receiver's copy at one instant, so two methods
+  are comparable on a probe only at equal staleness. Staleness is recorded
+  with every probe; claims about retention rest on methods with the same
+  shipping phase (`nested` against `nested_no_slots`).
 - Slots are allocated greedily and never recycled.
 - Text only; the call also invites multimodal work.
 - Sync bits are charged at capacity, which understates real overhead.
@@ -256,3 +298,63 @@ every sentence. Sentence-level soft-prompt autoencoding needs far more
 training than a CPU allows, and at that scale it loses to classical coding.
 The token-level design above replaces it: the LLM is used for what a small
 model already does well without training — predicting the next token.
+
+## 9. Confirmatory protocol (fixed before the runs of version 0.3)
+
+The first result set (`results/gpt2`, version 0.2) is treated as a **pilot**.
+Its review (`docs/REVIEW.md`) found that it could not support seed-level
+significance (three seeds), that it left the signalling of refinement
+uncharged, and that its refinement figures were emulated only. The pilot
+informed the choices below; none of them was changed after a version 0.3 run
+was inspected. Deviations, if any, are listed in the results document.
+
+**Runs.** `scripts/reproduce.py --profile core`, one code revision, one
+machine. Hierarchical and temporal stream: `frozen`, `context_only`,
+`single_rate`, `nested` on seeds 0–5; on the hierarchical stream also
+`full_online`, `nested_no_slots` and `nested_two_level` on seeds 0–5,
+`nested_no_context` and `ewc` on seeds 0–2. Seeds 0–2 repeat the pilot's
+streams; seeds 3–5 were never run before. Tables are produced for all six
+seeds and, as a check against having tuned on the pilot, for seeds 3–5 alone
+(`scripts/aggregate.py --seeds 3,4,5 --to tables_unseen`).
+
+**Primary endpoint.** Real symbols per token at 90 % token accuracy on the
+hierarchical stream, read off each method's measured operating curve, **with
+the return-link signalling charged at its entropy**; the forward-only and
+the bitmap figures are reported next to it. The headline comparison is
+against the frozen receiver at a fixed prefix length, which needs no
+signalling.
+
+**Emulation check.** The teacher-forced curve is accepted as the measurement
+if, on the audited steps, the free-running forward symbols at the target
+differ from the emulated ones by at most 5 % for every method of the
+headline table. Otherwise the free-running figure replaces the emulated one
+in the headline and the emulated one is reported as such.
+
+**Tests.** (i) Per-step paired differences to `nested` with a 95 % block
+bootstrap (25-step blocks pooled over seeds), which treats seeds as
+exchangeable. (ii) An exact seed-level sign-flip permutation test on the
+per-seed means, Holm-corrected over the comparisons with `nested` on a
+stream; with six seeds its smallest attainable p-value is 2/64 = 0.031, so a
+difference counts as significant at the seed level only if all six seeds
+agree in sign. A claim of difference requires both (i) and (ii). (iii)
+Claims of "no meaningful difference" (`nested` against `full_online`;
+`nested` against `single_rate` on the temporal stream) use two one-sided
+tests on the per-step differences: equivalent iff the 90 % block-bootstrap
+interval lies inside ±0.05 bits/token (prior cross-entropy) and ±0.05
+symbols/token (selective refinement at the operating threshold). The margin
+is about 1 % of the prior cross-entropy and half of the smallest effect the
+pilot interpreted (0.106 bits between `nested` and `single_rate`). A failed
+equivalence test is reported as "not shown", never as a difference.
+
+**What each claim of Section 4 needs.** Claim 2: `context_only` against
+`frozen`. Claim 4 (time nesting): `nested` against `nested_two_level` — the
+only comparison in which nothing but the shipping periods differs. Claim 5
+(slots): `nested` against `nested_no_slots`. The comparison of `nested`
+with `single_rate` mixes both and is reported, but it decides neither.
+Claim 6: the same comparisons on the temporal stream. Claim 7: selective
+refinement with signalling against the fixed prefix, for the frozen
+receiver, on both streams.
+
+**Exploratory, and labelled so.** The first-shell table, other target
+accuracies, the sensitivity studies of the `paper` profile (one seed each)
+and the Rayleigh stream (three seeds, three methods).

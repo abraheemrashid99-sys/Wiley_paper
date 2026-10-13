@@ -22,7 +22,7 @@ from dnsc.channel import Channel
 from dnsc.cli import make_parser, parse
 from dnsc.codec import build_codec
 from dnsc.train import codebook_loss, sample_grans
-from dnsc.utils import environment, get_device, save_json
+from dnsc.utils import count_params, environment, get_device, save_json
 
 SENTENCE = "The base station allocates resource blocks to the user equipment in every slot under fading."
 
@@ -32,6 +32,24 @@ def sync(device: torch.device) -> None:
         torch.mps.synchronize()
     elif device.type == "cuda":
         torch.cuda.synchronize()
+
+
+def peak_rss_mb() -> float | None:
+    """Peak resident memory of this process in MB (None where the platform
+    offers no cheap way to read it)."""
+    try:
+        import resource
+        import sys
+
+        peak = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+        return peak / (1024.0 * 1024.0) if sys.platform == "darwin" else peak / 1024.0  # bytes on macOS, kB on Linux
+    except Exception:
+        try:
+            import psutil
+
+            return psutil.Process().memory_info().peak_wset / (1024.0 * 1024.0)  # Windows
+        except Exception:
+            return None
 
 
 def timed(fn, steps: int, device: torch.device) -> float:
@@ -147,6 +165,13 @@ def main() -> None:
             "stream_full_it_per_s": full_its,
             "decode_ms": latency,
             "tokens": tokens,
+            "parameters": {
+                "frozen backbone": count_params(p for name, p in codec.named_parameters() if name.startswith("lm.") and "lora_" not in name),
+                "codebook (trained once)": count_params(p for _, p in groups["codebook"]),
+                "medium memory (fusion weights and logit bias)": count_params(p for _, p in groups["rx_bias"]),
+                "slow memory (one LoRA slot)": count_params(p for _, p in groups["rx_lora"]),
+            },
+            "peak_rss_mb": peak_rss_mb(),
             "env": environment(),
         },
     )

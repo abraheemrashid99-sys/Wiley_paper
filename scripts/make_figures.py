@@ -158,6 +158,47 @@ def stream_figures(cfg, out_dir: Path, figs: Path) -> None:
             plt.close(fig)
 
 
+def refine_cost_figures(out_dir: Path, figs: Path) -> None:
+    """What selective refinement costs: for the receiver without memory and
+    for the proposed one, the fixed-prefix curve next to the selective curve
+    forward only, with its return-link signalling (entropy and bitmap), and
+    the free-running audit. Series differ by marker and line style as well as
+    by colour, so the figure also reads in greyscale."""
+    by_kind = defaultdict(lambda: defaultdict(dict))
+    for path in sorted(glob.glob(str(out_dir / "stream" / "*.json"))):
+        result = load_json(path)
+        if Path(path).stem.split(f"_{result['method']}_s{result['seed']}", 1)[-1]:
+            continue
+        by_kind[result["stream"]][result["method"]][int(result["seed"])] = result
+    fixed_colour, selective_colour = "#d95f02", "#1f77b4"  # checked for colour-vision deficiencies; identity is also in the markers
+    for kind, methods in by_kind.items():
+        shown = [m for m in ("frozen", "nested") if m in methods and all("symbols_total" in r["selective_curve"][0] for r in methods[m].values())]
+        if not shown:
+            continue  # runs of a version that did not record the signalling
+        fig, axes = plt.subplots(1, len(shown), figsize=(4.6 * len(shown), 3.6), squeeze=False, sharey=True)
+        for ax, method in zip(axes[0], shown):
+            runs = list(methods[method].values())
+            mean = lambda pick: np.mean([[pick(p) for p in r["selective_curve"]] for r in runs], axis=0)  # noqa: E731
+            accuracy = mean(lambda p: p["tok_acc"])
+            ax.plot([p["m"] for p in runs[0]["fixed_curve"]], np.mean([[p["tok_acc"] for p in r["fixed_curve"]] for r in runs], axis=0), color=fixed_colour, linestyle="-", marker="s", markersize=4, linewidth=1.2, label="fixed prefix (no signalling)")
+            ax.plot(mean(lambda p: p["symbols"]), accuracy, color=selective_colour, linestyle="--", marker="o", markersize=4, linewidth=1.2, markerfacecolor="white", label="selective, forward symbols only")
+            ax.plot(mean(lambda p: p["symbols_total_entropy"]), accuracy, color=selective_colour, linestyle="-", marker="o", markersize=4, linewidth=1.8, label="selective + signalling (entropy)")
+            ax.plot(mean(lambda p: p["symbols_total"]), accuracy, color=selective_colour, linestyle=":", marker="^", markersize=4, linewidth=1.2, label="selective + signalling (bitmap)")
+            live = [r["live_curve"] for r in runs if r.get("live_curve")]
+            if live:
+                ax.scatter(np.mean([[p["symbols"] for p in curve] for curve in live], axis=0), np.mean([[p["tok_acc"] for p in curve] for curve in live], axis=0), marker="x", s=36, color="black", linewidths=1.2, zorder=3, label="free-running, forward only (audited steps)")
+            ax.axhline(runs[0]["target_acc"], color="0.45", linewidth=0.8, linestyle=":")
+            ax.set_xlabel("real symbols per token")
+            ax.set_ylim(0.0, 1.02)
+            ax.set_title(f"{method} (n={len(runs)})", fontsize=8)
+        axes[0][0].set_ylabel("token accuracy on the stream")
+        axes[0][-1].legend(fontsize=6, loc="lower right")
+        fig.suptitle(f"'{kind}' stream: what selective refinement costs once its return-link signalling is charged", fontsize=8)
+        fig.savefig(figs / f"refine_cost_{kind}.pdf")
+        fig.savefig(figs / f"refine_cost_{kind}.png")
+        plt.close(fig)
+
+
 def refine_figures(out_dir: Path, figs: Path) -> None:
     for path in sorted(glob.glob(str(out_dir / "eval" / "refine_*.json"))):
         data = load_json(path)
@@ -189,6 +230,7 @@ def main() -> None:
     figs = ensure_dir(out_dir / "figures")
     rate_figures(out_dir, figs)
     stream_figures(cfg, out_dir, figs)
+    refine_cost_figures(out_dir, figs)
     refine_figures(out_dir, figs)
     print(f"[figures] written to {figs}")
 

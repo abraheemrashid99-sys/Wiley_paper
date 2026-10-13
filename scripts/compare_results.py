@@ -5,8 +5,14 @@
 Both folders are exports written by ``scripts/export_results.py``. The script
 writes ``<new>/COMPARISON.md`` and prints it. It reports
 
+* where both folders come from (machine, library versions, code revision),
+  and whether either mixes several code revisions;
 * the headline numbers of every stream and method, side by side;
-* whether each conclusion of the paper holds in the reproduction;
+* whether each conclusion of the paper holds in the reproduction - on the
+  runs both folders share and, when the reproduction has more seeds, on all
+  of them;
+* what the reproduction measured that the reference does not contain
+  (return-link signalling of refinement, the free-running audit);
 * every stream run, every evaluation file and every table, with the largest
   difference found.
 
@@ -121,10 +127,44 @@ def table_numbers(path: Path) -> list[float]:
     return [float(match) for row in rows[1:] for cell in row for match in NUMBER.findall(cell.replace("−", "-"))]
 
 
-def conclusions(runs: dict[str, dict], folder: Path) -> list[tuple[str, str, bool | None]]:
+def provenance(runs: dict[str, dict]) -> dict[tuple, int]:
+    """How many runs of a folder were produced by each (code revision, torch,
+    transformers, device, CPU threads) combination."""
+    out: dict[tuple, int] = defaultdict(int)
+    for run in runs.values():
+        env, cfg = run.get("env", {}), run.get("config", {})
+        device = str(cfg.get("device", "?")) + (f" ({env['gpu']})" if env.get("gpu") else "")
+        out[(env.get("git", "?"), env.get("torch", "?"), env.get("transformers", "?"), device, env.get("threads", "?"))] += 1
+    return dict(out)
+
+
+def new_measurements(runs: dict[str, dict]) -> list[str]:
+    """Table of what only runs of version 0.3 and later record: the cost of
+    refinement with its return-link signalling, and the free-running audit."""
+    groups: dict[tuple[str, str], list[dict]] = defaultdict(list)
+    for stem, run in runs.items():
+        if not tag_of(stem, run) and "symbols_at_target_selective_fb_entropy" in run["summary"]:
+            groups[(run["stream"], run["method"])].append(run["summary"])
+    if not groups:
+        return []
+    lines = [
+        "| Stream | Method | Seeds | Fixed prefix | Selective, forward only | + feedback (bitmap) | + feedback (entropy) | Free-running, forward only | Emulated on the same steps | Free-running tok-acc | Emulated tok-acc |",
+        "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
+    ]
+    for (stream, method), items in sorted(groups.items()):
+        cell = lambda key, digits=3: fmt(mean([s.get(key) for s in items]) if all(s.get(key) is not None for s in items) else None, digits)  # noqa: E731
+        lines.append(
+            f"| {stream} | {method} | {len(items)} | {cell('symbols_at_target_fixed')} | {cell('symbols_at_target_selective')} | {cell('symbols_at_target_selective_fb')} | {cell('symbols_at_target_selective_fb_entropy')} "
+            f"| {cell('live_symbols_at_target')} | {cell('live_emulated_symbols_at_target')} | {cell('live_sel_tok_acc', 4)} | {cell('live_emulated_sel_tok_acc', 4)} |"
+        )
+    return lines
+
+
+def conclusions(runs: dict[str, dict], folder: Path, only: set[str] | None = None) -> list[tuple[str, str, bool | None]]:
     """(statement, measured value, holds) for the claims of the paper,
-    computed from the untagged runs of ``runs``."""
-    groups = by_method(runs, set(runs))
+    computed from the untagged runs of ``runs`` (restricted to the file
+    names in ``only`` when given)."""
+    groups = by_method(runs, set(runs) if only is None else only)
 
     def value(stream, method, key):
         return mean(groups.get((stream, method), {}).get(key, []))
@@ -222,17 +262,20 @@ def main() -> None:
     shared = sorted(set(ref_runs) & set(new_runs))
     missing = sorted(set(ref_runs) - set(new_runs))
 
-    # --- environments
-    try:
-        a, b = next(iter(ref_runs.values())), next(iter(new_runs.values()))
-        lines += ["## Environments", "", "| | device | torch | transformers | python | code |", "| --- | --- | --- | --- | --- | --- |"]
-        for label, run in (("reference", a), ("reproduction", b)):
-            env = run.get("env", {})
-            device = str(run.get("config", {}).get("device", "?")) + (f" ({env['gpu']})" if env.get("gpu") else "")
-            lines.append(f"| {label} | {device} | {env.get('torch', '?')} | {env.get('transformers', '?')} | {env.get('python', '?')} | {env.get('git', '?')} |")
-        lines.append("")
-    except Exception:
-        pass
+    # --- where the two folders come from
+    lines += ["## Provenance", "", "| Folder | Code revision | torch | transformers | device | CPU threads | Stream runs |", "| --- | --- | --- | --- | --- | --- | --- |"]
+    for label, runs in (("reference", ref_runs), ("reproduction", new_runs)):
+        for (revision, torch_version, transformers_version, device, threads), count in sorted(provenance(runs).items(), key=lambda kv: -kv[1]):
+            lines.append(f"| {label} | {revision} | {torch_version} | {transformers_version} | {device} | {threads} | {count} |")
+    lines.append("")
+    for label, runs in (("reference", ref_runs), ("reproduction", new_runs)):
+        revisions = sorted({key[0] for key in provenance(runs)})
+        if len(revisions) > 1:
+            lines += [f"The {label} mixes {len(revisions)} code revisions ({', '.join(revisions)})." + ("" if label == "reference" else " A clean reproduction is run with one revision.") , ""]
+            if label == "reproduction":
+                problems.append(f"the reproduction mixes {len(revisions)} code revisions")
+        if any(str(r).endswith("+dirty") or r in ("unknown", "?") for r in revisions) and label == "reproduction":
+            lines += ["Note: some runs of the reproduction were made from code with uncommitted changes or without a recorded revision.", ""]
 
     # --- headline per stream and method
     lines += ["## Headline numbers (mean over the seeds present in both folders)", ""]
@@ -263,19 +306,41 @@ def main() -> None:
         lines += [f"Missing in the reproduction ({len(missing)}): " + ", ".join(f"`{m}`" for m in missing), ""]
 
     # --- conclusions
-    lines += ["## Conclusions of the paper", "", "| Conclusion | Published | Reproduced | Holds in the reproduction |", "| --- | --- | --- | --- |"]
+    untagged = lambda runs: {stem for stem, run in runs.items() if not tag_of(stem, run)}  # noqa: E731
+    more_seeds = bool(untagged(new_runs) - untagged(ref_runs))
+    lines += ["## Conclusions of the paper", "", "\"Reproduced\" uses exactly the runs the reference has" + ("; \"all seeds\" uses every run of the reproduction, which has more seeds than the reference." if more_seeds else "."), ""]
+    lines += ["| Conclusion | Published | Reproduced | Holds in the reproduction |" + (" With all seeds | Holds with all seeds |" if more_seeds else ""), "| --- | --- | --- | --- |" + (" --- | --- |" if more_seeds else "")]
     try:
-        for (text, shown_ref, holds_ref), (_, shown_new, holds_new) in zip(conclusions(ref_runs, ref_dir), conclusions(new_runs, new_dir)):
+        every = conclusions(new_runs, new_dir) if more_seeds else None
+        for index, ((text, shown_ref, holds_ref), (_, shown_new, holds_new)) in enumerate(zip(conclusions(ref_runs, ref_dir), conclusions(new_runs, new_dir, set(shared)))):
             verdict = "n/a" if holds_new is None else ("yes" if holds_new else "NO")
             if holds_new is False and holds_ref:
                 problems.append(f"conclusion not reproduced: {text}")
             if holds_new is None and holds_ref is not None:
                 problems.append(f"conclusion could not be checked: {text}")
-            lines.append(f"| {text} | {shown_ref} | {shown_new} | {verdict} |")
+            extra = ""
+            if every is not None:
+                _, shown_all, holds_all = every[index]
+                extra = f" {shown_all} | {'n/a' if holds_all is None else ('yes' if holds_all else 'NO')} |"
+                if holds_all is False:
+                    problems.append(f"conclusion does not hold with all seeds: {text}")
+            lines.append(f"| {text} | {shown_ref} | {shown_new} | {verdict} |{extra}")
     except Exception as error:
         lines.append(f"| (could not be evaluated: {error}) | | | |")
         problems.append("the conclusions could not be evaluated")
     lines.append("")
+
+    # --- what only the reproduction measures
+    extra_rows = new_measurements(new_runs)
+    if extra_rows:
+        lines += [
+            "## Measured by the reproduction only (no published value to compare with)",
+            "",
+            "Real symbols per token for the target token accuracy. \"Feedback\": the return-link signalling of the refinement requests, charged at the capacity of the mean SNR. \"Free-running\": the same received symbols decoded for real on a subset of the steps; \"emulated\": the teacher-forced figure on exactly those steps.",
+            "",
+            *extra_rows,
+            "",
+        ]
 
     # --- every stream run
     lines += ["## Every stream run", "", "| Run | Prior bits: published | reproduced | Symbols at target: published | reproduced | Token accuracy: published | reproduced | Sync kbit/step: published | reproduced |", "| --- | --- | --- | --- | --- | --- | --- | --- | --- |"]

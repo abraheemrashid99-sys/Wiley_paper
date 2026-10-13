@@ -48,6 +48,7 @@ stream:
   probe_size: 64
   gen_every: 0
   gen_sentences: 8
+  live_every: 20          # every 20th step is also decoded for real (free-running refinement audit)
 eval:
   snrs: [0.0, 10.0, 20.0]
   channels: [awgn, rayleigh]

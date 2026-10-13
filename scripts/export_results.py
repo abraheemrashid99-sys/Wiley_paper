@@ -2,18 +2,22 @@
 
     python scripts/export_results.py --config configs/gpt2.yaml --to results/gpt2
 
-Writes the tables and figures as they are, the evaluation files without the
-decoded texts, one compact JSON per stream run (summary, operating curves,
-probes, per-regime means and a 10-step-averaged trace instead of the full
-per-step log) and the trained codebook checkpoint (without the tokenizer,
-which comes with the backbone). The full per-step logs are
-packed into ``raw_streams.tar.gz`` so that ``aggregate.py`` and
-``make_figures.py`` can be re-run from the exported folder after unpacking
-it into ``<out_dir>/stream``.
+Writes the tables and figures as they are, the evaluation files (their
+decoded texts go to a compressed side file, ``eval/<name>.texts.json.gz``,
+from which further text metrics can be computed without re-running: see
+``scripts/add_similarity.py``), one compact JSON per stream run (summary,
+operating curves, probes, per-regime means and a 10-step-averaged trace
+instead of the full per-step log) and the trained codebook checkpoint
+(without the tokenizer, which comes with the backbone). The full per-step
+logs are packed into ``raw_streams.tar.gz`` so that ``aggregate.py`` and
+``make_figures.py`` can be re-run from the exported folder after unpacking it
+into ``<out_dir>/stream``.
 """
 
 from __future__ import annotations
 
+import gzip
+import json
 import shutil
 import tarfile
 from pathlib import Path
@@ -50,7 +54,9 @@ def compact_stream(result: dict, every: int = 10) -> dict:
                 "sel_acc": float(np.asarray(log["sel_acc"])[pick][:, k_tau].mean()),
             }
         )
-    keep = ("method", "seed", "stream", "m_op", "n_steps", "context", "cache", "slots", "slot_switches", "rule", "threshold", "target_acc", "fixed_curve", "selective_curve", "levels", "summary", "probes", "config", "env")
+    if "sel_fb_bits" in log:  # return-link signalling of refinement (runs of version 0.3 and later)
+        trace["sel_fb_bits"] = [float(np.mean([row[k_tau] for row in log["sel_fb_bits"][a : a + every]])) for a in edges]
+    keep = ("method", "seed", "stream", "m_op", "n_steps", "context", "cache", "slots", "slot_switches", "rule", "threshold", "target_acc", "fixed_curve", "selective_curve", "refine_grid", "live_every", "live_curve", "levels", "summary", "probes", "config", "env")
     out = {key: result[key] for key in keep if key in result}
     out["ledger"] = {key: value for key, value in result["ledger"].items() if key != "cumulative"}
     out["regimes"] = regimes
@@ -70,9 +76,11 @@ def main() -> None:
             shutil.copytree(src / name, dst / name, dirs_exist_ok=True)
     for path in sorted((src / "eval").glob("*.json")) if (src / "eval").exists() else []:
         data = load_json(path)
-        for bulky in ("decoded", "references"):  # decoded texts stay in the run directory
-            data.pop(bulky, None)
+        texts = {key: data.pop(key) for key in ("decoded", "references") if key in data}
         save_json(ensure_dir(dst / "eval") / path.name, data)
+        if texts.get("decoded"):  # the decoded sentences, compressed, next to the numbers they produced
+            with gzip.open(dst / "eval" / (path.stem + ".texts.json.gz"), "wt", encoding="utf-8") as handle:
+                json.dump(texts, handle, ensure_ascii=False)
     streams = sorted((src / "stream").glob("*.json")) if (src / "stream").exists() else []
     for path in streams:
         save_json(ensure_dir(dst / "stream") / path.name, compact_stream(load_json(path)))

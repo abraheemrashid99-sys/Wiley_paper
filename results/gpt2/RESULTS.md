@@ -1,10 +1,31 @@
-# Results with a pretrained LLM (GPT-2, 124M)
+# Results with a pretrained LLM (GPT-2, 124M) — version 0.2 result set (pilot)
 
 Everything below was produced by the code in this repository with
 `configs/gpt2.yaml` on two CPU cores. Every number is copied from the
 generated tables in [`TABLES.md`](TABLES.md) (which also shows all figures);
 the files behind them are in this folder. Nothing was tuned on the test
 material, and results that go against the method are listed in Section 9.
+
+> **How to read this document after the review** (`docs/REVIEW.md`). These
+> numbers are a pilot, not the paper's results. Four limits apply to all of
+> them and are detailed in Section 9:
+>
+> 1. **Three seeds cannot show significance at the seed level.** The exact
+>    seed-level test in `TABLES.md` gives p = 0.25 or more before and 1.000
+>    after Holm correction for every comparison; 0.25 is the floor for three
+>    seeds. The
+>    intervals quoted below are block-bootstrap intervals over steps.
+> 2. **Symbols per token are forward symbols only.** The return-link
+>    signalling of selective refinement — which supplies 71 % of the headline
+>    saving — is not charged in this result set.
+> 3. **Refinement on the streams is emulated teacher-forced**, not decoded for
+>    real.
+> 4. **The 37 stream runs were produced by five code revisions** and were
+>    never re-run from scratch as a whole.
+>
+> Version 0.3 of the code measures items 2 and 3 and fixes the protocol for
+> items 1 and 4 (`docs/METHOD.md`, section 9). Section 11 reports what was
+> re-run to check this folder.
 
 ## 1. Setup in brief
 
@@ -38,11 +59,14 @@ measured accuracy-versus-symbols curve.
 | **+ nested adaptation with slots (`nested`, proposed)** | **5.256** | **4.997** | **−47.7 %** | **−20.9 %** | **24.2** |
 | Shipped after every message (`full_online`) | 5.251 | 4.977 | −47.9 % | −21.2 % | 1185.8 |
 
-In words: at equal fidelity the complete system needs about half the channel
-symbols of a frozen fixed-rate receiver (4.55 fewer symbols per token). Of
-that saving, 71 % comes from selective refinement, 22 % from the context
-memory and 7 % from shipped adaptation. The proposed schedule reaches the
-per-message upper reference with 2.0 % of its synchronisation bits.
+In words: at equal fidelity the complete system needs about half the
+*forward* channel symbols of a frozen fixed-rate receiver (4.55 fewer symbols
+per token). Of that saving, 71 % comes from selective refinement, 22 % from
+the context memory and 7 % from shipped adaptation. The proposed schedule
+reaches the per-message upper reference with 2.0 % of its synchronisation
+bits. The refinement rows do not include the return-link signalling of the
+requests; the fixed-prefix row needs none, so the first comparison is
+optimistic by that amount (see Section 11 for a first measurement).
 
 ## 3. The LLM prior buys rate (base corpus, free-running decoding)
 
@@ -91,8 +115,8 @@ selective rows from the refinement evaluation (64 sentences of the same
 held-out sample).
 
 The receiver's token confidence is calibrated without any correction
-(expected calibration error 0.004–0.021 on the base corpus, 0.003–0.006 on the
-streams for every method). In the teacher-forced sweep at 10 dB, at the same
+(expected calibration error 0.004–0.021 on the base corpus; on the streams
+0.003–0.006 as per-method means and 0.002–0.009 over the single runs). In the teacher-forced sweep at 10 dB, at the same
 mean number of symbols, confidence-triggered requests beat both controls:
 AWGN, 7.13 symbols/token — 1.000 token accuracy against 0.950 for time-sharing
 between fixed rates and 0.907 for random requests; Rayleigh, 8.14
@@ -115,7 +139,12 @@ Prior cross-entropy (bits/token) while a domain is active, three seeds:
 
 Free-running BLEU-4 on held-out probes at 6 symbols/token and 10 dB, averaged
 over both domains at the end of the stream: 0.351 (`frozen`), 0.500
-(`context_only`), 0.609 (`nested`), 0.613 (`full_online`).
+(`context_only`), 0.623 ± 0.031 (`single_rate`), 0.613 ± 0.034
+(`nested_no_slots`), 0.609 ± 0.011 (`nested`), 0.613 ± 0.034 (`full_online`).
+The probes decode 16 sentences per domain, so this metric separates the
+receivers with memory from those without and nothing more: among the adapted
+receivers the proposal is not the highest, and the differences are within one
+standard deviation over seeds.
 
 Per-step paired differences to `nested` (positive = worse than `nested`):
 
@@ -131,13 +160,20 @@ Per-step paired differences to `nested` (positive = worse than `nested`):
 | `full_online` | 3 | −0.005 [−0.031, +0.019] | −0.004 [−0.026, +0.017] |
 
 Reading: `nested` is better than single-rate adaptation at the same
-synchronisation budget, and the interval excludes zero; it is statistically
-indistinguishable from shipping after every message. The advantage comes
-from the slots (`nested_no_slots` is no better than `single_rate`); giving the
-bias its own shorter period contributes little (`nested_two_level`). On the
-held-out AG News probe at the end of the stream — after the last TeleQnA
-regime — `nested` holds 5.83 bits/token against 6.10–6.14 for the
-single-adapter methods: the adapter of the earlier domain was kept.
+synchronisation budget, and the block-bootstrap interval excludes zero; at
+the seed level the difference has the same sign in all three seeds, which
+three seeds cannot make significant (p = 0.25). The interval of the
+difference to shipping after every message contains zero; that is the
+absence of a detected difference, not a demonstrated equivalence (no margin
+had been fixed). The advantage comes from the slots (`nested_no_slots` is no
+better than `single_rate`); giving the bias its own shorter period
+contributes little (`nested_two_level`, one seed). On the held-out AG News
+probe at the end of the stream — after the last TeleQnA regime — `nested`
+holds 5.83 bits/token against 6.14 for `nested_no_slots`: the adapter of the
+earlier domain was kept. These two are compared at equal freshness (both
+had just been synchronised at the probe). `single_rate` scores 6.10 on the
+same probe, but its copy was 12 steps old at that moment (period 49), so
+that figure is not comparable with the other two.
 
 Rows with one seed are comparable only through the paired column, not through
 their means in `TABLES.md`.
@@ -236,7 +272,22 @@ this negative transfer is what the slots are for.
   robustness at low SNR.
 - **Few seeds**: three (hierarchical) and two (temporal). The intervals are
   bootstrap intervals over blocks of steps, which captures variability along
-  the stream but treats the seeds as exchangeable.
+  the stream but treats the seeds as exchangeable. The exact seed-level
+  sign-flip test cannot go below p = 0.25 with three seeds; after Holm
+  correction every comparison in `TABLES.md` reads 1.000. No claim of this
+  document is significant at the seed level.
+- **The signalling of selective refinement is not charged.** After each round
+  the receiver must tell the transmitter which tokens to continue; with six
+  shells that is up to five decisions per token. The symbols-per-token
+  figures of the refinement rows are forward symbols only, while the
+  fixed-prefix reference needs no signalling.
+- **Mixed code revisions.** The stream runs carry five different code
+  revisions (11, 9, 8, 6 and 3 runs), because the code was still being
+  optimised while they were launched; only `context_only` and `nested`
+  (seed 0) were re-run afterwards. Section 11 adds four more.
+- **Probe comparisons depend on the shipping phase.** The end-of-stream
+  probes fall on steps at which the nested methods have just synchronised,
+  while `single_rate` (period 49) is 12 steps stale.
 - **Emulation**: on the streams, refinement and context are scored
   teacher-forced (the receiver's context is its own decoded text, but each
   token is scored given the true tokens before it). Free-running decoding is
@@ -246,8 +297,10 @@ this negative transfer is what the slots are for.
   real control signalling would raise every `N*`.
 - **One small language model**, and the temporal corpus is a GitHub mirror
   that lacks the first nine months of 2012 (`docs/DATASETS.md`).
-- No sentence-embedding similarity (the model could not be downloaded here);
-  the decoded texts are stored, so it can be added later.
+- No sentence-embedding similarity (the model could not be downloaded here).
+  The decoded texts of this result set were not exported, so the rate
+  evaluation has to be run again to add it; from version 0.3 on they are
+  exported and `scripts/add_similarity.py` adds the metric without a re-run.
 
 ## 10. Reproduce
 
