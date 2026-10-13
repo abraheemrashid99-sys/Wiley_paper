@@ -21,6 +21,8 @@ import time
 import zipfile
 from pathlib import Path
 
+from dnsc.cli import utf8_console
+
 ROOT = Path(__file__).resolve().parent.parent
 
 
@@ -65,4 +67,5 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    utf8_console()  # Windows consoles default to a legacy code page; the output contains ± and −
     main()

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "dnsc"
-version = "0.3.0"
+version = "0.3.1"
 description = "Doubly Nested Semantic Communication: rate- and time-nested LLM receivers for drift-resilient 6G links"
 readme = "README.md"
 requires-python = ">=3.10"

@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.1
+
+- Scripts that print a report crashed on Windows consoles, whose default
+  code page cannot show the minus sign and the plus-minus sign the tables
+  use (`compare_results.py` at the end of a reproduction, found by the test
+  suite on Windows 11 with Python 3.14). Every script now forces UTF-8
+  output; the test suite checks the comparison report under a legacy code
+  page. No measurement is affected.
+
 ## 0.3.0 — review release
 
 A strict review of version 0.2 (`docs/REVIEW.md`) found measurement and

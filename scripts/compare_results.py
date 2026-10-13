@@ -43,6 +43,8 @@ HEADLINE = [
 SKIP_KEYS = {"seconds", "env", "config", "time", "calibrator", "it_per_s"}
 NUMBER = re.compile(r"[-+]?\d+(?:\.\d+)?(?:[eE][-+]?\d+)?")
 
+from dnsc.cli import utf8_console
+
 
 def load(path: Path):
     with open(path, encoding="utf-8") as handle:
@@ -400,4 +402,5 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    utf8_console()  # Windows consoles default to a legacy code page; the output contains ± and −
     main()

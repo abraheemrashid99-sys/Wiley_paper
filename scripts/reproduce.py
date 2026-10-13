@@ -39,6 +39,8 @@ import sys
 import time
 from pathlib import Path
 
+from dnsc.cli import utf8_console
+
 ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT.parent))  # the 'paper' profile reads the configuration with dnsc.config
 PROFILES = ("published", "core", "paper")
@@ -214,4 +216,5 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    utf8_console()  # Windows consoles default to a legacy code page; the output contains ± and −
     main()

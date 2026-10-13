@@ -26,6 +26,8 @@ import torch
 from dnsc.metrics import load_similarity
 from dnsc.utils import load_json, save_json
 
+from dnsc.cli import utf8_console
+
 
 def load_texts(path: Path) -> dict | None:
     """Decoded texts of one rate file: inside it (run directory) or in the
@@ -74,4 +76,5 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    utf8_console()  # Windows consoles default to a legacy code page; the output contains ± and −
     main()

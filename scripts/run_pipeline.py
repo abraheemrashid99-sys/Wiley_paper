@@ -29,6 +29,8 @@ import sys
 import time
 from pathlib import Path
 
+from dnsc.cli import utf8_console
+
 ROOT = Path(__file__).resolve().parent
 DEFAULT_METHODS = "frozen,context_only,single_rate,ewc,full_online,nested,nested_no_slots,nested_no_context,nested_two_level"
 PILOT_METHODS = "frozen,context_only,single_rate,nested,full_online"
@@ -94,4 +96,5 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    utf8_console()  # Windows consoles default to a legacy code page; the output contains ± and −
     main()

@@ -31,6 +31,8 @@ VOCAB_URL = "https://raw.githubusercontent.com/latitudegames/GPT-3-Encoder/maste
 MERGES_URL = "https://raw.githubusercontent.com/latitudegames/GPT-3-Encoder/master/vocab.bpe"
 CHECK_TEXT = "The European Parliament adopted the resolution on energy policy by a large majority."
 
+from dnsc.cli import utf8_console
+
 
 def download(url: str, path: Path) -> None:
     if path.exists() and path.stat().st_size > 0:
@@ -123,4 +125,5 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    utf8_console()  # Windows consoles default to a legacy code page; the output contains ± and −
     main()

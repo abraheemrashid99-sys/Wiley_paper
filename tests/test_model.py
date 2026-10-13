@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import copy
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -844,7 +845,8 @@ def test_command_line_pipeline(tmp_path):
     # the reproduction check: a folder agrees with itself, and a changed number is noticed
     def compare(new_dir) -> str:
         cmd = [sys.executable, str(ROOT / "scripts" / "compare_results.py"), "--reference", str(exported), "--new", str(new_dir)]
-        done = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=ROOT, timeout=120)
+        legacy = dict(os.environ, PYTHONIOENCODING="cp1252")  # a Windows console: the report holds ± and − and must still print
+        done = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=ROOT, timeout=120, env=legacy)
         assert done.returncode == 0, done.stderr[-2000:]
         return done.stdout
 
