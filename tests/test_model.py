@@ -486,6 +486,16 @@ def test_free_running_audit_measures_and_changes_nothing_else(cfg, checkpoint, t
     plain = run_stream(cfg, "nested", 0, checkpoint, tmp_path / "a.json")
     cfg["stream"]["live_every"] = 3
     audited = run_stream(cfg, "nested", 0, checkpoint, tmp_path / "b.json")
+    cfg["stream"]["live_thresholds"] = [0.7, 0.9]  # auditing only some thresholds gives the same figures for those
+    partial = run_stream(cfg, "nested", 0, checkpoint, tmp_path / "c.json")
+    assert [p["threshold"] for p in partial["live_curve"]] == [0.7, 0.9]
+    assert partial["live_curve"] == [p for p in audited["live_curve"] if p["threshold"] in (0.7, 0.9)]
+    assert partial["summary"]["live_sel_tok_acc"] == audited["summary"]["live_sel_tok_acc"] and partial["log"] == plain["log"]
+    cfg["stream"]["live_thresholds"] = [0.5, 0.7]
+    with pytest.raises(ValueError):  # the operating threshold must be among the audited ones
+        from dnsc.config import validate
+
+        validate(cfg)
     assert audited["log"] == plain["log"] and audited["probes"] == plain["probes"] and audited["ledger"] == plain["ledger"]
     for key, value in plain["summary"].items():
         if not key.startswith("live_") and key != "seconds":
@@ -786,7 +796,11 @@ def test_command_line_pipeline(tmp_path):
     run("headroom.py", "--n", "8", "--steps", "3")
     run("benchmark_speed.py", "--steps", "2", "--repeats", "2")
     run("aggregate.py")
+    run("aggregate.py", "--seeds", "1", "--to", "tables_seed1")  # the same tables on a subset of the seeds
+    one_seed = (tmp_path / "run" / "tables_seed1" / "refine_cost_hier.md").read_text(encoding="utf-8")
+    assert "| nested | 1 |" in one_seed and "| nested | 2 |" in (tmp_path / "run" / "tables" / "refine_cost_hier.md").read_text(encoding="utf-8")
     run("make_figures.py")
+    assert (tmp_path / "run" / "figures" / "refine_cost_hier.png").exists()
     run("export_results.py", "--to", str(tmp_path / "export"))
     run("write_report.py", "--to", str(tmp_path / "export"))
     out = tmp_path / "run"
@@ -817,7 +831,7 @@ def test_command_line_pipeline(tmp_path):
     assert similarity.returncode != 0 and "nothing was changed" in similarity.stderr  # without the encoder the files stay as they are
     assert json.loads((exported / "eval" / "rate_toy_a.json").read_text()) == rate
     summary = json.loads((exported / "stream" / "hier_nested_s0.json").read_text())
-    assert summary["live_every"] == 10 and summary["summary"]["live_steps"] > 0 and len(summary["refine_grid"]) == 4 and "staleness" in summary["probes"][-1]
+    assert summary["live_every"] == 7 and summary["summary"]["live_steps"] > 0 and len(summary["refine_grid"]) == 4 and "staleness" in summary["probes"][-1]
     compact = json.loads((exported / "stream" / "hier_nested_s0.json").read_text())
     assert "log" not in compact and len(compact["trace"]["prior_bits"]) == -(-compact["n_steps"] // compact["trace_every"]) and len(compact["regimes"]) == 2
 

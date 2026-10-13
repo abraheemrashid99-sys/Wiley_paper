@@ -167,54 +167,73 @@ def rounds_per_message(stop: torch.Tensor, lengths: list[int], start: int = 0) -
 
 
 @torch.no_grad()
-def progressive_decode(codec: SemanticCodec, y: torch.Tensor, prec: torch.Tensor, lens: torch.Tensor, threshold: float, contexts: list[list[int]] | None = None, cache=None, start: int = 0) -> dict:
+def progressive_decode(codec: SemanticCodec, y: torch.Tensor, prec: torch.Tensor, lens: torch.Tensor, threshold: float, contexts: list[list[int]] | None = None, cache=None, start: int = 0, first_pass=None) -> dict:
     """Selective refinement decoded for real (free-running) on symbols that
     were transmitted once with :meth:`SemanticCodec.transmit`.
 
     The receiver first reads shell ``start`` of every token and decodes the
     sentence with its own earlier decisions as the language-model input. A
     token whose posterior confidence reaches ``threshold`` is closed; for the
-    others the next shell is read and the whole sentence is decoded again,
-    until every token is closed or has all its shells. This is exactly the
-    policy that the stream runner emulates teacher-forced, on the same
-    received symbols, so the difference between the two is the effect of
-    free-running decoding and nothing else.
+    others the next shell is read and the sentence is decoded again, until
+    every token is closed or has all its shells. This is exactly the policy
+    that the stream runner emulates teacher-forced, on the same received
+    symbols, so the difference between the two is the effect of free-running
+    decoding and nothing else.
 
-    Returns the final decisions (``token_ids``, ``texts``), the mean number
-    of symbols per token, the feedback account and the mean number of rounds
-    per message."""
+    A message without open tokens is finished and is not decoded again. The
+    first round does not depend on the threshold: its result is returned as
+    ``first_pass`` and may be handed to further calls on the same symbols.
+
+    Returns the final decisions (``token_ids``), the shell reached by every
+    token (``level``), the mean number of symbols per token, the feedback
+    account and the mean number of rounds per message."""
     grans = codec.grans
     n_levels = len(grans)
-    sizes = torch.tensor(grans, dtype=torch.long, device=y.device)
+    device = y.device
+    sizes = torch.tensor(grans, dtype=torch.long, device=device)
     bsz, width, _ = y.shape
-    mask = torch.arange(width, device=y.device).unsqueeze(0) < lens.to(y.device).unsqueeze(1)
-    level = torch.full((bsz, width), int(start), dtype=torch.long, device=y.device)
+    lens = lens.to(device)
+    mask = torch.arange(width, device=device).unsqueeze(0) < lens.unsqueeze(1)
+    level = torch.full((bsz, width), int(start), dtype=torch.long, device=device)
     is_open = mask.clone()
-    rounds = torch.ones(bsz, dtype=torch.long, device=y.device)
+    rounds = torch.ones(bsz, dtype=torch.long, device=device)
     meter = FeedbackMeter(n_levels)
     meter.add_tokens(int(mask.sum()))
-    decoded = None
+    token_ids: list[list[int]] = [[] for _ in range(bsz)]
+    active = torch.arange(bsz, device=device)  # messages that are still being refined
     for round_index in range(start, n_levels):
-        decoded = codec.decode(y, sizes[level], prec, lens, "llm", cache, contexts)
-        if round_index == n_levels - 1 or not bool(is_open.any()):
+        if round_index == start and first_pass is not None:
+            decoded = first_pass
+        else:
+            span = int(lens[active].max())
+            picked = active.tolist()
+            decoded = codec.decode(y[active, :span], sizes[level[active, :span]], prec[active], lens[active], "llm", cache, [contexts[i] for i in picked] if contexts else None)
+        if round_index == start:
+            first_pass = decoded
+        span = decoded.token_logprob.shape[1]
+        for row, got in zip(active.tolist(), decoded.token_ids):
+            token_ids[row] = got
+        if round_index == n_levels - 1:
             break
-        conf = decoded.token_logprob.exp().to(y.device)
-        request = is_open & (conf < threshold)
-        meter.add_round(round_index, int(is_open.sum()), int(request.sum()))
-        is_open = request
-        if not bool(request.any()):
+        conf = decoded.token_logprob.exp().to(device)
+        request = is_open[active, :span] & (conf < threshold)
+        meter.add_round(round_index, int(is_open[active].sum()), int(request.sum()))
+        is_open[active, :span] = request
+        again = request.any(dim=1)
+        if not bool(again.any()):
             break
-        level = level + request.long()
-        rounds = rounds + request.any(dim=1).long()
+        level[active, :span] += request.long()
+        active = active[again]
+        rounds[active] += 1
     n_tokens = max(int(mask.sum()), 1)
     return {
-        "token_ids": decoded.token_ids,
-        "texts": decoded.texts,
+        "token_ids": token_ids,
         "level": level,
         "symbols": float(sizes[level][mask].sum()) / n_tokens,
         "rounds": float(rounds.float().mean()),
         "n_tokens": int(mask.sum()),
         "meter": meter,
+        "first_pass": first_pass,
         **meter.summary(),
     }
 

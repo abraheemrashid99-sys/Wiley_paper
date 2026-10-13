@@ -96,6 +96,7 @@ DEFAULTS: dict[str, Any] = {
         # (free-running selective refinement at every threshold), next to the
         # teacher-forced emulation that scores every step; 0 switches the audit off
         "live_every": 0,
+        "live_thresholds": None,  # thresholds decoded in the audit (None: all of "thresholds")
     },
     "nested": {
         # the fast level is the context (every message, no gradient, no sync)
@@ -219,6 +220,9 @@ def validate(cfg: dict) -> None:
         raise ValueError("stream.m_op must be one of codec.granularities")
     if cfg["stream"]["threshold"] not in cfg["stream"]["thresholds"]:
         raise ValueError("stream.threshold must be one of stream.thresholds")
+    audited = cfg["stream"]["live_thresholds"]
+    if audited is not None and (not set(audited) <= set(cfg["stream"]["thresholds"]) or cfg["stream"]["threshold"] not in audited):
+        raise ValueError("stream.live_thresholds must be a subset of stream.thresholds that contains stream.threshold")
     periods = cfg["nested"]["periods"]
     if not 1 <= periods["medium"] <= periods["slow"]:
         raise ValueError("nested.periods must satisfy 1 <= medium <= slow")
