@@ -148,14 +148,14 @@ def new_measurements(runs: dict[str, dict]) -> list[str]:
     if not groups:
         return []
     lines = [
-        "| Stream | Method | Seeds | Fixed prefix | Selective, forward only | + feedback (bitmap) | + feedback (entropy) | Free-running, forward only | Emulated on the same steps | Free-running tok-acc | Emulated tok-acc |",
-        "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
+        "| Stream | Method | Seeds | Fixed prefix | Selective, forward only | + feedback (bitmap) | + feedback (entropy) | Free-running fixed prefix | Free-running selective, forward only | Emulated on the same steps | Free-running + feedback (entropy) | Free-running tok-acc | Emulated tok-acc |",
+        "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
     ]
     for (stream, method), items in sorted(groups.items()):
         cell = lambda key, digits=3: fmt(mean([s.get(key) for s in items]) if all(s.get(key) is not None for s in items) else None, digits)  # noqa: E731
         lines.append(
             f"| {stream} | {method} | {len(items)} | {cell('symbols_at_target_fixed')} | {cell('symbols_at_target_selective')} | {cell('symbols_at_target_selective_fb')} | {cell('symbols_at_target_selective_fb_entropy')} "
-            f"| {cell('live_symbols_at_target')} | {cell('live_emulated_symbols_at_target')} | {cell('live_sel_tok_acc', 4)} | {cell('live_emulated_sel_tok_acc', 4)} |"
+            f"| {cell('live_symbols_at_target_fixed')} | {cell('live_symbols_at_target')} | {cell('live_emulated_symbols_at_target')} | {cell('live_symbols_at_target_fb_entropy')} | {cell('live_sel_tok_acc', 4)} | {cell('live_emulated_sel_tok_acc', 4)} |"
         )
     return lines
 

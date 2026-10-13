@@ -371,12 +371,16 @@ def run_stream(cfg, method: str, seed: int, ckpt_dir: str | Path, out_path: str 
                 if live_every > 0 and item.t % live_every == 0:
                     # the same received symbols, decoded for real: free-running, round by round
                     live_now, first_pass = [], None
+                    truth = list(zip(batch.ids.tolist(), batch.lens.tolist()))
+                    hit_rate = lambda rows: sum(int(a == b) for (row, length), got in zip(truth, rows) for a, b in zip(row[:length], got)) / max(n_now, 1)  # noqa: E731
+                    n_now = int(batch.lens.sum())
                     for index, tau in enumerate(live_thresholds):
                         out = progressive_decode(codec, y, prec, batch.lens, tau, rx_contexts, cache, first_pass=first_pass)
                         first_pass = out["first_pass"]  # the first round is the same for every threshold
-                        hits = sum(int(a == b) for row, length, got in zip(batch.ids.tolist(), batch.lens.tolist(), out["token_ids"]) for a, b in zip(row[:length], got))
                         live_meter[index].merge(out["meter"])
-                        live_now.append({"symbols": out["symbols"], "tok_acc": hits / max(out["n_tokens"], 1), "feedback_bits": out["feedback_bits"], "rounds": out["rounds"]})
+                        live_now.append({"symbols": out["symbols"], "tok_acc": hit_rate(out["token_ids"]), "feedback_bits": out["feedback_bits"], "rounds": out["rounds"]})
+                    # the fixed-prefix receiver decoded for real as well: the reference must be audited like the proposal
+                    live_fixed_now = [hit_rate(first_pass.token_ids)] + [hit_rate(codec.decode(y, m, prec, batch.lens, "llm", cache, rx_contexts).token_ids) for m in codec.grans[1:]]
         # selective refinement, emulated teacher-forced: every token stops at the
         # first shell at which the receiver's own confidence reaches the threshold
         selective = {}
@@ -399,7 +403,7 @@ def run_stream(cfg, method: str, seed: int, ckpt_dir: str | Path, out_path: str 
                 if first == 0:
                     selective[tau] = selective[tau] + (feedback_bits_per_token(stop, n_levels).mean().item(), rounds_per_message(stop, lengths))
         if live_now is not None:
-            live_log.append({"step": item.t, "live": live_now, "emulated": [{"symbols": selective[tau][0], "tok_acc": selective[tau][1]} for tau in live_thresholds]})
+            live_log.append({"step": item.t, "live": live_now, "emulated": [{"symbols": selective[tau][0], "tok_acc": selective[tau][1]} for tau in live_thresholds], "live_fixed": live_fixed_now, "emulated_fixed": stats["correct"].mean(0).tolist()})
 
         if levels:  # ---- what the transmitter does: learn from the true text
             if codec.train_codebook:  # its own simulation of the channel, through the working codebook
@@ -503,7 +507,7 @@ def run_stream(cfg, method: str, seed: int, ckpt_dir: str | Path, out_path: str 
     operating = selective_curve[thresholds.index(tau_op)]
 
     # free-running audit: the real and the emulated operating curve on the same steps and symbols
-    live_curve, live_cost, emulated_cost = [], {}, {}
+    live_curve, live_fixed_curve, live_cost, emulated_cost = [], [], {}, {}
     if live_log:
         for index, tau in enumerate(live_thresholds):
             live = {key: float(np.mean([row["live"][index][key] for row in live_log])) for key in ("symbols", "tok_acc", "feedback_bits", "rounds")}
@@ -512,6 +516,9 @@ def run_stream(cfg, method: str, seed: int, ckpt_dir: str | Path, out_path: str 
             live_curve.append({"threshold": tau, **with_totals(live), "emulated_symbols": emulated["symbols"], "emulated_tok_acc": emulated["tok_acc"]})
         live_cost = curve_cost(live_curve)
         emulated_cost = {"symbols_at_target": _finite(symbols_at_accuracy([p["emulated_symbols"] for p in live_curve], [p["emulated_tok_acc"] for p in live_curve], target))}
+        live_fixed_curve = [{"m": m, "tok_acc": float(np.mean([row["live_fixed"][k] for row in live_log])), "emulated_tok_acc": float(np.mean([row["emulated_fixed"][k] for row in live_log]))} for k, m in enumerate(codec.grans)]
+        live_cost["fixed"] = _finite(symbols_at_accuracy([float(p["m"]) for p in live_fixed_curve], [p["tok_acc"] for p in live_fixed_curve], target))
+        emulated_cost["fixed"] = _finite(symbols_at_accuracy([float(p["m"]) for p in live_fixed_curve], [p["emulated_tok_acc"] for p in live_fixed_curve], target))
     summary = {
         "mean_tok_acc": float(np.mean(log["tok_acc"])),
         "mean_ce_bits": float(np.mean(log["ce_bits"])),
@@ -536,6 +543,8 @@ def run_stream(cfg, method: str, seed: int, ckpt_dir: str | Path, out_path: str 
         "live_symbols_at_target_fb": live_cost.get("symbols_at_target_fb"),
         "live_symbols_at_target_fb_entropy": live_cost.get("symbols_at_target_fb_entropy"),
         "live_emulated_symbols_at_target": emulated_cost.get("symbols_at_target"),
+        "live_symbols_at_target_fixed": live_cost.get("fixed"),
+        "live_emulated_symbols_at_target_fixed": emulated_cost.get("fixed"),
         "live_sel_symbols": live_curve[live_thresholds.index(tau_op)]["symbols"] if live_curve else None,
         "live_sel_tok_acc": live_curve[live_thresholds.index(tau_op)]["tok_acc"] if live_curve else None,
         "live_emulated_sel_symbols": live_curve[live_thresholds.index(tau_op)]["emulated_symbols"] if live_curve else None,
@@ -571,6 +580,7 @@ def run_stream(cfg, method: str, seed: int, ckpt_dir: str | Path, out_path: str 
         "refine_grid": refine_grid,
         "live_every": live_every,
         "live_curve": live_curve,
+        "live_fixed_curve": live_fixed_curve,
         "live": live_log,
         "levels": [
             {"name": lv.name, "side": lv.side, "period": lv.period, "lr": lv.lr, "ema": lv.ema, "n_params": lv.n_params, "bits_per_update": optimizer.expected_bits_per_update(lv)}

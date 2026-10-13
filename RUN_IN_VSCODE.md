@@ -78,6 +78,11 @@ To run the same commands by hand, or with other options (for example
 `threads=8`, or `--seeds 0,1,2,3,4,5,6,7,8,9`), see the top of
 `scripts/reproduce.py`; `DN-SC 8` prints the full plan without running it.
 
+The tasks train the codebook again from scratch, which is the stricter test.
+To start instead from the published codebook (`results/gpt2/base/codec.pt`)
+— this removes the largest source of numerical differences between machines
+— run the command of the task in the terminal with `--reuse-codebook` added.
+
 ## If something fails
 
 - **A task stops with `STOPPED: step N … failed`**: the message above it is the

@@ -513,6 +513,11 @@ def test_free_running_audit_measures_and_changes_nothing_else(cfg, checkpoint, t
         assert point["emulated_symbols"] == pytest.approx(np.mean([plain["log"]["sel_symbols"][t - 1][index] for t in steps]))
         assert point["emulated_tok_acc"] == pytest.approx(np.mean([plain["log"]["sel_acc"][t - 1][index] for t in steps]))
     assert audited["summary"]["live_sel_symbols"] == curve[k_op]["symbols"] and audited["summary"]["live_emulated_sel_tok_acc"] == curve[k_op]["emulated_tok_acc"]
+    fixed = audited["live_fixed_curve"]  # the fixed-prefix reference is decoded for real on the same steps
+    assert [p["m"] for p in fixed] == grans and all(0.0 <= p["tok_acc"] <= 1.0 for p in fixed)
+    for k, point in enumerate(fixed):
+        assert point["emulated_tok_acc"] == pytest.approx(np.mean([plain["log"]["acc_by_m"][t - 1][k] for t in steps]))
+    assert {"live_symbols_at_target_fixed", "live_emulated_symbols_at_target_fixed"} <= set(audited["summary"])
     assert all(max(row.values()) <= audited["n_steps"] for row in [p["staleness"] for p in audited["probes"]] if row)
 
 

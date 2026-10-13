@@ -186,7 +186,10 @@ def refine_cost_figures(out_dir: Path, figs: Path) -> None:
             ax.plot(mean(lambda p: p["symbols_total"]), accuracy, color=selective_colour, linestyle=":", marker="^", markersize=4, linewidth=1.2, label="selective + signalling (bitmap)")
             live = [r["live_curve"] for r in runs if r.get("live_curve")]
             if live:
-                ax.scatter(np.mean([[p["symbols"] for p in curve] for curve in live], axis=0), np.mean([[p["tok_acc"] for p in curve] for curve in live], axis=0), marker="x", s=36, color="black", linewidths=1.2, zorder=3, label="free-running, forward only (audited steps)")
+                ax.scatter(np.mean([[p["symbols"] for p in curve] for curve in live], axis=0), np.mean([[p["tok_acc"] for p in curve] for curve in live], axis=0), marker="x", s=36, color="black", linewidths=1.2, zorder=3, label="selective decoded for real, forward only (audited steps)")
+            live_fixed = [r["live_fixed_curve"] for r in runs if r.get("live_fixed_curve")]
+            if live_fixed:
+                ax.scatter([p["m"] for p in live_fixed[0]], np.mean([[p["tok_acc"] for p in curve] for curve in live_fixed], axis=0), marker="+", s=48, color="black", linewidths=1.2, zorder=3, label="fixed prefix decoded for real (audited steps)")
             ax.axhline(runs[0]["target_acc"], color="0.45", linewidth=0.8, linestyle=":")
             ax.set_xlabel("real symbols per token")
             ax.set_ylim(0.0, 1.02)

@@ -56,7 +56,7 @@ def compact_stream(result: dict, every: int = 10) -> dict:
         )
     if "sel_fb_bits" in log:  # return-link signalling of refinement (runs of version 0.3 and later)
         trace["sel_fb_bits"] = [float(np.mean([row[k_tau] for row in log["sel_fb_bits"][a : a + every]])) for a in edges]
-    keep = ("method", "seed", "stream", "m_op", "n_steps", "context", "cache", "slots", "slot_switches", "rule", "threshold", "target_acc", "fixed_curve", "selective_curve", "refine_grid", "live_every", "live_curve", "levels", "summary", "probes", "config", "env")
+    keep = ("method", "seed", "stream", "m_op", "n_steps", "context", "cache", "slots", "slot_switches", "rule", "threshold", "target_acc", "fixed_curve", "selective_curve", "refine_grid", "live_every", "live_curve", "live_fixed_curve", "levels", "summary", "probes", "config", "env")
     out = {key: result[key] for key in keep if key in result}
     out["ledger"] = {key: value for key, value in result["ledger"].items() if key != "cumulative"}
     out["regimes"] = regimes
