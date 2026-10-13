@@ -1,6 +1,8 @@
 # Running and verifying the study in VS Code
 
-Everything below works on Windows, macOS and Linux. You need
+Everything below is written for Windows, macOS and Linux; the release was
+tested on Linux only, so on another system report what a task prints if it
+stops. You need
 [VS Code](https://code.visualstudio.com/) with the **Python** extension and
 Python 3.10 or newer (`python --version`).
 
@@ -27,6 +29,14 @@ top; each opens its own terminal panel and says when it is finished.
 
 After task 0, VS Code may ask whether to use the new environment for this
 folder: answer **Yes**.
+
+**Which task to run now.** Tasks 0–5 verify this release and the published
+numbers. Tasks 6 and 7 are the studies for the paper; hold them back until
+the refinement decoder has been improved (`docs/ROADMAP.md`, step 0): the
+first runs with the corrected code show that the present decoder loses most
+of its gain when it is decoded for real (`results/gpt2/RESULTS.md`,
+section 11), and six seeds of a decoder that will be replaced are wasted
+machine time.
 
 Tasks 5–7 can be stopped (click in the terminal, press `Ctrl+C`) and started
 again at any time: finished runs are skipped. Keep the laptop on mains power
