@@ -1,0 +1,15 @@
+% The 'temporal' stream by slow regime: prequential metrics while the regime is active, and held-out probes of it at the end of the stream (mean ± SD over seeds). A probe scores the receiver's copy at that moment: methods are comparable on a probe only at equal staleness (steps since the slowest level was shipped)
+\begin{tabular}{llllllllll}
+\hline
+method & regime & seeds & prior bits/token & tok-acc @m\_op & selective sym/token & selective tok-acc & held-out prior bits (end) & held-out tok-acc (end) & receiver staleness at the probe (steps) \\
+\hline
+frozen & era0 & 1 & 6.2021 $\pm$ 0.0000 & 0.8515 $\pm$ 0.0000 & 6.0381 $\pm$ 0.0000 & 0.9747 $\pm$ 0.0000 & 6.5289 & 0.7936 & - \\
+frozen & era1 & 1 & 6.2595 $\pm$ 0.0000 & 0.7088 $\pm$ 0.0000 & 8.1732 $\pm$ 0.0000 & 0.9493 $\pm$ 0.0000 & 6.5974 & 0.8025 & - \\
+frozen & era2 & 1 & 6.4015 $\pm$ 0.0000 & 0.7513 $\pm$ 0.0000 & 7.4670 $\pm$ 0.0000 & 0.9664 $\pm$ 0.0000 & 6.5500 & 0.7815 & - \\
+frozen & era3 & 1 & 6.4729 $\pm$ 0.0000 & 0.8014 $\pm$ 0.0000 & 6.7072 $\pm$ 0.0000 & 0.9718 $\pm$ 0.0000 & 6.4767 & 0.7944 & - \\
+nested & era0 & 1 & 5.7896 $\pm$ 0.0000 & 0.8691 $\pm$ 0.0000 & 5.6797 $\pm$ 0.0000 & 0.9738 $\pm$ 0.0000 & 6.0098 & 0.8071 & 600 \\
+nested & era1 & 1 & 5.7854 $\pm$ 0.0000 & 0.7418 $\pm$ 0.0000 & 7.7313 $\pm$ 0.0000 & 0.9502 $\pm$ 0.0000 & 6.1913 & 0.8078 & 600 \\
+nested & era2 & 1 & 5.9322 $\pm$ 0.0000 & 0.7827 $\pm$ 0.0000 & 7.0442 $\pm$ 0.0000 & 0.9680 $\pm$ 0.0000 & 5.8707 & 0.8129 & 600 \\
+nested & era3 & 1 & 5.9277 $\pm$ 0.0000 & 0.8331 $\pm$ 0.0000 & 6.2326 $\pm$ 0.0000 & 0.9687 $\pm$ 0.0000 & 5.9821 & 0.8265 & 600 \\
+\hline
+\end{tabular}

@@ -13,7 +13,8 @@ LLM-enabled semantic communications, deadline **31 March 2027**.
 | Strict review of that result set (`docs/REVIEW.md`) | done |
 | Measurement fixes from the review (signalling of refinement, free-running audit, statistics, artefacts) | done in version 0.3, tested |
 | Confirmatory protocol written down (`docs/METHOD.md`, section 9) | done |
-| **Confirmatory runs (`--profile core`)** | **to run** |
+| **Decoder for selective refinement that holds up when decoded for real** (`docs/REVIEW.md`, A7 and F) | **open — next** |
+| Confirmatory runs (`--profile core`) | to run after that |
 | Sensitivity studies (`--profile paper`) | to run |
 | Second backbone (SmolLM2-135M, `configs/laptop.yaml`) | to run where Hugging Face is reachable |
 | Sentence-embedding similarity | to add where Hugging Face is reachable (`scripts/add_similarity.py`) |
@@ -28,13 +29,27 @@ paragraph: the three free or cheap mechanisms — selective refinement, the LLM
 prior and the context memory — carry most of the gain; shipped adaptation
 adds a smaller gain, reaches the per-message upper reference at a few percent
 of its synchronisation cost, and pays for itself only above a traffic volume
-that the crossover analysis makes explicit. What the pilot cannot decide:
+that the crossover analysis makes explicit. What the pilot could not decide:
 whether those differences hold at the seed level (three seeds cannot show
 it), how much of the refinement gain survives once its return-link
 signalling is charged, and whether free-running decoding confirms the
-emulated refinement curve. The confirmatory runs answer exactly these.
+emulated refinement curve. A first look at the last two, on seed 0, is in
+`results/gpt2/RESULTS.md`, section 11: most of the refinement gain does not
+survive, the gain of the memories does.
 
 ## Remaining experiments, in order
+
+### 0. The decoder comes first
+
+The first runs with the corrected code (`results/gpt2/RESULTS.md`, section
+11) show that the simplest refinement policy loses most of its emulated gain
+when it is decoded for real and its signalling is charged. Running six seeds
+of a policy that is known to be weak wastes the machine time. First extend
+`scripts/eval_refine.py` so that it decodes for real, on the validation split
+of the base corpus, with a later first shell, beam search and reopening of
+closed tokens; pick one variant by total symbols at the target accuracy;
+write it into `docs/METHOD.md`. Then go on with A. The steps are in
+`docs/REVIEW.md`, section F.
 
 ### A. Confirmatory study with GPT-2 (one command)
 

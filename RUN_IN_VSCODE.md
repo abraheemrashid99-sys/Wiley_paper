@@ -18,7 +18,7 @@ top; each opens its own terminal panel and says when it is finished.
 | --- | --- | --- |
 | `DN-SC 0: create environment and install` | A private Python environment in `.venv` with all dependencies | a few minutes, once |
 | `DN-SC 1: verify the package (checksums)` | Confirms every file is exactly as released | seconds |
-| `DN-SC 2: run the tests` | 90+ unit and integration tests on a tiny offline model | 5–15 min |
+| `DN-SC 2: run the tests` | 86 unit and integration tests on a tiny offline model | 5–15 min |
 | `DN-SC 3: smoke run of the whole pipeline` | Every script end to end on a tiny model (its numbers mean nothing) | a few minutes |
 | `DN-SC 4: fetch GPT-2` | Builds pretrained GPT-2 from files on GitHub, checksum verified | once, about 650 MB |
 | `DN-SC 5: reproduce the published results and compare` | Re-runs the 37 published stream runs and all evaluations, then compares | long (see below) |

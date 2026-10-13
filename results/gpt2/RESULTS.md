@@ -284,7 +284,7 @@ this negative transfer is what the slots are for.
 - **Mixed code revisions.** The stream runs carry five different code
   revisions (11, 9, 8, 6 and 3 runs), because the code was still being
   optimised while they were launched; only `context_only` and `nested`
-  (seed 0) were re-run afterwards. Section 11 adds four more.
+  (seed 0) were re-run afterwards. Section 11 reports 6 runs repeated with version 0.3.
 - **Probe comparisons depend on the shipping phase.** The end-of-stream
   probes fall on steps at which the nested methods have just synchronised,
   while `single_rate` (period 49) is 12 steps stale.
@@ -305,36 +305,136 @@ this negative transfer is what the slots are for.
 ## 10. Reproduce
 
 ```
-python -m pip install -e ".[dev]" onnx
+python -m pip install -e ".[dev,gpt2]"
 python scripts/fetch_gpt2.py --out models/gpt2
-python scripts/run_pipeline.py --config configs/gpt2.yaml --stage base
-python scripts/run_pipeline.py --config configs/gpt2.yaml --stage streams --seeds 0,1,2
-python scripts/run_pipeline.py --config configs/gpt2.yaml --stage report
+python scripts/reproduce.py --config configs/gpt2.yaml --out runs/gpt2_published \
+    --export results_repro/gpt2_published --reference results/gpt2 --profile published
 ```
 
-Variant runs: `scripts/run_stream.py --methods nested --seeds 0 --tag <name>
-<override>` with `nested.sync.bits=4`; `nested.sync.bits=4 nested.sync.topk=0.1
-nested.periods.slow=100`; `nested.lrs.slow=0.0`; `channel.type=rayleigh`.
-The trained codebook used for all of the above is `base/codec.pt`; the
-per-step logs are in `raw_streams.tar.gz`.
+This runs every experiment behind this folder — the 37 stream runs
+(including the variants `bits4`, `lean`, `biasonly`, `lr3x`, `rayleigh`),
+the evaluations on the base corpus and the fixed-rate codebook — on one code
+revision, and writes `results_repro/gpt2_published/COMPARISON.md`: the
+published and the reproduced value of every number, a tolerance check of the
+headline numbers and a check of each conclusion. `--profile core` and
+`--profile paper` run the confirmatory protocol and the sensitivity studies
+(`docs/METHOD.md`, section 9). `notebooks/reproduce_gpt2_colab.ipynb` runs
+the same command on a Colab GPU.
 
-One command runs the complete set (every run above, including the variants
-and the fixed-rate codebook) and compares the outcome with this folder:
+The trained codebook used for all of the above is `base/codec.pt`. It was
+not part of the version 0.2 commit; it was regenerated for version 0.3 by
+running the published training again, which reproduced the published
+training log line by line (all 45 logged losses and accuracies identical).
+The per-step logs of the stream runs are in `raw_streams.tar.gz`.
 
-```
-python scripts/reproduce.py --config configs/gpt2.yaml --out runs/gpt2_repro \
-    --export results_repro/gpt2 --reference results/gpt2
-```
+Repeatability on the same kind of machine with the same library versions
+(`requirements-lock.txt`) is bit for bit: see Section 11. Across machines,
+and between a CPU and a GPU, floating-point results differ in the last
+digits and the online adaptation carries such differences along, so
+agreement there is a matter of tolerance, which is what `COMPARISON.md`
+reports.
 
-It writes `results_repro/gpt2/COMPARISON.md`: the published and the reproduced
-value of every number, a tolerance check of the headline numbers and a check
-of each conclusion. `notebooks/reproduce_gpt2_colab.ipynb` does the same on a
-Colab GPU.
+## 11. Check of this folder with the corrected code (version 0.3)
 
-Repeatability on the same machine was checked by running `context_only` and
-`nested` (seed 0, hierarchical stream) a second time from the stored
-codebook: both runs reproduce the published ones bit for bit (identical
-summaries and identical per-step logs). Across machines, and between a CPU and
-a GPU, floating-point results differ in the last digits and the online
-adaptation carries such differences along, so agreement there is a matter of
-tolerance, which is what `COMPARISON.md` reports.
+Made on the same kind of machine and with the same library versions as the
+published runs, from one clean code revision (`a25f99d`), with the published
+codebook (regenerated: Section 10). The files are in
+[`../gpt2_v0.3_check`](../gpt2_v0.3_check).
+
+**Reproduction.** 6 of the 37 stream runs were repeated: `hier_context_only_s0`, `hier_frozen_s0`, `hier_nested_s0`, `hier_single_rate_s0`, `temporal_frozen_s0`, `temporal_nested_s0`.
+All 6 reproduce the published files **bit for bit**: compared value by
+value with the published per-step logs (`raw_streams.tar.gz`) — every step's
+accuracies and cross-entropies at every prefix, the selective curves, the
+probes, the slot choices, the synchronisation ledger and the summaries —
+116,684 stored values were compared and
+116,430 are identical. The 254 that differ are all
+topic labels of the temporal stream: a display label whose tie-break
+depended on Python's string hashing (made deterministic in version 0.3; no
+number depends on it). The corrected code therefore changes nothing that
+version 0.2 measured; what follows are additional measurements on the same
+runs. The other 31 runs were not repeated here; `--profile published`
+repeats all of them.
+
+**New measurements.** They are from seed 0 only and are a first look, not a
+result of the paper.
+
+**Hierarchical stream, seed 0 — teacher-forced on all 600 steps (the measurement of version 0.2, now with the signalling of the requests).** Symbols per token for 90 % token accuracy.
+
+| Receiver | Fixed prefix | Selective, forward only | + signalling (entropy) | + signalling (bitmap) | Request bits/token at confidence 0.9 (bitmap / entropy) | Rounds per message |
+| --- | --- | --- | --- | --- | --- | --- |
+| `frozen` | 9.089 | 6.038 | 7.435 | 7.639 | 3.18 / 2.52 | 5.11 |
+| `context_only` | 7.872 | 5.114 | 6.417 | 6.498 | 2.85 / 2.47 | 4.93 |
+| `single_rate` | 7.754 | 4.911 | 6.183 | 6.245 | 2.77 / 2.44 | 4.87 |
+| `nested` | 7.664 | 4.829 | 6.087 | 6.144 | 2.74 / 2.43 | 4.85 |
+
+**Hierarchical stream, seed 0 — decoded for real (free-running) on the 12 audited steps (72 messages per run).** Same symbols, same target. "Emulated" is the teacher-forced figure on exactly those steps.
+
+| Receiver | Fixed prefix, real | (emulated) | Selective forward, real | (emulated) | Selective + signalling (entropy), real | Selective + signalling (bitmap), real |
+| --- | --- | --- | --- | --- | --- | --- |
+| `frozen` | 8.531 | 7.579 | 7.111 | 5.337 | 8.427 | 9.036 |
+| `context_only` | 7.832 | 7.039 | 6.201 | 4.617 | 7.500 | 7.909 |
+| `single_rate` | 7.862 | 7.008 | 5.959 | 4.537 | 7.281 | 7.607 |
+| `nested` | 7.634 | 6.831 | 5.709 | 4.407 | 7.004 | 7.300 |
+
+**Temporal stream, seed 0 — teacher-forced on all 600 steps (the measurement of version 0.2, now with the signalling of the requests).** Symbols per token for 90 % token accuracy.
+
+| Receiver | Fixed prefix | Selective, forward only | + signalling (entropy) | + signalling (bitmap) | Request bits/token at confidence 0.9 (bitmap / entropy) | Rounds per message |
+| --- | --- | --- | --- | --- | --- | --- |
+| `frozen` | 8.813 | 5.835 | 7.224 | 7.390 | 3.15 / 2.52 | 5.04 |
+| `nested` | 8.044 | 5.514 | 6.869 | 6.993 | 3.00 / 2.50 | 4.91 |
+
+**Temporal stream, seed 0 — decoded for real (free-running) on the 12 audited steps (72 messages per run).** Same symbols, same target. "Emulated" is the teacher-forced figure on exactly those steps.
+
+| Receiver | Fixed prefix, real | (emulated) | Selective forward, real | (emulated) | Selective + signalling (entropy), real | Selective + signalling (bitmap), real |
+| --- | --- | --- | --- | --- | --- | --- |
+| `frozen` | 8.180 | 7.309 | 6.908 | 5.039 | 8.207 | 8.791 |
+| `nested` | 7.630 | 6.603 | 6.277 | 4.611 | 7.556 | 8.018 |
+
+What they show, for the hierarchical stream:
+
+- **The signalling is not negligible.** At confidence 0.9 the receiver sends
+  about 2.4–2.5 bits per token at the entropy of its requests (2.7–3.2 as an
+  explicit bitmap), over about five rounds per message. Charged at capacity,
+  the saving of the full system against the frozen fixed-prefix receiver
+  shrinks from 46.9 % (as in Section 2, for this seed) to
+  33.0 % (entropy) or 32.4 % (bitmap), still
+  teacher-forced.
+- **The teacher-forced emulation is optimistic.** Decoded for real on the
+  audited steps, selective refinement needs 33.2 % (`frozen`) and
+  29.6 % (`nested`) more forward symbols than the emulation gives
+  on exactly those steps; the fixed prefix needs 12.6 % more
+  (`frozen`). The reason is error propagation: at short prefixes the
+  receiver's own wrong decisions mislead the language prior (at 2 symbols per
+  token the frozen receiver decodes 6 % of the tokens for real against 38 %
+  teacher-forced). The gap is far above the 5 % of the decision rule in
+  `docs/METHOD.md`, section 9, so **the free-running figures are the ones to
+  report**.
+- **Like for like, decoded for real and with signalling charged, the full
+  system saves 17.9 % (entropy) or 14.4 % (bitmap)**
+  against the frozen fixed-prefix receiver decoded for real — not
+  46.9 %. Of that, the memories account for 10.5 %
+  at a fixed prefix (context alone: 8.2 %), which needs no
+  signalling at all. Refinement then changes the cost of the `nested`
+  receiver by −8.3 % (entropy) or
+  −4.4 % (bitmap), and that of the frozen receiver by
+  −1.2 % or +5.9 %: with an
+  explicit bitmap it makes the frozen receiver more expensive than a fixed
+  prefix.
+
+On the temporal stream the picture is the same: decoded for real with
+signalling charged, the full system saves 7.6 % (entropy) or
+2.0 % (bitmap) against the frozen fixed-prefix receiver, where
+the emulation without signalling gave 37.4 %; of that, the memories
+give 6.7 % at a fixed prefix, and refinement changes the
+cost of the `nested` receiver by −1.0 % (entropy) or
++5.1 % (bitmap) and that of the frozen one by
++0.3 % or +7.5 %.
+
+These figures rest on one seed and 72 messages (about 1200
+tokens) per run, and the refinement policy is the simplest one (first shell
+of 2 symbols, greedy decoding, a closed token is never reopened). They say
+two things with some confidence: the ordering of the receivers (`frozen`, `context_only`, `single_rate`, `nested`, from most to fewest symbols) is the same under real decoding as in the emulation in every selective column, and for `frozen`, `context_only` and `nested` at the fixed prefix too; there `single_rate` and `context_only` change places, by 0.03 symbols on these 72 messages; and the large refinement
+gain of Section 2 was mostly an artefact of emulation and uncharged
+signalling. What the paper can claim has to come from the confirmatory runs,
+after the decoder has been improved on validation text (`docs/REVIEW.md`,
+section F).

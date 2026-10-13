@@ -1,0 +1,9 @@
+% Online adaptation on the 'temporal' drift stream (mean ± SD over seeds; per-step paired differences to 'nested' with a 95% block-bootstrap interval, * = excludes zero; exact seed-level sign-flip permutation test on the prior bits, raw and Holm-corrected, with the smallest p-value that number of seeds can give: a seed-level test cannot be significant at 0.05 with fewer than six seeds)
+\begin{tabular}{lllllllllllllllll}
+\hline
+method & seeds & tok-acc @m\_op & bits/token @m\_op & prior bits/token & selective sym/token & selective tok-acc & ECE & retention tok-acc & retention BLEU-4 & slot switches & codebook power & sync kbit/step & net rate (sym/msg) & prior bits: this − nested [95\% CI] & selective sym/token: this − nested [95\% CI] & selective tok-acc: this − nested [95\% CI] \\
+\hline
+frozen & 1 & 0.7782 $\pm$ 0.0000 & 1.3002 $\pm$ 0.0000 & 6.3340 $\pm$ 0.0000 & 7.0964 $\pm$ 0.0000 & 0.9656 $\pm$ 0.0000 & 0.0036 $\pm$ 0.0000 & 0.7930 $\pm$ 0.0000 & 0.2892 $\pm$ 0.0000 & 0.0 & 1.413 & 0.00 & 92.38 & +0.4752 [+0.4409, +0.5091]* & +0.4244 [+0.3864, +0.4671]* & +0.0004 [-0.0026, +0.0027] \\
+nested & 1 & 0.8067 $\pm$ 0.0000 & 1.1215 $\pm$ 0.0000 & 5.8588 $\pm$ 0.0000 & 6.6720 $\pm$ 0.0000 & 0.9652 $\pm$ 0.0000 & 0.0040 $\pm$ 0.0000 & 0.8136 $\pm$ 0.0000 & 0.4463 $\pm$ 0.0000 & 0.0 & 1.388 & 24.23 & 106.13 & - & - & - \\
+\hline
+\end{tabular}

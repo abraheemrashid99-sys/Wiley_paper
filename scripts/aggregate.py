@@ -296,41 +296,54 @@ def refinement_tables(cfg, kind: str, methods: dict, tables: Path, ref: str) -> 
     target_default = next(iter(next(iter(methods.values())).values()))["target_acc"]
 
     # --- 1. forward symbols, signalling, total; emulated against free-running decoding
+    # "n/a": the run was made by a code version that did not record the quantity;
+    # "not reached": recorded, but the measured curve never reaches the target accuracy
+    def value(summaries: list[dict], key: str) -> tuple[float | None, str]:
+        if not summaries or any(key not in s for s in summaries):
+            return None, "n/a"
+        if any(s[key] is None for s in summaries):
+            return None, "not reached"
+        return float(np.mean([s[key] for s in summaries])), ""
+
+    def cell(summaries: list[dict], key: str, digits: int = 3) -> str:
+        number, why = value(summaries, key)
+        return why if number is None else f"{number:.{digits}f}"
+
+    def saving(summaries: list[dict], key: str, reference: str) -> str:
+        (a, why_a), (b, why_b) = value(summaries, key), value(summaries, reference)
+        return (why_a or why_b) if a is None or b is None else f"{a / b - 1:+.1%}"
+
     rows = []
     for method, runs in sorted(methods.items()):
         summaries = [r["summary"] for r in runs.values()]
-        get = lambda key: _mean_or_none(s.get(key) for s in summaries)  # noqa: E731
-        fixed, forward = get("symbols_at_target_fixed"), get("symbols_at_target_selective")
+        audited = [s for s in summaries if s.get("live_steps")] if all(s.get("live_steps") for s in summaries) else []
         row = {
             "method": method,
             "seeds": len(runs),
-            "fixed prefix": _show(fixed),
-            "selective, forward only": _show(forward),
-            "feedback bits/token (bitmap)": _show(get("sel_feedback_bits")),
-            "feedback bits/token (entropy)": _show(get("sel_feedback_entropy_bits")),
-            "rounds/message": _show(get("sel_rounds"), 2),
-            "selective + feedback (bitmap)": _show(get("symbols_at_target_selective_fb")),
-            "selective + feedback (entropy)": _show(get("symbols_at_target_selective_fb_entropy")),
+            "fixed prefix": cell(summaries, "symbols_at_target_fixed"),
+            "selective, forward only": cell(summaries, "symbols_at_target_selective"),
+            "feedback bits/token (bitmap)": cell(summaries, "sel_feedback_bits"),
+            "feedback bits/token (entropy)": cell(summaries, "sel_feedback_entropy_bits"),
+            "rounds/message": cell(summaries, "sel_rounds", 2),
+            "selective + feedback (bitmap)": cell(summaries, "symbols_at_target_selective_fb"),
+            "selective + feedback (entropy)": cell(summaries, "symbols_at_target_selective_fb_entropy"),
+            "saving vs fixed, feedback charged (entropy)": saving(summaries, "symbols_at_target_selective_fb_entropy", "symbols_at_target_fixed"),
+            "free-running: steps audited": f"{np.mean([s['live_steps'] for s in audited]):.0f}" if audited else "n/a",
+            "free-running fixed prefix": cell(audited, "live_symbols_at_target_fixed"),
+            "emulated fixed prefix, same steps": cell(audited, "live_emulated_symbols_at_target_fixed"),
+            "free-running, forward only": cell(audited, "live_symbols_at_target"),
+            "emulated on the same steps": cell(audited, "live_emulated_symbols_at_target"),
+            "free-running + feedback (entropy)": cell(audited, "live_symbols_at_target_fb_entropy"),
+            "free-running + feedback (bitmap)": cell(audited, "live_symbols_at_target_fb"),
+            "free-running saving vs free-running fixed, feedback charged (entropy)": saving(audited, "live_symbols_at_target_fb_entropy", "live_symbols_at_target_fixed"),
+            "free-running tok-acc at the threshold": cell(audited, "live_sel_tok_acc", 4),
+            "emulated tok-acc at the threshold": cell(audited, "live_emulated_sel_tok_acc", 4),
         }
-        total = get("symbols_at_target_selective_fb_entropy")
-        row["saving vs fixed, feedback charged (entropy)"] = "n/a" if total is None or fixed is None else f"{total / fixed - 1:+.1%}"
-        live_runs = [s for s in summaries if s.get("live_steps")]
-        live = lambda key: _mean_or_none(s.get(key) for s in live_runs) if live_runs else None  # noqa: E731
-        row["free-running: steps audited"] = f"{np.mean([s['live_steps'] for s in live_runs]):.0f}" if live_runs else "n/a"
-        row["free-running fixed prefix"] = _show(live("live_symbols_at_target_fixed"))
-        row["emulated fixed prefix, same steps"] = _show(live("live_emulated_symbols_at_target_fixed"))
-        row["free-running, forward only"] = _show(live("live_symbols_at_target"))
-        row["emulated on the same steps"] = _show(live("live_emulated_symbols_at_target"))
-        row["free-running + feedback (entropy)"] = _show(live("live_symbols_at_target_fb_entropy"))
-        live_total, live_fixed = live("live_symbols_at_target_fb_entropy"), live("live_symbols_at_target_fixed")
-        row["free-running saving vs free-running fixed, feedback charged"] = "n/a" if live_total is None or live_fixed is None else f"{live_total / live_fixed - 1:+.1%}"
-        row["free-running tok-acc at the threshold"] = _show(_mean_or_none(s.get("live_sel_tok_acc") for s in live_runs), 4) if live_runs else "n/a"
-        row["emulated tok-acc at the threshold"] = _show(_mean_or_none(s.get("live_emulated_sel_tok_acc") for s in live_runs), 4) if live_runs else "n/a"
         rows.append(row)
     write_table(
         pd.DataFrame(rows),
         tables / f"refine_cost_{kind}",
-        f"What selective refinement costs on the '{kind}' stream: real symbols per token for {target_default:.0%} token accuracy (mean over seeds). 'Feedback' is the return-link signalling of the requests at the operating threshold, converted to symbols at the capacity of the mean SNR (derived, optimistic; bitmap = one bit per open token and round, entropy = ideal coding of those bits). 'Free-running' decodes the same received symbols for real on a subset of the steps - the selective policy and the fixed prefixes alike - and 'emulated' is the teacher-forced figure on exactly those steps; the free-running saving compares like with like. n/a: not recorded by the code version that produced the run",
+        f"What selective refinement costs on the '{kind}' stream: real symbols per token for {target_default:.0%} token accuracy (mean over seeds). 'Feedback' is the return-link signalling of the requests at the operating threshold, converted to symbols at the capacity of the mean SNR (derived, optimistic; bitmap = one bit per open token and round, entropy = ideal coding of those bits). 'Free-running' decodes the same received symbols for real on a subset of the steps - the selective policy and the fixed prefixes alike - and 'emulated' is the teacher-forced figure on exactly those steps; the free-running saving compares like with like. n/a: not recorded by the code version that produced the run; not reached: the measured curve never reaches the target accuracy",
     )
 
     # --- 2. the first shell of the refinement (fewer rounds, less signalling, more forward symbols)

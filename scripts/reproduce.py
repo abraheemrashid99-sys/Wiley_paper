@@ -167,7 +167,7 @@ def main() -> None:
     parser.add_argument("--reuse-codebook", action="store_true", help="start from <reference>/base/codec.pt instead of training a codebook")
     parser.add_argument("--fixed-m", type=int, default=8, help="prefix length of the fixed-rate codebook check")
     parser.add_argument("--dry-run", action="store_true", help="print the steps without running them")
-    parser.add_argument("overrides", nargs="*", help="config overrides passed to every step (key=value), e.g. device=cuda")
+    parser.add_argument("overrides", nargs="*", help="config overrides passed to every step (key=value), e.g. device=cuda; what defines a step (e.g. the setting a variant changes) takes precedence")
     args = parser.parse_args()
 
     if args.reuse_codebook and not args.dry_run:
@@ -185,8 +185,10 @@ def main() -> None:
     steps = plan(args)
     started = time.time()
     for index, (label, command, overrides) in enumerate(steps, start=1):
-        cmd = [sys.executable, "-u", str(ROOT / command[0]), "--config", args.config, *command[1:], *overrides, *args.overrides]
-        shown = " ".join(["python", "scripts/" + command[0], "--config", args.config, *command[1:], *overrides, *args.overrides])
+        # the caller's overrides come first, so that the settings which define a step (its output
+        # folder, its stream, what a variant changes) are applied last and cannot be overridden
+        cmd = [sys.executable, "-u", str(ROOT / command[0]), "--config", args.config, *command[1:], *args.overrides, *overrides]
+        shown = " ".join(["python", "scripts/" + command[0], "--config", args.config, *command[1:], *args.overrides, *overrides])
         print(f"\n===== [{index}/{len(steps)}] {label}  ({(time.time() - started) / 60:.0f} min elapsed)\n      {shown}", flush=True)
         if args.dry_run:
             continue

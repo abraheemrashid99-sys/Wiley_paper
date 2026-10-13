@@ -8,6 +8,13 @@ fixes the write-up. It changes **no** number of the published result set:
 every addition is a new measurement next to the existing ones (verified by
 test and on the real model).
 
+**Finding.** Six published runs were repeated with this release: they
+reproduce the published files bit for bit, and their new measurements show
+that the headline saving of version 0.2 was mostly an artefact of emulation
+and uncharged signalling (`results/gpt2/RESULTS.md`, section 11). The
+refinement decoder has to be improved before the confirmatory runs
+(`docs/REVIEW.md`, A7 and F).
+
 Measurement
 - Selective refinement now carries its return-link signalling: request bits
   per token as an explicit bitmap and at their entropy, rounds per message,
@@ -15,8 +22,10 @@ Measurement
   (`refine_grid`, `symbols_at_target_selective_fb*`).
 - The same policy is scored for every choice of the first shell.
 - Free-running audit on the streams: every `stream.live_every` steps the
-  received symbols are decoded for real at every threshold and compared with
-  the teacher-forced emulation on the same steps (`live_curve`).
+  received symbols are decoded for real — selective refinement at the
+  thresholds of `stream.live_thresholds` and every fixed prefix — and
+  compared with the teacher-forced emulation on the same steps
+  (`live_curve`, `live_fixed_curve`).
 - Every probe records how stale the receiver's copy is.
 - chrF and word error rate next to BLEU; decoded texts are exported
   (`eval/*.texts.json.gz`) and `scripts/add_similarity.py` adds sentence
@@ -47,6 +56,9 @@ Fixes
 - The crossover traffic of a variant run was computed against a context-only
   run that had carried different messages.
 - The code revision of a result is recorded in an unpacked archive as well.
+- The topic label logged on the temporal stream broke ties through Python's
+  string hashing and so differed between runs; it is deterministic now. It
+  is a display label: no number depends on it.
 
 ## 0.2.0
 

@@ -184,7 +184,7 @@ class TemporalStream:
                 texts=texts,
                 starts=starts,
                 domain=f"era{era}",
-                topic=max(set(topic_of), key=topic_of.count),
+                topic=max(sorted(set(topic_of)), key=topic_of.count),  # the most frequent topic; ties in alphabetical order
                 regime=era,
                 snr_db=float(self.snr[step]),
                 regime_end=(step + 1 == self.n_steps) or self.era_of_step(step + 1) != era,

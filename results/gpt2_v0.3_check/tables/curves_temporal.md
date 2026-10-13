@@ -1,0 +1,6 @@
+**Operating curves on the 'temporal' stream: token accuracy at every fixed prefix length, and (symbols per token / token accuracy) under selective refinement at every confidence threshold**
+
+| method | acc m=2 | acc m=4 | acc m=6 | acc m=8 | acc m=12 | acc m=16 | τ=0.5 | τ=0.7 | τ=0.9 | τ=0.95 | τ=0.99 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| frozen | 0.4277 | 0.6202 | 0.7782 | 0.8831 | 0.9663 | 0.9891 | 4.79 sym / 0.7912 | 5.83 sym / 0.8995 | 7.10 sym / 0.9656 | 7.67 sym / 0.9786 | 8.79 sym / 0.9873 |
+| nested | 0.4673 | 0.6574 | 0.8067 | 0.8992 | 0.9715 | 0.9903 | 4.40 sym / 0.7846 | 5.40 sym / 0.8938 | 6.67 sym / 0.9652 | 7.26 sym / 0.9789 | 8.37 sym / 0.9881 |

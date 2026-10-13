@@ -1,0 +1,11 @@
+% Operating curves on the 'hier' stream: token accuracy at every fixed prefix length, and (symbols per token / token accuracy) under selective refinement at every confidence threshold
+\begin{tabular}{llllllllllll}
+\hline
+method & acc m=2 & acc m=4 & acc m=6 & acc m=8 & acc m=12 & acc m=16 & τ=0.5 & τ=0.7 & τ=0.9 & τ=0.95 & τ=0.99 \\
+\hline
+context\_only & 0.5085 & 0.6779 & 0.8181 & 0.9056 & 0.9744 & 0.9913 & 4.19 sym / 0.8012 & 5.10 sym / 0.8993 & 6.31 sym / 0.9648 & 6.88 sym / 0.9777 & 8.03 sym / 0.9880 \\
+frozen & 0.4043 & 0.5958 & 0.7630 & 0.8755 & 0.9654 & 0.9885 & 4.85 sym / 0.7783 & 5.88 sym / 0.8912 & 7.15 sym / 0.9628 & 7.74 sym / 0.9767 & 8.85 sym / 0.9860 \\
+nested & 0.5409 & 0.7012 & 0.8330 & 0.9135 & 0.9774 & 0.9923 & 4.00 sym / 0.8126 & 4.87 sym / 0.9039 & 6.03 sym / 0.9658 & 6.59 sym / 0.9787 & 7.73 sym / 0.9882 \\
+single\_rate & 0.5346 & 0.6945 & 0.8277 & 0.9101 & 0.9763 & 0.9919 & 4.06 sym / 0.8097 & 4.94 sym / 0.9029 & 6.11 sym / 0.9656 & 6.67 sym / 0.9781 & 7.81 sym / 0.9880 \\
+\hline
+\end{tabular}

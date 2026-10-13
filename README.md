@@ -180,7 +180,8 @@ docs/            method, review, analysis notes, datasets, roadmap
 
 ## What has and has not been verified
 
-Verified by the test suite (Linux, CPU, PyTorch 2.14, Transformers 5.19):
+Verified by the test suite (Linux, CPU, PyTorch 2.14, Transformers 5.19;
+86 tests):
 
 - exactness properties: unit transmit power for every prefix of every
   message; the likelihood against a brute-force computation; error-free
@@ -188,21 +189,34 @@ Verified by the test suite (Linux, CPU, PyTorch 2.14, Transformers 5.19):
   against a full forward pass, with and without context; a padded batch
   against single messages; receiver parameters changing only when a level is
   shipped, with a bit-exact ledger;
-- every script run from the shell, and the code path used for real backbones
-  (Llama-style and GPT-2-style layers).
+- the accounting of refinement signalling against hand-computed cases; the
+  free-running refinement decoder against the emulation where the two must
+  coincide (one-token messages) and at its limits; that the audit moves no
+  other number;
+- every script run from the shell, the reproduction plans of all profiles,
+  the comparison report on a matching and on a tampered folder, and the code
+  path used for real backbones (Llama-style and GPT-2-style layers).
 
-Measured with a pretrained LLM: everything in `results/gpt2`, produced by the
-commands above on two CPU cores.
+Measured with a pretrained LLM: everything in `results/gpt2` (version 0.2,
+two CPU cores). For version 0.3 the published codebook was regenerated
+(training log identical line by line) and 6 of the 37 published
+stream runs were repeated with the corrected code: all are identical to the
+published per-step logs in every measured value. `results/gpt2/RESULTS.md`,
+section 11, reports this and the first values of the new measurements.
 
 **Not done yet:**
 
-- a second backbone (`configs/laptop.yaml` is ready for it);
-- sentence-embedding similarity (needs a model from Hugging Face; the decoded
-  texts are stored by `eval_rate.py`, so it can be added without re-running);
-- execution on a physical GPU by the authors. The device handling was checked
-  on a CPU with a virtual second device (`tools/device_audit`: every tensor is
-  tagged with the device it would live on, and the complete protocol runs
-  without a single cross-device operation), and the Colab notebook starts with
+- a refinement decoder that holds up when decoded for real (the first
+  audited runs show that the simplest one does not: `docs/REVIEW.md`, A7);
+- the confirmatory runs (`--profile core`) and the sensitivity studies
+  (`--profile paper`);
+- a second backbone (`configs/laptop.yaml` is ready for it) and
+  sentence-embedding similarity (`scripts/add_similarity.py`); both need
+  Hugging Face;
+- a trained end-to-end baseline, and decoding at low SNR;
+- execution on a physical GPU, on Windows or on macOS by the authors. The
+  device handling was checked on a CPU with a virtual second device
+  (`tools/device_audit`) for version 0.2 only; the Colab notebook starts with
   a GPU self-test of the complete protocol. Apple MPS is untested.
 
 ## Reproducibility rules this repository follows
@@ -217,6 +231,12 @@ commands above on two CPU cores.
   oracle inputs (headroom, `llm_ctx`) are labelled as such and kept apart from
   results.
 - Negative results are reported as they fall.
+- A result that is emulated is audited against the real thing on a subset,
+  and every cost a mechanism causes is charged to it, also on the return link.
+- "No difference" is claimed only through an equivalence test with a margin
+  fixed beforehand; a difference only if it also holds at the seed level.
+- A release is one commit: the archive is built from it, carries its
+  revision and a checksum of every file, and results record the revision.
 
 ## Licence
 

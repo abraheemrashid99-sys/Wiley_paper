@@ -824,7 +824,8 @@ def test_command_line_pipeline(tmp_path):
     assert len(captions) == len(set(captions)), "a table is printed twice in TABLES.md"
     assert "Symbols/token incl. feedback (entropy)" in report and "smallest attainable p" in report and "Measured computational cost" in report
     cost = (exported / "tables" / "refine_cost_hier.md").read_text(encoding="utf-8")
-    assert "free-running, forward only" in cost and "n/a" not in cost.split("\n", 2)[2].split("| frozen |")[1].split("\n")[0]  # recorded for every run of this version
+    frozen_row = next(line for line in cost.splitlines() if line.startswith("| frozen |"))
+    assert "free-running fixed prefix" in cost and "n/a" not in frozen_row  # everything is recorded by this version ("not reached" is a measurement)
     import gzip
 
     with gzip.open(exported / "eval" / "rate_toy_a.texts.json.gz", "rt", encoding="utf-8") as handle:
@@ -885,10 +886,10 @@ def _planned_runs(*extra: str) -> tuple[str, set[str]]:
 def test_reproduction_runner_plans_the_published_protocol():
     plan, planned = _planned_runs()
     assert plan.count("=====") == 21
-    assert "run_stream.py --config configs/gpt2.yaml --methods frozen,context_only,single_rate,nested,full_online,nested_no_slots --seeds 0,1,2 out_dir=runs/x stream.kind=hier device=cuda" in plan
-    assert "--tag rayleigh out_dir=runs/x stream.kind=hier channel.type=rayleigh device=cuda" in plan
-    assert "pretrain.py --config configs/gpt2.yaml out_dir=runs/x_fixed codec.granularities=[8] stream.m_op=8 device=cuda" in plan
-    assert "benchmark_speed.py --config configs/gpt2.yaml out_dir=runs/x device=cuda" in plan
+    assert "run_stream.py --config configs/gpt2.yaml --methods frozen,context_only,single_rate,nested,full_online,nested_no_slots --seeds 0,1,2 device=cuda out_dir=runs/x stream.kind=hier" in plan
+    assert "--tag rayleigh device=cuda out_dir=runs/x stream.kind=hier channel.type=rayleigh" in plan
+    assert "pretrain.py --config configs/gpt2.yaml device=cuda out_dir=runs/x_fixed codec.granularities=[8] stream.m_op=8" in plan
+    assert "benchmark_speed.py --config configs/gpt2.yaml device=cuda out_dir=runs/x" in plan
     # every published stream run is in the plan, and nothing else
     published = {path.stem for path in (ROOT / "results" / "gpt2" / "stream").glob("*.json")}
     assert planned == published
@@ -912,6 +913,11 @@ def test_reproduction_profiles_contain_each_other():
     assert "nested.periods.slow=25" in paper_plan and "nested.periods.slow=100" in paper_plan and "stream.snr.mean=5.0" in paper_plan
     assert "stream.tau_slow=75 stream.tau_med=15 stream.cycles=4" in paper_plan and "stream.tau_slow=300 stream.tau_med=60 stream.cycles=1" in paper_plan
     assert "stream.domains=[ag_news,teleqna,huffpost_gh] codec.lora.slots=3" in paper_plan
+    # what defines a step is applied after the caller's overrides, so a variant keeps its meaning,
+    # and the sensitivity studies are derived from the configuration as the caller changed it
+    override_plan, _ = _planned_runs("--profile", "paper", "nested.sync.bits=6", "stream.tau_slow=100")
+    assert "--tag bits4 nested.sync.bits=6 stream.tau_slow=100 device=cuda out_dir=runs/x stream.kind=hier nested.sync.bits=4" in override_plan
+    assert "--tag drift_fast nested.sync.bits=6 stream.tau_slow=100 device=cuda out_dir=runs/x stream.kind=hier stream.tau_slow=50 stream.tau_med=15 stream.cycles=4" in override_plan
     _, ten = _planned_runs("--profile", "core", "--seeds", "0,1,2,3,4,5,6,7,8,9")
     assert "hier_nested_s9" in ten and "temporal_nested_s9" in ten and core < ten
 

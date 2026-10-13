@@ -1,0 +1,16 @@
+**Selective refinement on the 'temporal' stream by the shell sent in the first round: symbols per token for 90% token accuracy (n/a = the target is not reached on that curve). The paper's policy is the first row of every method; the other rows are a post-hoc exploration, not a tuned result**
+
+| method | seeds | first shell (symbols) | forward only | + feedback (bitmap) | + feedback (entropy) |
+| --- | --- | --- | --- | --- | --- |
+| frozen | 1 | 2 | 5.835 | 7.390 | 7.224 |
+| frozen | 1 | 4 | 6.190 | 7.286 | 7.256 |
+| frozen | 1 | 6 | 6.951 | 7.721 | 7.570 |
+| frozen | 1 | 8 | 8.489 | 9.127 | 8.802 |
+| frozen | 1 | 12 | 12.092 | 12.670 | 12.182 |
+| frozen | 1 | 16 | 16.000 | 16.000 | 16.000 |
+| nested | 1 | 2 | 5.514 | 6.993 | 6.869 |
+| nested | 1 | 4 | 5.888 | 6.917 | 6.886 |
+| nested | 1 | 6 | 6.723 | 7.451 | 7.249 |
+| nested | 1 | 8 | 8.394 | 9.020 | 8.662 |
+| nested | 1 | 12 | 12.077 | 12.655 | 12.155 |
+| nested | 1 | 16 | 16.000 | 16.000 | 16.000 |

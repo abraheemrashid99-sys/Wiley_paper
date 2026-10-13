@@ -177,10 +177,13 @@ policy is the shortest first shell; the other rows are exploratory.
 
 *Emulation and audit.* On the streams the policy is emulated teacher-forced
 on every message (each token is judged given the true tokens before it; one
-LLM pass per step). Every `stream.live_every` steps the same received
-symbols are in addition decoded for real — free-running, round by round,
-with the receiver's own decisions as the language-model input — at every
-threshold. The emulated and the real operating curve on exactly those steps
+LLM pass per step). Every `stream.live_every` steps (47 in the study: a
+prime, so that the audit is not in phase with any shipping period) the same
+received symbols are in addition decoded for real — free-running, round by
+round, with the receiver's own decisions as the language-model input — at
+the thresholds around the target accuracy (`stream.live_thresholds`), and so
+is every fixed prefix, because the reference must be audited like the
+proposal. The emulated and the real operating curves on exactly those steps
 are reported side by side; the audit draws no random number and changes no
 other result (tested).
 
@@ -324,11 +327,27 @@ the bitmap figures are reported next to it. The headline comparison is
 against the frozen receiver at a fixed prefix length, which needs no
 signalling.
 
-**Emulation check.** The teacher-forced curve is accepted as the measurement
-if, on the audited steps, the free-running forward symbols at the target
-differ from the emulated ones by at most 5 % for every method of the
-headline table. Otherwise the free-running figure replaces the emulated one
-in the headline and the emulated one is reported as such.
+**Emulation check.** The teacher-forced curves are accepted as the
+measurement if, on the audited steps, the free-running forward symbols at
+the target differ from the emulated ones by at most 5 % for every method of
+the headline table. Otherwise the free-running figures replace the emulated
+ones in the headline — on both sides of the comparison, selective refinement
+and fixed prefix — and the emulated ones are reported as such. The audit
+covers 12 of 600 steps per run (72 messages); the free-running headline is
+therefore read from the audited steps pooled over the six seeds, and
+`stream.live_every` can be lowered where more precision is needed.
+
+*Disclosure.* While the audit was being implemented, one run (frozen
+receiver, seed 0, hierarchical stream) was inspected. It showed a gap far
+above 5 % for selective refinement and led to one change of this protocol:
+the fixed-prefix reference is audited free-running as well. The decision
+rule, the seeds, the tests and the margins were not changed. Further runs of
+seed 0 were then made to check the published folder
+(`results/gpt2/RESULTS.md`, section 11); they confirm the gap. Seed 0 is
+therefore no longer unseen under the new measurements — seeds 3–5 are — and
+the decoder of the refinement policy is expected to change before the
+confirmatory runs (`docs/REVIEW.md`, section F); any such change must be
+chosen on validation text and written into Section 2.5 first.
 
 **Tests.** (i) Per-step paired differences to `nested` with a 95 % block
 bootstrap (25-step blocks pooled over seeds), which treats seeds as
