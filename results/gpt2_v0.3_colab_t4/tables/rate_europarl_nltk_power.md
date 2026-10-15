@@ -1,0 +1,10 @@
+**Average codeword power per symbol on europarl_nltk before block power control (the transmitted power is exactly 1)**
+
+| m | codebook_power |
+| --- | --- |
+| 2 | 0.8267 |
+| 4 | 0.8688 |
+| 6 | 0.89 |
+| 8 | 0.8952 |
+| 12 | 0.8851 |
+| 16 | 0.8934 |

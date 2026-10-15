@@ -1,0 +1,6 @@
+method,seeds,fixed prefix,"selective, forward only",feedback bits/token (bitmap),feedback bits/token (entropy),rounds/message,selective + feedback (bitmap),selective + feedback (entropy),"saving vs fixed, feedback charged (entropy)",free-running: steps audited,free-running fixed prefix,"emulated fixed prefix, same steps","free-running, forward only",emulated on the same steps,free-running + feedback (entropy),free-running + feedback (bitmap),"free-running saving vs free-running fixed, feedback charged (entropy)",free-running tok-acc at the threshold,emulated tok-acc at the threshold
+context_only,2,8.543,5.720,3.054,2.517,4.98,7.239,7.095,-17.0%,12,9.929,8.248,not reached,5.473,not reached,not reached,not reached,0.9142,0.9702
+frozen,2,9.004,5.957,3.165,2.528,5.07,7.534,7.355,-18.3%,12,10.225,8.792,not reached,5.879,not reached,not reached,not reached,0.9160,0.9683
+full_online,1,7.902,5.438,2.968,2.491,4.90,6.900,6.784,-14.1%,12,7.524,6.564,6.088,4.564,7.361,7.779,-2.2%,0.9529,0.9762
+nested,2,8.246,5.572,3.009,2.506,4.94,7.060,6.932,-15.9%,12,9.830,8.165,7.278,5.299,8.636,9.160,-12.1%,0.9329,0.9720
+single_rate,2,8.246,5.580,3.011,2.506,4.94,7.069,6.942,-15.8%,12,9.824,8.189,7.351,5.295,8.704,9.252,-11.4%,0.9287,0.9720

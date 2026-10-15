@@ -1,0 +1,36 @@
+**Diagnostic: what each memory could buy with oracle inputs, at m=6 symbols/token and 10 dB (150 adaptation steps; negative Δ bits = better)**
+
+| measured on | memory | n | prior bits/token | Δ prior | posterior bits @m=6 | Δ posterior | token acc | Δ acc |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| ag_news | frozen | 64 | 6.923 | - | 1.063 | - | 0.797 | - |
+| ag_news | context | 64 | 6.600 | -0.323 | 1.006 | -0.056 | 0.811 | +0.014 |
+| ag_news | context+bias (adapted on ag_news) | 64 | 6.421 | -0.502 | 0.938 | -0.125 | 0.827 | +0.030 |
+| ag_news | context+bias+lora (adapted on ag_news) | 64 | 6.084 | -0.839 | 0.853 | -0.210 | 0.837 | +0.040 |
+| ag_news | context+bias (adapted on teleqna) | 64 | 6.760 | -0.163 | 1.069 | +0.006 | 0.801 | +0.004 |
+| ag_news | context+bias+lora (adapted on teleqna) | 64 | 6.970 | +0.047 | 1.134 | +0.071 | 0.793 | -0.004 |
+| ag_news | context+bias (adapted on huffpost_gh) | 64 | 6.630 | -0.293 | 1.019 | -0.044 | 0.810 | +0.013 |
+| ag_news | context+bias+lora (adapted on huffpost_gh) | 64 | 6.645 | -0.278 | 1.024 | -0.039 | 0.808 | +0.011 |
+| europarl_nltk | frozen | 64 | 5.791 | - | 0.406 | - | 0.911 | - |
+| europarl_nltk | context | 64 | 5.137 | -0.654 | 0.292 | -0.114 | 0.933 | +0.022 |
+| europarl_nltk | context+bias (adapted on ag_news) | 64 | 5.211 | -0.580 | 0.296 | -0.109 | 0.936 | +0.025 |
+| europarl_nltk | context+bias+lora (adapted on ag_news) | 64 | 5.194 | -0.598 | 0.294 | -0.111 | 0.936 | +0.025 |
+| europarl_nltk | context+bias (adapted on teleqna) | 64 | 5.258 | -0.534 | 0.312 | -0.093 | 0.928 | +0.017 |
+| europarl_nltk | context+bias+lora (adapted on teleqna) | 64 | 5.306 | -0.485 | 0.315 | -0.091 | 0.932 | +0.021 |
+| europarl_nltk | context+bias (adapted on huffpost_gh) | 64 | 5.166 | -0.625 | 0.299 | -0.106 | 0.935 | +0.024 |
+| europarl_nltk | context+bias+lora (adapted on huffpost_gh) | 64 | 5.164 | -0.627 | 0.300 | -0.106 | 0.935 | +0.024 |
+| huffpost_gh | frozen | 64 | 6.515 | - | 0.980 | - | 0.822 | - |
+| huffpost_gh | context | 64 | 6.334 | -0.181 | 0.853 | -0.127 | 0.847 | +0.025 |
+| huffpost_gh | context+bias (adapted on ag_news) | 64 | 6.366 | -0.149 | 0.859 | -0.121 | 0.839 | +0.017 |
+| huffpost_gh | context+bias+lora (adapted on ag_news) | 64 | 6.376 | -0.139 | 0.849 | -0.132 | 0.848 | +0.026 |
+| huffpost_gh | context+bias (adapted on teleqna) | 64 | 6.475 | -0.040 | 0.917 | -0.063 | 0.839 | +0.016 |
+| huffpost_gh | context+bias+lora (adapted on teleqna) | 64 | 6.705 | +0.190 | 0.992 | +0.011 | 0.820 | -0.002 |
+| huffpost_gh | context+bias (adapted on huffpost_gh) | 64 | 6.216 | -0.299 | 0.818 | -0.162 | 0.859 | +0.037 |
+| huffpost_gh | context+bias+lora (adapted on huffpost_gh) | 64 | 5.929 | -0.586 | 0.752 | -0.228 | 0.855 | +0.033 |
+| teleqna | frozen | 64 | 7.269 | - | 1.206 | - | 0.768 | - |
+| teleqna | context | 64 | 4.843 | -2.426 | 0.650 | -0.557 | 0.873 | +0.105 |
+| teleqna | context+bias (adapted on ag_news) | 64 | 4.915 | -2.354 | 0.681 | -0.525 | 0.870 | +0.102 |
+| teleqna | context+bias+lora (adapted on ag_news) | 64 | 4.948 | -2.321 | 0.712 | -0.494 | 0.872 | +0.104 |
+| teleqna | context+bias (adapted on teleqna) | 64 | 4.571 | -2.698 | 0.548 | -0.659 | 0.892 | +0.124 |
+| teleqna | context+bias+lora (adapted on teleqna) | 64 | 4.029 | -3.240 | 0.461 | -0.745 | 0.906 | +0.138 |
+| teleqna | context+bias (adapted on huffpost_gh) | 64 | 4.876 | -2.394 | 0.657 | -0.549 | 0.881 | +0.113 |
+| teleqna | context+bias+lora (adapted on huffpost_gh) | 64 | 5.053 | -2.216 | 0.719 | -0.487 | 0.870 | +0.102 |

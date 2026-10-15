@@ -1,0 +1,25 @@
+% The 'hier' stream by slow regime: prequential metrics while the regime is active, and held-out probes of it at the end of the stream (mean ± SD over seeds). A probe scores the receiver's copy at that moment: methods are comparable on a probe only at equal staleness (steps since the slowest level was shipped)
+\begin{tabular}{llllllllll}
+\hline
+method & regime & seeds & prior bits/token & tok-acc @m\_op & selective sym/token & selective tok-acc & held-out prior bits (end) & held-out tok-acc (end) & receiver staleness at the probe (steps) \\
+\hline
+context\_only & ag\_news & 3 & 6.2151 $\pm$ 0.0435 & 0.8070 $\pm$ 0.0214 & 6.5066 $\pm$ 0.2836 & 0.9645 $\pm$ 0.0021 & 6.3421 & 0.8337 & - \\
+context\_only & teleqna & 3 & 5.0418 $\pm$ 0.0752 & 0.8114 $\pm$ 0.0246 & 6.4589 $\pm$ 0.4269 & 0.9600 $\pm$ 0.0055 & 4.8965 & 0.8614 & - \\
+ewc & ag\_news & 1 & 6.0855 $\pm$ 0.0000 & 0.8264 $\pm$ 0.0000 & 6.2889 $\pm$ 0.0000 & 0.9670 $\pm$ 0.0000 & 6.3994 & 0.8135 & 12 \\
+ewc & teleqna & 1 & 4.7415 $\pm$ 0.0000 & 0.8398 $\pm$ 0.0000 & 5.9124 $\pm$ 0.0000 & 0.9657 $\pm$ 0.0000 & 4.3140 & 0.8895 & 12 \\
+frozen & ag\_news & 3 & 6.5965 $\pm$ 0.0351 & 0.7887 $\pm$ 0.0251 & 6.7880 $\pm$ 0.2874 & 0.9650 $\pm$ 0.0017 & 6.6539 & 0.8150 & - \\
+frozen & teleqna & 3 & 6.9904 $\pm$ 0.1068 & 0.7166 $\pm$ 0.0374 & 7.8710 $\pm$ 0.5162 & 0.9523 $\pm$ 0.0065 & 7.2270 & 0.7648 & - \\
+full\_online & ag\_news & 3 & 5.9677 $\pm$ 0.0347 & 0.8190 $\pm$ 0.0206 & 6.4030 $\pm$ 0.2782 & 0.9678 $\pm$ 0.0010 & 6.1575 & 0.8295 & 0 \\
+full\_online & teleqna & 3 & 4.5320 $\pm$ 0.0668 & 0.8362 $\pm$ 0.0200 & 5.9733 $\pm$ 0.3419 & 0.9619 $\pm$ 0.0049 & 4.1739 & 0.8976 & 0 \\
+nested & ag\_news & 3 & 5.9684 $\pm$ 0.0369 & 0.8193 $\pm$ 0.0206 & 6.4052 $\pm$ 0.2772 & 0.9681 $\pm$ 0.0011 & 5.8342 & 0.8503 & 150 \\
+nested & teleqna & 3 & 4.5435 $\pm$ 0.0758 & 0.8351 $\pm$ 0.0208 & 5.9591 $\pm$ 0.3456 & 0.9606 $\pm$ 0.0053 & 4.1158 & 0.9004 & 150 \\
+nested\_no\_context & ag\_news & 1 & 6.3864 $\pm$ 0.0000 & 0.8160 $\pm$ 0.0000 & 6.4992 $\pm$ 0.0000 & 0.9691 $\pm$ 0.0000 & 6.2337 & 0.8201 & 150 \\
+nested\_no\_context & teleqna & 1 & 6.4838 $\pm$ 0.0000 & 0.7649 $\pm$ 0.0000 & 7.3257 $\pm$ 0.0000 & 0.9630 $\pm$ 0.0000 & 6.4744 & 0.8180 & 150 \\
+nested\_no\_slots & ag\_news & 3 & 6.0580 $\pm$ 0.0255 & 0.8139 $\pm$ 0.0204 & 6.4460 $\pm$ 0.2728 & 0.9669 $\pm$ 0.0012 & 6.1574 & 0.8295 & 0 \\
+nested\_no\_slots & teleqna & 3 & 4.6464 $\pm$ 0.0636 & 0.8310 $\pm$ 0.0211 & 6.0598 $\pm$ 0.3614 & 0.9614 $\pm$ 0.0049 & 4.1739 & 0.8976 & 0 \\
+nested\_two\_level & ag\_news & 1 & 5.9873 $\pm$ 0.0000 & 0.8325 $\pm$ 0.0000 & 6.2311 $\pm$ 0.0000 & 0.9676 $\pm$ 0.0000 & 5.8222 & 0.8459 & 110 \\
+nested\_two\_level & teleqna & 1 & 4.6370 $\pm$ 0.0000 & 0.8446 $\pm$ 0.0000 & 5.7666 $\pm$ 0.0000 & 0.9634 $\pm$ 0.0000 & 4.1413 & 0.9012 & 110 \\
+single\_rate & ag\_news & 3 & 6.0664 $\pm$ 0.0260 & 0.8134 $\pm$ 0.0202 & 6.4513 $\pm$ 0.2711 & 0.9667 $\pm$ 0.0014 & 6.1218 & 0.8331 & 12 \\
+single\_rate & teleqna & 3 & 4.6589 $\pm$ 0.0668 & 0.8302 $\pm$ 0.0203 & 6.0671 $\pm$ 0.3479 & 0.9612 $\pm$ 0.0054 & 4.1731 & 0.8960 & 12 \\
+\hline
+\end{tabular}

@@ -1,0 +1,1817 @@
+{
+  "corpus": "europarl_nltk",
+  "results": [
+    {
+      "snr_db": 0.0,
+      "channel": "awgn",
+      "n_val_tokens": 3243,
+      "n_test_tokens": 4056,
+      "ece_raw": 0.019057897926453016,
+      "ece_calibrated": 0.007938476183133232,
+      "curve": [
+        {
+          "threshold": 0.006271951935471011,
+          "symbols": 2.0,
+          "quality": 0.3385108411312103,
+          "success": 0.3385108481262327,
+          "rounds": 1.0,
+          "feedback_bits": 1.0,
+          "feedback_entropy_bits": 0.0,
+          "gain_over_fixed": 0.0
+        },
+        {
+          "threshold": 0.07911886044552051,
+          "symbols": 2.5364891518737673,
+          "quality": 0.3508382737636566,
+          "success": 0.35083826429980275,
+          "rounds": 1.2615877712031558,
+          "feedback_bits": 1.2613412228796843,
+          "feedback_entropy_bits": 0.8745804763703221,
+          "gain_over_fixed": -0.006454977998601841
+        },
+        {
+          "threshold": 0.12235413116683139,
+          "symbols": 3.100591715976331,
+          "quality": 0.37253451347351074,
+          "success": 0.372534516765286,
+          "rounds": 1.5162721893491125,
+          "feedback_bits": 1.5128205128205128,
+          "feedback_entropy_bits": 1.3026968857353756,
+          "gain_over_fixed": -0.00450789064345275
+        },
+        {
+          "threshold": 0.16430790375714296,
+          "symbols": 3.6962524654832345,
+          "quality": 0.40606507658958435,
+          "success": 0.40606508875739644,
+          "rounds": 1.7719428007889546,
+          "feedback_bits": 1.7628205128205128,
+          "feedback_entropy_bits": 1.635463853456,
+          "gain_over_fixed": 0.008168672433736535
+        },
+        {
+          "threshold": 0.20728873974156664,
+          "symbols": 4.33629191321499,
+          "quality": 0.43910256028175354,
+          "success": 0.4391025641025641,
+          "rounds": 2.038214990138067,
+          "feedback_bits": 2.0150394477317555,
+          "feedback_entropy_bits": 1.8956085988639892,
+          "gain_over_fixed": 0.01962758220100308
+        },
+        {
+          "threshold": 0.2524434636042968,
+          "symbols": 4.986193293885601,
+          "quality": 0.4792899489402771,
+          "success": 0.47928994082840237,
+          "rounds": 2.2928994082840237,
+          "feedback_bits": 2.246794871794872,
+          "feedback_entropy_bits": 2.1075680694325567,
+          "gain_over_fixed": 0.038664327276764054
+        },
+        {
+          "threshold": 0.29874927708879057,
+          "symbols": 5.681952662721893,
+          "quality": 0.5152859687805176,
+          "success": 0.5152859960552268,
+          "rounds": 2.56508875739645,
+          "feedback_bits": 2.4908777120315584,
+          "feedback_entropy_bits": 2.279410861951094,
+          "gain_over_fixed": 0.05201728331178601
+        },
+        {
+          "threshold": 0.347040501392765,
+          "symbols": 6.3629191321499015,
+          "quality": 0.5537475347518921,
+          "success": 0.5537475345167653,
+          "rounds": 2.820759368836292,
+          "feedback_bits": 2.7162228796844183,
+          "feedback_entropy_bits": 2.384731686768302,
+          "gain_over_fixed": 0.06751192391976801
+        },
+        {
+          "threshold": 0.39686848705292427,
+          "symbols": 7.054733727810651,
+          "quality": 0.584566056728363,
+          "success": 0.5845660749506904,
+          "rounds": 3.0808678500986195,
+          "feedback_bits": 2.9435404339250493,
+          "feedback_entropy_bits": 2.46075592107975,
+          "gain_over_fixed": 0.07428068314960012
+        },
+        {
+          "threshold": 0.45071888667038124,
+          "symbols": 7.837771203155818,
+          "quality": 0.6193293929100037,
+          "success": 0.6193293885601578,
+          "rounds": 3.3624260355029585,
+          "feedback_bits": 3.1775147928994083,
+          "feedback_entropy_bits": 2.498151064782958,
+          "gain_over_fixed": 0.08182304766932891
+        },
+        {
+          "threshold": 0.5098853798182205,
+          "symbols": 8.61785009861933,
+          "quality": 0.6600098609924316,
+          "success": 0.6600098619329389,
+          "rounds": 3.636094674556213,
+          "feedback_bits": 3.394723865877712,
+          "feedback_entropy_bits": 2.4961791851467843,
+          "gain_over_fixed": 0.09698485289158432
+        },
+        {
+          "threshold": 0.5754434647140837,
+          "symbols": 9.408284023668639,
+          "quality": 0.6910749673843384,
+          "success": 0.6910749506903353,
+          "rounds": 3.9080374753451674,
+          "feedback_bits": 3.6055226824457596,
+          "feedback_entropy_bits": 2.454290192885645,
+          "gain_over_fixed": 0.10261809755359175
+        },
+        {
+          "threshold": 0.6442760990546288,
+          "symbols": 10.24112426035503,
+          "quality": 0.7172091007232666,
+          "success": 0.7172090729783037,
+          "rounds": 4.1923076923076925,
+          "feedback_bits": 3.8190335305719922,
+          "feedback_entropy_bits": 2.3705270375167227,
+          "gain_over_fixed": 0.10195596485271963
+        },
+        {
+          "threshold": 0.7192961003674851,
+          "symbols": 11.104536489151874,
+          "quality": 0.7440828680992126,
+          "success": 0.7440828402366864,
+          "rounds": 4.477564102564102,
+          "feedback_bits": 4.034270216962525,
+          "feedback_entropy_bits": 2.228957152212908,
+          "gain_over_fixed": 0.10104982587242506
+        },
+        {
+          "threshold": 0.7941837509556562,
+          "symbols": 11.951676528599606,
+          "quality": 0.7642998099327087,
+          "success": 0.7642998027613412,
+          "rounds": 4.752218934911243,
+          "feedback_bits": 4.227810650887574,
+          "feedback_entropy_bits": 2.0406955972906204,
+          "gain_over_fixed": 0.09401041184068903
+        },
+        {
+          "threshold": 0.8632600848910196,
+          "symbols": 12.726331360946746,
+          "quality": 0.7758875489234924,
+          "success": 0.775887573964497,
+          "rounds": 5.0054240631163704,
+          "feedback_bits": 4.407051282051282,
+          "feedback_entropy_bits": 1.8337748856902643,
+          "gain_over_fixed": 0.08327057452861375
+        },
+        {
+          "threshold": 0.9209988611442537,
+          "symbols": 13.50542406311637,
+          "quality": 0.7822978496551514,
+          "success": 0.7822978303747534,
+          "rounds": 5.2517258382643,
+          "feedback_bits": 4.571745562130178,
+          "feedback_entropy_bits": 1.5725263076838318,
+          "gain_over_fixed": 0.06739913174768641
+        },
+        {
+          "threshold": 0.9606134638147901,
+          "symbols": 14.252465483234714,
+          "quality": 0.7845167517662048,
+          "success": 0.784516765285996,
+          "rounds": 5.483727810650888,
+          "feedback_bits": 4.7233727810650885,
+          "feedback_entropy_bits": 1.2659847879636819,
+          "gain_over_fixed": 0.04825294435141825
+        },
+        {
+          "threshold": 0.9858313082862764,
+          "symbols": 14.911242603550296,
+          "quality": 0.7857494950294495,
+          "success": 0.7857495069033531,
+          "rounds": 5.684418145956608,
+          "feedback_bits": 4.843934911242603,
+          "feedback_entropy_bits": 0.9254711237607206,
+          "gain_over_fixed": 0.03064492221414694
+        },
+        {
+          "threshold": 0.9971216694461361,
+          "symbols": 15.513806706114398,
+          "quality": 0.7862426042556763,
+          "success": 0.7862426035502958,
+          "rounds": 5.8619329388560155,
+          "feedback_bits": 4.937869822485207,
+          "feedback_entropy_bits": 0.5152119095801774,
+          "gain_over_fixed": 0.01390493614139876
+        },
+        {
+          "threshold": 0.9999966614155158,
+          "symbols": 16.0,
+          "quality": 0.7862426042556763,
+          "success": 0.7862426035502958,
+          "rounds": 6.0,
+          "feedback_bits": 5.0,
+          "feedback_entropy_bits": 0.0,
+          "gain_over_fixed": 0.0
+        },
+        {
+          "threshold": null,
+          "symbols": 16.0,
+          "quality": 0.7862426042556763,
+          "success": 0.7862426035502958,
+          "rounds": 6.0,
+          "feedback_bits": 5.0,
+          "feedback_entropy_bits": 0.0,
+          "gain_over_fixed": 0.0
+        }
+      ],
+      "random_matched_at_mid_threshold": {
+        "threshold": 0.5098853798182205,
+        "symbols": 8.61785009861933,
+        "quality": 0.5500493049621582,
+        "success": 0.5500493096646942
+      },
+      "calibrator": {
+        "mean": [
+          0.8436670559447366,
+          0.5
+        ],
+        "std": [
+          2.8241725075915634,
+          0.34156503553198453
+        ],
+        "weights": [
+          2.566531696282741,
+          0.11225055999631103,
+          0.6691706902842708
+        ]
+      },
+      "fixed": [
+        {
+          "m": 2,
+          "symbols": 2.0,
+          "quality": 0.3385108411312103,
+          "success": 0.3385108481262327
+        },
+        {
+          "m": 4,
+          "symbols": 4.0,
+          "quality": 0.4085305631160736,
+          "success": 0.40853057199211046
+        },
+        {
+          "m": 6,
+          "symbols": 6.0,
+          "quality": 0.47361934185028076,
+          "success": 0.47361932938856016
+        },
+        {
+          "m": 8,
+          "symbols": 8.0,
+          "quality": 0.5431459546089172,
+          "success": 0.5431459566074951
+        },
+        {
+          "m": 12,
+          "symbols": 12.0,
+          "quality": 0.6718441843986511,
+          "success": 0.671844181459566
+        },
+        {
+          "m": 16,
+          "symbols": 16.0,
+          "quality": 0.7862426042556763,
+          "success": 0.7862426035502958
+        }
+      ],
+      "oracle": {
+        "symbols": 8.188856015779093,
+        "quality": 0.8259368538856506,
+        "success": 0.8259368836291914
+      }
+    },
+    {
+      "snr_db": 10.0,
+      "channel": "awgn",
+      "n_val_tokens": 3243,
+      "n_test_tokens": 4056,
+      "ece_raw": 0.011896261429917137,
+      "ece_calibrated": 0.007107076572504456,
+      "curve": [
+        {
+          "threshold": 0.01629070337630595,
+          "symbols": 2.0,
+          "quality": 0.49285009503364563,
+          "success": 0.4928500986193294,
+          "rounds": 1.0,
+          "feedback_bits": 1.0,
+          "feedback_entropy_bits": 0.0,
+          "gain_over_fixed": 0.0
+        },
+        {
+          "threshold": 0.22649879575201232,
+          "symbols": 2.578402366863905,
+          "quality": 0.5929487347602844,
+          "success": 0.592948717948718,
+          "rounds": 1.2892011834319526,
+          "feedback_bits": 1.2892011834319526,
+          "feedback_entropy_bits": 0.9762580943433039,
+          "gain_over_fixed": 0.028582669375739833
+        },
+        {
+          "threshold": 0.3836552458948227,
+          "symbols": 3.1548323471400392,
+          "quality": 0.7103056907653809,
+          "success": 0.7103057199211046,
+          "rounds": 1.5771696252465484,
+          "feedback_bits": 1.5771696252465484,
+          "feedback_entropy_bits": 1.4419898186771167,
+          "gain_over_fixed": 0.07466752875662419
+        },
+        {
+          "threshold": 0.5267081380840877,
+          "symbols": 3.742110453648915,
+          "quality": 0.8264299631118774,
+          "success": 0.8264299802761341,
+          "rounds": 1.8666173570019724,
+          "feedback_bits": 1.8666173570019724,
+          "feedback_entropy_bits": 1.7547310451435225,
+          "gain_over_fixed": 0.11817839898213123
+        },
+        {
+          "threshold": 0.6956983897947916,
+          "symbols": 4.378698224852071,
+          "quality": 0.9142012000083923,
+          "success": 0.9142011834319527,
+          "rounds": 2.1691321499013805,
+          "feedback_bits": 2.168639053254438,
+          "feedback_entropy_bits": 1.9829040965033762,
+          "gain_over_fixed": 0.14213148905680728
+        },
+        {
+          "threshold": 0.8555989047238723,
+          "symbols": 5.039940828402367,
+          "quality": 0.9674556255340576,
+          "success": 0.9674556213017751,
+          "rounds": 2.4797830374753453,
+          "feedback_bits": 2.479043392504931,
+          "feedback_entropy_bits": 2.113252513598925,
+          "gain_over_fixed": 0.13963024776715494
+        },
+        {
+          "threshold": 0.9434086754495709,
+          "symbols": 5.727317554240631,
+          "quality": 0.989891529083252,
+          "success": 0.9898915187376726,
+          "rounds": 2.787968441814596,
+          "feedback_bits": 2.786242603550296,
+          "feedback_entropy_bits": 2.1820889408634048,
+          "gain_over_fixed": 0.10410686754263365
+        },
+        {
+          "threshold": 0.9812161461684614,
+          "symbols": 6.419625246548324,
+          "quality": 0.9975345134735107,
+          "success": 0.997534516765286,
+          "rounds": 3.0909763313609466,
+          "feedback_bits": 3.0885108481262327,
+          "feedback_entropy_bits": 2.1700448716421907,
+          "gain_over_fixed": 0.07432501929163693
+        },
+        {
+          "threshold": 0.9944788110692447,
+          "symbols": 7.136094674556213,
+          "quality": 0.9995068907737732,
+          "success": 0.9995069033530573,
+          "rounds": 3.392258382642998,
+          "feedback_bits": 3.386094674556213,
+          "feedback_entropy_bits": 2.1262724325208007,
+          "gain_over_fixed": 0.05165551294236492
+        },
+        {
+          "threshold": 0.9986410603834939,
+          "symbols": 7.904832347140039,
+          "quality": 0.999753475189209,
+          "success": 0.9997534516765286,
+          "rounds": 3.6942800788954635,
+          "feedback_bits": 3.684171597633136,
+          "feedback_entropy_bits": 2.053554506309368,
+          "gain_over_fixed": 0.02546252639453561
+        },
+        {
+          "threshold": 0.9997198737749488,
+          "symbols": 8.73076923076923,
+          "quality": 1.0,
+          "success": 1.0,
+          "rounds": 3.9958086785009863,
+          "feedback_bits": 3.975591715976331,
+          "feedback_entropy_bits": 1.9436209698697364,
+          "gain_over_fixed": 0.01838207474121678
+        },
+        {
+          "threshold": 0.9999591594040058,
+          "symbols": 9.600591715976332,
+          "quality": 1.0,
+          "success": 1.0,
+          "rounds": 4.296844181459566,
+          "feedback_bits": 4.256903353057199,
+          "feedback_entropy_bits": 1.7869946843919946,
+          "gain_over_fixed": 0.013556869601356936
+        },
+        {
+          "threshold": 0.9999945894446179,
+          "symbols": 10.488165680473372,
+          "quality": 1.0,
+          "success": 1.0,
+          "rounds": 4.572485207100592,
+          "feedback_bits": 4.5,
+          "feedback_entropy_bits": 1.6137719964766537,
+          "gain_over_fixed": 0.008633190887214148
+        },
+        {
+          "threshold": 0.9999949269346011,
+          "symbols": 10.712031558185405,
+          "quality": 1.0,
+          "success": 1.0,
+          "rounds": 4.678007889546351,
+          "feedback_bits": 4.605522682445759,
+          "feedback_entropy_bits": 1.2876576127075405,
+          "gain_over_fixed": 0.007391329700424776
+        },
+        {
+          "threshold": 0.9999952433733358,
+          "symbols": 12.298816568047338,
+          "quality": 1.0,
+          "success": 1.0,
+          "rounds": 5.074704142011834,
+          "feedback_bits": 5.0,
+          "feedback_entropy_bits": 0.38323829830927614,
+          "gain_over_fixed": 0.0002281083863162614
+        },
+        {
+          "threshold": 0.9999955400739005,
+          "symbols": 16.0,
+          "quality": 1.0,
+          "success": 1.0,
+          "rounds": 6.0,
+          "feedback_bits": 5.0,
+          "feedback_entropy_bits": 0.0,
+          "gain_over_fixed": 0.0
+        },
+        {
+          "threshold": null,
+          "symbols": 16.0,
+          "quality": 1.0,
+          "success": 1.0,
+          "rounds": 6.0,
+          "feedback_bits": 5.0,
+          "feedback_entropy_bits": 0.0,
+          "gain_over_fixed": 0.0
+        }
+      ],
+      "random_matched_at_mid_threshold": {
+        "threshold": 0.9944788110692447,
+        "symbols": 7.136094674556213,
+        "quality": 0.8981755375862122,
+        "success": 0.8981755424063116
+      },
+      "calibrator": {
+        "mean": [
+          7.9274238831254795,
+          0.5
+        ],
+        "std": [
+          5.889427038763759,
+          0.34156503553198453
+        ],
+        "weights": [
+          5.187378292701415,
+          0.10999561177309133,
+          6.984779386651877
+        ]
+      },
+      "fixed": [
+        {
+          "m": 2,
+          "symbols": 2.0,
+          "quality": 0.49285009503364563,
+          "success": 0.4928500986193294
+        },
+        {
+          "m": 4,
+          "symbols": 4.0,
+          "quality": 0.740138053894043,
+          "success": 0.7401380670611439
+        },
+        {
+          "m": 6,
+          "symbols": 6.0,
+          "quality": 0.908777117729187,
+          "success": 0.9087771203155819
+        },
+        {
+          "m": 8,
+          "symbols": 8.0,
+          "quality": 0.9775640964508057,
+          "success": 0.9775641025641025
+        },
+        {
+          "m": 12,
+          "symbols": 12.0,
+          "quality": 0.999753475189209,
+          "success": 0.9997534516765286
+        },
+        {
+          "m": 16,
+          "symbols": 16.0,
+          "quality": 1.0,
+          "success": 1.0
+        }
+      ],
+      "oracle": {
+        "symbols": 3.764792899408284,
+        "quality": 1.0,
+        "success": 1.0
+      },
+      "free_running": [
+        {
+          "bleu1": 0.8359742478549314,
+          "bleu2": 0.7837071166479264,
+          "bleu3": 0.7373972584122491,
+          "bleu4": 0.6901488563203837,
+          "sacrebleu": 71.60877099858699,
+          "exact": 0.15625,
+          "chrf": 0.8131975754420878,
+          "wer": 0.15974941268598278,
+          "threshold": 0.5,
+          "symbols": 5.260273972602739,
+          "gen_tok_acc": 0.8439878234398782,
+          "requests_per_token": 1.6103500761035008,
+          "rounds_per_batch": 6.0,
+          "feedback_bits": 4.80517503805175,
+          "feedback_entropy_bits": 3.3452501683737044
+        },
+        {
+          "bleu1": 0.9482693689328168,
+          "bleu2": 0.9249861030767347,
+          "bleu3": 0.9004181274338465,
+          "bleu4": 0.8817196471141857,
+          "sacrebleu": 90.72783890881779,
+          "exact": 0.5,
+          "chrf": 0.9427427498082908,
+          "wer": 0.04463586530931871,
+          "threshold": 0.7,
+          "symbols": 5.995433789954338,
+          "gen_tok_acc": 0.9558599695585996,
+          "requests_per_token": 1.9490106544901065,
+          "rounds_per_batch": 6.0,
+          "feedback_bits": 4.831811263318112,
+          "feedback_entropy_bits": 3.0212436881193483
+        },
+        {
+          "bleu1": 0.9904298326073262,
+          "bleu2": 0.984835398286775,
+          "bleu3": 0.9780287522323559,
+          "bleu4": 0.9669985837758065,
+          "sacrebleu": 97.88228209357719,
+          "exact": 0.828125,
+          "chrf": 0.9867297569614841,
+          "wer": 0.008613938919342208,
+          "threshold": 0.9,
+          "symbols": 6.6118721461187215,
+          "gen_tok_acc": 0.9916286149162862,
+          "requests_per_token": 2.2298325722983257,
+          "rounds_per_batch": 6.0,
+          "feedback_bits": 4.795281582952816,
+          "feedback_entropy_bits": 2.59099277357717
+        }
+      ]
+    },
+    {
+      "snr_db": 20.0,
+      "channel": "awgn",
+      "n_val_tokens": 3243,
+      "n_test_tokens": 4056,
+      "ece_raw": 0.0033196622617836695,
+      "ece_calibrated": 0.005671060510061628,
+      "curve": [
+        {
+          "threshold": 0.055073426768458895,
+          "symbols": 2.0,
+          "quality": 0.7393984198570251,
+          "success": 0.7393984220907298,
+          "rounds": 1.0,
+          "feedback_bits": 1.0,
+          "feedback_entropy_bits": 0.0,
+          "gain_over_fixed": 0.0
+        },
+        {
+          "threshold": 0.5220290282613288,
+          "symbols": 2.5936883629191323,
+          "quality": 0.9287475347518921,
+          "success": 0.9287475345167653,
+          "rounds": 1.2968441814595661,
+          "feedback_bits": 1.2968441814595661,
+          "feedback_entropy_bits": 0.9541124611605681,
+          "gain_over_fixed": 0.11813871030506529
+        },
+        {
+          "threshold": 0.8941832864763479,
+          "symbols": 3.198717948717949,
+          "quality": 0.9950690269470215,
+          "success": 0.995069033530572,
+          "rounds": 1.5993589743589745,
+          "feedback_bits": 1.5993589743589745,
+          "feedback_entropy_bits": 1.3399792061548046,
+          "gain_over_fixed": 0.1118894662612524
+        },
+        {
+          "threshold": 0.992821230095057,
+          "symbols": 3.8002958579881656,
+          "quality": 0.999753475189209,
+          "success": 0.9997534516765286,
+          "rounds": 1.9001479289940828,
+          "feedback_bits": 1.9001479289940828,
+          "feedback_entropy_bits": 1.51132242188026,
+          "gain_over_fixed": 0.04441719224467078
+        },
+        {
+          "threshold": 0.9997728215227238,
+          "symbols": 4.400394477317554,
+          "quality": 1.0,
+          "success": 1.0,
+          "rounds": 2.1997041420118344,
+          "feedback_bits": 2.1997041420118344,
+          "feedback_entropy_bits": 1.5348775481487595,
+          "gain_over_fixed": 0.016563956025084092
+        },
+        {
+          "threshold": 0.9999144292879117,
+          "symbols": 4.537968441814596,
+          "quality": 1.0,
+          "success": 1.0,
+          "rounds": 2.268491124260355,
+          "feedback_bits": 2.268491124260355,
+          "feedback_entropy_bits": 1.5372939129712762,
+          "gain_over_fixed": 0.015139374110472947
+        },
+        {
+          "threshold": 0.9999342230403867,
+          "symbols": 4.567061143984221,
+          "quality": 1.0,
+          "success": 1.0,
+          "rounds": 2.2830374753451674,
+          "feedback_bits": 2.2830374753451674,
+          "feedback_entropy_bits": 1.5318815422597463,
+          "gain_over_fixed": 0.01483811843677385
+        },
+        {
+          "threshold": 0.9999494384410383,
+          "symbols": 4.597633136094674,
+          "quality": 1.0,
+          "success": 1.0,
+          "rounds": 2.2978303747534516,
+          "feedback_bits": 2.2973372781065087,
+          "feedback_entropy_bits": 1.5289761616188073,
+          "gain_over_fixed": 0.014521544677971399
+        },
+        {
+          "threshold": 0.999961134381076,
+          "symbols": 4.90138067061144,
+          "quality": 1.0,
+          "success": 1.0,
+          "rounds": 2.3851084812623276,
+          "feedback_bits": 2.3523175542406314,
+          "feedback_entropy_bits": 1.5190967660270673,
+          "gain_over_fixed": 0.011376231203417797
+        },
+        {
+          "threshold": 0.9999701248877922,
+          "symbols": 8.548323471400394,
+          "quality": 1.0,
+          "success": 1.0,
+          "rounds": 3.4847140039447733,
+          "feedback_bits": 3.089990138067061,
+          "feedback_entropy_bits": 1.3452794760990012,
+          "gain_over_fixed": 0.0
+        },
+        {
+          "threshold": 0.9999770357324063,
+          "symbols": 14.743589743589743,
+          "quality": 1.0,
+          "success": 1.0,
+          "rounds": 5.551282051282051,
+          "feedback_bits": 4.641025641025641,
+          "feedback_entropy_bits": 0.43561337348743234,
+          "gain_over_fixed": 0.0
+        },
+        {
+          "threshold": null,
+          "symbols": 16.0,
+          "quality": 1.0,
+          "success": 1.0,
+          "rounds": 6.0,
+          "feedback_bits": 5.0,
+          "feedback_entropy_bits": 0.0,
+          "gain_over_fixed": 0.0
+        }
+      ],
+      "random_matched_at_mid_threshold": {
+        "threshold": 0.9999144292879117,
+        "symbols": 4.537968441814596,
+        "quality": 0.9566075205802917,
+        "success": 0.9566074950690335
+      },
+      "calibrator": {
+        "mean": [
+          11.693524322206018,
+          0.5
+        ],
+        "std": [
+          4.443252935927859,
+          0.34156503553198453
+        ],
+        "weights": [
+          3.4846116327300765,
+          -0.44931728016344863,
+          8.369998395043302
+        ]
+      },
+      "fixed": [
+        {
+          "m": 2,
+          "symbols": 2.0,
+          "quality": 0.7393984198570251,
+          "success": 0.7393984220907298
+        },
+        {
+          "m": 4,
+          "symbols": 4.0,
+          "quality": 0.9792899489402771,
+          "success": 0.9792899408284024
+        },
+        {
+          "m": 6,
+          "symbols": 6.0,
+          "quality": 1.0,
+          "success": 1.0
+        },
+        {
+          "m": 8,
+          "symbols": 8.0,
+          "quality": 1.0,
+          "success": 1.0
+        },
+        {
+          "m": 12,
+          "symbols": 12.0,
+          "quality": 1.0,
+          "success": 1.0
+        },
+        {
+          "m": 16,
+          "symbols": 16.0,
+          "quality": 1.0,
+          "success": 1.0
+        }
+      ],
+      "oracle": {
+        "symbols": 2.56163708086785,
+        "quality": 1.0,
+        "success": 1.0
+      }
+    },
+    {
+      "snr_db": 0.0,
+      "channel": "rayleigh",
+      "n_val_tokens": 3243,
+      "n_test_tokens": 4056,
+      "ece_raw": 0.019384357198218818,
+      "ece_calibrated": 0.014424934474088828,
+      "curve": [
+        {
+          "threshold": 0.004627205421440329,
+          "symbols": 2.0,
+          "quality": 0.3281558156013489,
+          "success": 0.3281558185404339,
+          "rounds": 1.0,
+          "feedback_bits": 1.0,
+          "feedback_entropy_bits": 0.0,
+          "gain_over_fixed": 0.0
+        },
+        {
+          "threshold": 0.060435133629974616,
+          "symbols": 2.532544378698225,
+          "quality": 0.3340729773044586,
+          "success": 0.33407297830374755,
+          "rounds": 1.231508875739645,
+          "feedback_bits": 1.2201676528599605,
+          "feedback_entropy_bits": 0.6982773821069521,
+          "gain_over_fixed": -0.006293547224010931
+        },
+        {
+          "threshold": 0.09297520426869028,
+          "symbols": 3.119329388560158,
+          "quality": 0.3422090709209442,
+          "success": 0.3422090729783038,
+          "rounds": 1.4711538461538463,
+          "feedback_bits": 1.4383629191321499,
+          "feedback_entropy_bits": 1.1112144718157106,
+          "gain_over_fixed": -0.011611845851297209
+        },
+        {
+          "threshold": 0.12372421784220251,
+          "symbols": 3.7135108481262327,
+          "quality": 0.35157790780067444,
+          "success": 0.351577909270217,
+          "rounds": 1.710552268244576,
+          "feedback_bits": 1.6548323471400395,
+          "feedback_entropy_bits": 1.417246316029394,
+          "gain_over_fixed": -0.015866994394882206
+        },
+        {
+          "threshold": 0.1580659201063595,
+          "symbols": 4.325443786982248,
+          "quality": 0.36538460850715637,
+          "success": 0.36538461538461536,
+          "rounds": 1.9514299802761341,
+          "feedback_bits": 1.8703155818540433,
+          "feedback_entropy_bits": 1.6584437133101742,
+          "gain_over_fixed": -0.01673320068057471
+        },
+        {
+          "threshold": 0.19133807452728216,
+          "symbols": 4.945759368836292,
+          "quality": 0.38560158014297485,
+          "success": 0.38560157790927024,
+          "rounds": 2.192800788954635,
+          "feedback_bits": 2.0825936883629192,
+          "feedback_entropy_bits": 1.8565858423434987,
+          "gain_over_fixed": -0.011962940075105954
+        },
+        {
+          "threshold": 0.22616733154311847,
+          "symbols": 5.564102564102564,
+          "quality": 0.40581855177879333,
+          "success": 0.40581854043392507,
+          "rounds": 2.4302268244575935,
+          "feedback_bits": 2.287968441814596,
+          "feedback_entropy_bits": 2.0121762844368494,
+          "gain_over_fixed": -0.007143564331225871
+        },
+        {
+          "threshold": 0.26704783299250295,
+          "symbols": 6.255917159763314,
+          "quality": 0.4282544255256653,
+          "success": 0.4282544378698225,
+          "rounds": 2.687869822485207,
+          "feedback_bits": 2.508382642998028,
+          "feedback_entropy_bits": 2.128434307078135,
+          "gain_over_fixed": -0.001871731639261076
+        },
+        {
+          "threshold": 0.30960712863687234,
+          "symbols": 6.990138067061144,
+          "quality": 0.45167651772499084,
+          "success": 0.4516765285996055,
+          "rounds": 2.9583333333333335,
+          "feedback_bits": 2.7354536489151875,
+          "feedback_entropy_bits": 2.2224362342882475,
+          "gain_over_fixed": 0.003448264897457476
+        },
+        {
+          "threshold": 0.3576747524170945,
+          "symbols": 7.76232741617357,
+          "quality": 0.47657790780067444,
+          "success": 0.476577909270217,
+          "rounds": 3.2349605522682445,
+          "feedback_bits": 2.963757396449704,
+          "feedback_entropy_bits": 2.2689216082806163,
+          "gain_over_fixed": 0.00931145362482505
+        },
+        {
+          "threshold": 0.4119342630974485,
+          "symbols": 8.500493096646943,
+          "quality": 0.5017258524894714,
+          "success": 0.5017258382642998,
+          "rounds": 3.5066568047337277,
+          "feedback_bits": 3.189842209072978,
+          "feedback_entropy_bits": 2.3019254006463314,
+          "gain_over_fixed": 0.016321744358339718
+        },
+        {
+          "threshold": 0.46897085053505844,
+          "symbols": 9.20414201183432,
+          "quality": 0.5315581560134888,
+          "success": 0.5315581854043393,
+          "rounds": 3.757889546351085,
+          "feedback_bits": 3.389792899408284,
+          "feedback_entropy_bits": 2.2856199984276757,
+          "gain_over_fixed": 0.02889244359802212
+        },
+        {
+          "threshold": 0.5364541063672317,
+          "symbols": 9.978303747534516,
+          "quality": 0.5544871687889099,
+          "success": 0.5544871794871795,
+          "rounds": 4.029832347140039,
+          "feedback_bits": 3.6072485207100593,
+          "feedback_entropy_bits": 2.2363619899082083,
+          "gain_over_fixed": 0.032830062731953547
+        },
+        {
+          "threshold": 0.6146523710738813,
+          "symbols": 10.776134122287969,
+          "quality": 0.5821005702018738,
+          "success": 0.5821005917159763,
+          "rounds": 4.309171597633136,
+          "feedback_bits": 3.826183431952663,
+          "feedback_entropy_bits": 2.144782243631843,
+          "gain_over_fixed": 0.04087144190801906
+        },
+        {
+          "threshold": 0.6998393844899683,
+          "symbols": 11.613412228796845,
+          "quality": 0.6052761077880859,
+          "success": 0.605276134122288,
+          "rounds": 4.599852071005917,
+          "feedback_bits": 4.053254437869822,
+          "feedback_entropy_bits": 2.011498085212669,
+          "gain_over_fixed": 0.04350724293165187
+        },
+        {
+          "threshold": 0.7903252315504361,
+          "symbols": 12.426528599605522,
+          "quality": 0.618096649646759,
+          "success": 0.6180966469428008,
+          "rounds": 4.877712031558185,
+          "feedback_bits": 4.267751479289941,
+          "feedback_entropy_bits": 1.8368899637775296,
+          "gain_over_fixed": 0.03961444356620192
+        },
+        {
+          "threshold": 0.8775438919790641,
+          "symbols": 13.256410256410257,
+          "quality": 0.631903350353241,
+          "success": 0.6319033530571992,
+          "rounds": 5.155078895463511,
+          "feedback_bits": 4.474852071005917,
+          "feedback_entropy_bits": 1.6040695377793404,
+          "gain_over_fixed": 0.039354492456485035
+        },
+        {
+          "threshold": 0.9435759979242675,
+          "symbols": 14.058678500986193,
+          "quality": 0.6375739574432373,
+          "success": 0.6375739644970414,
+          "rounds": 5.412475345167653,
+          "feedback_bits": 4.655078895463511,
+          "feedback_entropy_bits": 1.3112656425637177,
+          "gain_over_fixed": 0.031426500315967165
+        },
+        {
+          "threshold": 0.9834325793020122,
+          "symbols": 14.794871794871796,
+          "quality": 0.6380670666694641,
+          "success": 0.6380670611439843,
+          "rounds": 5.64792899408284,
+          "feedback_bits": 4.817061143984221,
+          "feedback_entropy_bits": 0.9817418205546518,
+          "gain_over_fixed": 0.01944099328456783
+        },
+        {
+          "threshold": 0.9982714677990505,
+          "symbols": 15.467455621301776,
+          "quality": 0.6388067007064819,
+          "success": 0.6388067061143984,
+          "rounds": 5.850838264299803,
+          "feedback_bits": 4.935897435897436,
+          "feedback_entropy_bits": 0.5591464002248875,
+          "gain_over_fixed": 0.008780203627411387
+        },
+        {
+          "threshold": 0.999998260937175,
+          "symbols": 16.0,
+          "quality": 0.639053225517273,
+          "success": 0.6390532544378699,
+          "rounds": 6.0,
+          "feedback_bits": 5.0,
+          "feedback_entropy_bits": 0.0,
+          "gain_over_fixed": 0.0
+        },
+        {
+          "threshold": null,
+          "symbols": 16.0,
+          "quality": 0.639053225517273,
+          "success": 0.6390532544378699,
+          "rounds": 6.0,
+          "feedback_bits": 5.0,
+          "feedback_entropy_bits": 0.0,
+          "gain_over_fixed": 0.0
+        }
+      ],
+      "random_matched_at_mid_threshold": {
+        "threshold": 0.4119342630974485,
+        "symbols": 8.500493096646943,
+        "quality": 0.4741124212741852,
+        "success": 0.47411242603550297
+      },
+      "calibrator": {
+        "mean": [
+          0.794169972500418,
+          0.5
+        ],
+        "std": [
+          3.3737045889103725,
+          0.34156503553198453
+        ],
+        "weights": [
+          3.24055529146861,
+          0.03862437245983654,
+          0.7108643782237007
+        ]
+      },
+      "fixed": [
+        {
+          "m": 2,
+          "symbols": 2.0,
+          "quality": 0.3281558156013489,
+          "success": 0.3281558185404339
+        },
+        {
+          "m": 4,
+          "symbols": 4.0,
+          "quality": 0.3740138113498688,
+          "success": 0.3740138067061144
+        },
+        {
+          "m": 6,
+          "symbols": 6.0,
+          "quality": 0.4238165616989136,
+          "success": 0.4238165680473373
+        },
+        {
+          "m": 8,
+          "symbols": 8.0,
+          "quality": 0.47312623262405396,
+          "success": 0.47312623274161736
+        },
+        {
+          "m": 12,
+          "symbols": 12.0,
+          "quality": 0.5712524652481079,
+          "success": 0.5712524654832347
+        },
+        {
+          "m": 16,
+          "symbols": 16.0,
+          "quality": 0.639053225517273,
+          "success": 0.6390532544378699
+        }
+      ],
+      "oracle": {
+        "symbols": 9.12475345167653,
+        "quality": 0.6817061305046082,
+        "success": 0.6817061143984221
+      }
+    },
+    {
+      "snr_db": 10.0,
+      "channel": "rayleigh",
+      "n_val_tokens": 3243,
+      "n_test_tokens": 4056,
+      "ece_raw": 0.013680275237666326,
+      "ece_calibrated": 0.006304754468868273,
+      "curve": [
+        {
+          "threshold": 0.009687143612150442,
+          "symbols": 2.0,
+          "quality": 0.44822484254837036,
+          "success": 0.44822485207100593,
+          "rounds": 1.0,
+          "feedback_bits": 1.0,
+          "feedback_entropy_bits": 0.0,
+          "gain_over_fixed": 0.0
+        },
+        {
+          "threshold": 0.1261702342674909,
+          "symbols": 2.5705128205128207,
+          "quality": 0.48643985390663147,
+          "success": 0.486439842209073,
+          "rounds": 1.2665187376725837,
+          "feedback_bits": 1.2606015779092703,
+          "feedback_entropy_bits": 0.8969285699621254,
+          "gain_over_fixed": -0.014813433472926851
+        },
+        {
+          "threshold": 0.21302300351290987,
+          "symbols": 3.1701183431952664,
+          "quality": 0.5535010099411011,
+          "success": 0.5535009861932939,
+          "rounds": 1.532544378698225,
+          "feedback_bits": 1.514792899408284,
+          "feedback_entropy_bits": 1.3865224585270493,
+          "gain_over_fixed": -0.0034848521270696153
+        },
+        {
+          "threshold": 0.30512389315912425,
+          "symbols": 3.7652859960552267,
+          "quality": 0.6262327432632446,
+          "success": 0.626232741617357,
+          "rounds": 1.793639053254438,
+          "feedback_bits": 1.7633136094674555,
+          "feedback_entropy_bits": 1.7358156905590387,
+          "gain_over_fixed": 0.013926800891492563
+        },
+        {
+          "threshold": 0.4028794736225557,
+          "symbols": 4.389546351084813,
+          "quality": 0.6905818581581116,
+          "success": 0.6905818540433925,
+          "rounds": 2.0584319526627217,
+          "feedback_bits": 2.0125739644970415,
+          "feedback_entropy_bits": 1.999848234510365,
+          "gain_over_fixed": 0.0304801899359306
+        },
+        {
+          "threshold": 0.5079473390391589,
+          "symbols": 5.089250493096647,
+          "quality": 0.7615877985954285,
+          "success": 0.7615877712031558,
+          "rounds": 2.351577909270217,
+          "feedback_bits": 2.285502958579882,
+          "feedback_entropy_bits": 2.225840526568901,
+          "gain_over_fixed": 0.05482194508027283
+        },
+        {
+          "threshold": 0.6239329437239203,
+          "symbols": 5.807199211045365,
+          "quality": 0.8308678269386292,
+          "success": 0.8308678500986193,
+          "rounds": 2.642258382642998,
+          "feedback_bits": 2.551775147928994,
+          "feedback_entropy_bits": 2.381455376648853,
+          "gain_over_fixed": 0.07622103347522036
+        },
+        {
+          "threshold": 0.750588957110913,
+          "symbols": 6.599605522682446,
+          "quality": 0.8838757276535034,
+          "success": 0.8838757396449705,
+          "rounds": 2.9548816568047336,
+          "feedback_bits": 2.8328402366863905,
+          "feedback_entropy_bits": 2.4954352636605517,
+          "gain_over_fixed": 0.09390037182049871
+        },
+        {
+          "threshold": 0.862229960128405,
+          "symbols": 7.368836291913215,
+          "quality": 0.9144477248191833,
+          "success": 0.914447731755424,
+          "rounds": 3.2541913214990137,
+          "feedback_bits": 3.101577909270217,
+          "feedback_entropy_bits": 2.5522823426854546,
+          "gain_over_fixed": 0.09564517858700872
+        },
+        {
+          "threshold": 0.9402220895218216,
+          "symbols": 8.134122287968442,
+          "quality": 0.9309664964675903,
+          "success": 0.9309664694280079,
+          "rounds": 3.548570019723866,
+          "feedback_bits": 3.3636587771203157,
+          "feedback_entropy_bits": 2.5624439017702096,
+          "gain_over_fixed": 0.08612173501791565
+        },
+        {
+          "threshold": 0.9767852034049478,
+          "symbols": 8.883629191321498,
+          "quality": 0.9400887489318848,
+          "success": 0.9400887573964497,
+          "rounds": 3.8333333333333335,
+          "feedback_bits": 3.6107001972386588,
+          "feedback_entropy_bits": 2.5232933086360747,
+          "gain_over_fixed": 0.08189293383611496
+        },
+        {
+          "threshold": 0.9930335040538815,
+          "symbols": 9.65680473372781,
+          "quality": 0.9410749673843384,
+          "success": 0.9410749506903353,
+          "rounds": 4.112426035502959,
+          "feedback_bits": 3.8456607495069033,
+          "feedback_entropy_bits": 2.4464799979854055,
+          "gain_over_fixed": 0.0691064864220704
+        },
+        {
+          "threshold": 0.9984468199160328,
+          "symbols": 10.418639053254438,
+          "quality": 0.9415680766105652,
+          "success": 0.9415680473372781,
+          "rounds": 4.382889546351085,
+          "feedback_bits": 4.066814595660749,
+          "feedback_entropy_bits": 2.3255235072167526,
+          "gain_over_fixed": 0.05602895230407545
+        },
+        {
+          "threshold": 0.9997218685850751,
+          "symbols": 11.187376725838265,
+          "quality": 0.9415680766105652,
+          "success": 0.9415680473372781,
+          "rounds": 4.641272189349112,
+          "feedback_bits": 4.273175542406312,
+          "feedback_entropy_bits": 2.193188446564235,
+          "gain_over_fixed": 0.04233533872890283
+        },
+        {
+          "threshold": 0.9999685319101312,
+          "symbols": 11.952169625246547,
+          "quality": 0.9415680766105652,
+          "success": 0.9415680473372781,
+          "rounds": 4.888806706114399,
+          "feedback_bits": 4.4674556213017755,
+          "feedback_entropy_bits": 2.0247975498304585,
+          "gain_over_fixed": 0.028711993857130746
+        },
+        {
+          "threshold": 0.9999968888138976,
+          "symbols": 12.630670611439843,
+          "quality": 0.9415680766105652,
+          "success": 0.9415680473372781,
+          "rounds": 5.101331360946745,
+          "feedback_bits": 4.622781065088757,
+          "feedback_entropy_bits": 1.7803815644956917,
+          "gain_over_fixed": 0.023467367254124127
+        },
+        {
+          "threshold": 0.999996949986685,
+          "symbols": 12.856015779092703,
+          "quality": 0.9415680766105652,
+          "success": 0.9415680473372781,
+          "rounds": 5.214003944773175,
+          "feedback_bits": 4.735453648915187,
+          "feedback_entropy_bits": 1.5200409462111377,
+          "gain_over_fixed": 0.021897838959797356
+        },
+        {
+          "threshold": 0.9999970099566842,
+          "symbols": 13.914201183431953,
+          "quality": 0.9415680766105652,
+          "success": 0.9415680473372781,
+          "rounds": 5.478550295857988,
+          "feedback_bits": 5.0,
+          "feedback_entropy_bits": 0.998672053940548,
+          "gain_over_fixed": 0.014527581367619669
+        },
+        {
+          "threshold": 0.9999970687475439,
+          "symbols": 16.0,
+          "quality": 0.9415680766105652,
+          "success": 0.9415680473372781,
+          "rounds": 6.0,
+          "feedback_bits": 5.0,
+          "feedback_entropy_bits": 0.0,
+          "gain_over_fixed": 0.0
+        },
+        {
+          "threshold": null,
+          "symbols": 16.0,
+          "quality": 0.9415680766105652,
+          "success": 0.9415680473372781,
+          "rounds": 6.0,
+          "feedback_bits": 5.0,
+          "feedback_entropy_bits": 0.0,
+          "gain_over_fixed": 0.0
+        }
+      ],
+      "random_matched_at_mid_threshold": {
+        "threshold": 0.9402220895218216,
+        "symbols": 8.134122287968442,
+        "quality": 0.7625739574432373,
+        "success": 0.7625739644970414
+      },
+      "calibrator": {
+        "mean": [
+          6.345335818883549,
+          0.5
+        ],
+        "std": [
+          6.104304350419697,
+          0.34156503553198453
+        ],
+        "weights": [
+          5.65670673838569,
+          0.03391423475094945,
+          5.78023325465726
+        ]
+      },
+      "fixed": [
+        {
+          "m": 2,
+          "symbols": 2.0,
+          "quality": 0.44822484254837036,
+          "success": 0.44822485207100593
+        },
+        {
+          "m": 4,
+          "symbols": 4.0,
+          "quality": 0.6341223120689392,
+          "success": 0.6341222879684418
+        },
+        {
+          "m": 6,
+          "symbols": 6.0,
+          "quality": 0.7675049304962158,
+          "success": 0.7675049309664694
+        },
+        {
+          "m": 8,
+          "symbols": 8.0,
+          "quality": 0.8424556255340576,
+          "success": 0.8424556213017751
+        },
+        {
+          "m": 12,
+          "symbols": 12.0,
+          "quality": 0.9137080907821655,
+          "success": 0.9137080867850098
+        },
+        {
+          "m": 16,
+          "symbols": 16.0,
+          "quality": 0.9415680766105652,
+          "success": 0.9415680473372781
+        }
+      ],
+      "oracle": {
+        "symbols": 5.107001972386588,
+        "quality": 0.9501972198486328,
+        "success": 0.9501972386587771
+      },
+      "free_running": [
+        {
+          "bleu1": 0.7788417343578956,
+          "bleu2": 0.7053193915183871,
+          "bleu3": 0.6421021103487194,
+          "bleu4": 0.5834102349520505,
+          "sacrebleu": 62.13670071321203,
+          "exact": 0.09375,
+          "chrf": 0.7376827979419416,
+          "wer": 0.22866092404072044,
+          "threshold": 0.5,
+          "symbols": 6.257229832572298,
+          "gen_tok_acc": 0.7785388127853882,
+          "requests_per_token": 2.0098934550989345,
+          "rounds_per_batch": 6.0,
+          "feedback_bits": 4.906392694063927,
+          "feedback_entropy_bits": 4.088173606326615
+        },
+        {
+          "bleu1": 0.9288983149337837,
+          "bleu2": 0.8944413230486051,
+          "bleu3": 0.8604523393636265,
+          "bleu4": 0.8100334482439565,
+          "sacrebleu": 85.29772932930459,
+          "exact": 0.328125,
+          "chrf": 0.9095228711642477,
+          "wer": 0.06656225528582616,
+          "threshold": 0.7,
+          "symbols": 7.0928462709284625,
+          "gen_tok_acc": 0.9345509893455098,
+          "requests_per_token": 2.3462709284627095,
+          "rounds_per_batch": 6.0,
+          "feedback_bits": 4.838660578386606,
+          "feedback_entropy_bits": 3.798935196047613
+        },
+        {
+          "bleu1": 0.9753540959028518,
+          "bleu2": 0.9645618584149479,
+          "bleu3": 0.955078460439871,
+          "bleu4": 0.9393665915159503,
+          "sacrebleu": 94.94781872152046,
+          "exact": 0.71875,
+          "chrf": 0.9636374972879039,
+          "wer": 0.02427564604541895,
+          "threshold": 0.9,
+          "symbols": 7.936073059360731,
+          "gen_tok_acc": 0.9764079147640792,
+          "requests_per_token": 2.667427701674277,
+          "rounds_per_batch": 6.0,
+          "feedback_bits": 4.951293759512938,
+          "feedback_entropy_bits": 3.409852880643469
+        }
+      ]
+    },
+    {
+      "snr_db": 20.0,
+      "channel": "rayleigh",
+      "n_val_tokens": 3243,
+      "n_test_tokens": 4056,
+      "ece_raw": 0.006649591460598037,
+      "ece_calibrated": 0.007205279160000409,
+      "curve": [
+        {
+          "threshold": 0.02012007650260464,
+          "symbols": 2.0,
+          "quality": 0.6592702269554138,
+          "success": 0.6592702169625246,
+          "rounds": 1.0,
+          "feedback_bits": 1.0,
+          "feedback_entropy_bits": 0.0,
+          "gain_over_fixed": 0.0
+        },
+        {
+          "threshold": 0.36626751461235035,
+          "symbols": 2.5971400394477318,
+          "quality": 0.8025147914886475,
+          "success": 0.8025147928994083,
+          "rounds": 1.2921597633136095,
+          "feedback_bits": 1.2904339250493098,
+          "feedback_entropy_bits": 0.98743413006132,
+          "gain_over_fixed": 0.07162014596325872
+        },
+        {
+          "threshold": 0.6036947273321203,
+          "symbols": 3.2021696252465484,
+          "quality": 0.9196252226829529,
+          "success": 0.9196252465483234,
+          "rounds": 1.580621301775148,
+          "feedback_bits": 1.5734714003944774,
+          "feedback_entropy_bits": 1.4679652209435685,
+          "gain_over_fixed": 0.11615984091862186
+        },
+        {
+          "threshold": 0.8558629953384657,
+          "symbols": 3.86094674556213,
+          "quality": 0.9795364737510681,
+          "success": 0.9795364891518737,
+          "rounds": 1.8843688362919133,
+          "feedback_bits": 1.8693293885601578,
+          "feedback_entropy_bits": 1.7948433515246152,
+          "gain_over_fixed": 0.09705356662795395
+        },
+        {
+          "threshold": 0.9707292010980948,
+          "symbols": 4.5014792899408285,
+          "quality": 0.9921104311943054,
+          "success": 0.9921104536489151,
+          "rounds": 2.179240631163708,
+          "feedback_bits": 2.1560650887573964,
+          "feedback_entropy_bits": 1.987613753764763,
+          "gain_over_fixed": 0.07607197862934079
+        },
+        {
+          "threshold": 0.9966049823643328,
+          "symbols": 5.1661735700197235,
+          "quality": 0.9955621361732483,
+          "success": 0.9955621301775148,
+          "rounds": 2.4770710059171597,
+          "feedback_bits": 2.445759368836292,
+          "feedback_entropy_bits": 2.120929066171267,
+          "gain_over_fixed": 0.05715417828139002
+        },
+        {
+          "threshold": 0.9997957604992536,
+          "symbols": 5.837771203155818,
+          "quality": 0.9955621361732483,
+          "success": 0.9955621301775148,
+          "rounds": 2.770956607495069,
+          "feedback_bits": 2.7287968441814594,
+          "feedback_entropy_bits": 2.193372327061284,
+          "gain_over_fixed": 0.03455234871519619
+        },
+        {
+          "threshold": 0.9999842762518197,
+          "symbols": 6.509861932938856,
+          "quality": 0.9955621361732483,
+          "success": 0.9955621301775148,
+          "rounds": 3.062869822485207,
+          "feedback_bits": 3.008136094674556,
+          "feedback_entropy_bits": 1.973855570125061,
+          "gain_over_fixed": 0.024755873858811173
+        },
+        {
+          "threshold": 0.9999852926219918,
+          "symbols": 7.322485207100592,
+          "quality": 0.9955621361732483,
+          "success": 0.9955621301775148,
+          "rounds": 3.4684418145956606,
+          "feedback_bits": 3.41370808678501,
+          "feedback_entropy_bits": 1.2588461413257914,
+          "gain_over_fixed": 0.017843748690813954
+        },
+        {
+          "threshold": 0.999986243295734,
+          "symbols": 8.778106508875739,
+          "quality": 0.9955621361732483,
+          "success": 0.9955621301775148,
+          "rounds": 4.194526627218935,
+          "feedback_bits": 4.139299802761341,
+          "feedback_entropy_bits": 0.7173616485420959,
+          "gain_over_fixed": 0.010498161367058056
+        },
+        {
+          "threshold": 0.9999871325194387,
+          "symbols": 12.221893491124261,
+          "quality": 0.9955621361732483,
+          "success": 0.9955621301775148,
+          "rounds": 5.055473372781065,
+          "feedback_bits": 5.0,
+          "feedback_entropy_bits": 0.3092074172159348,
+          "gain_over_fixed": 0.003725925758040205
+        },
+        {
+          "threshold": 0.999987964265039,
+          "symbols": 16.0,
+          "quality": 0.9955621361732483,
+          "success": 0.9955621301775148,
+          "rounds": 6.0,
+          "feedback_bits": 5.0,
+          "feedback_entropy_bits": 0.0,
+          "gain_over_fixed": 0.0
+        },
+        {
+          "threshold": null,
+          "symbols": 16.0,
+          "quality": 0.9955621361732483,
+          "success": 0.9955621301775148,
+          "rounds": 6.0,
+          "feedback_bits": 5.0,
+          "feedback_entropy_bits": 0.0,
+          "gain_over_fixed": 0.0
+        }
+      ],
+      "random_matched_at_mid_threshold": {
+        "threshold": 0.9997957604992536,
+        "symbols": 5.837771203155818,
+        "quality": 0.9178994297981262,
+        "success": 0.9178994082840237
+      },
+      "calibrator": {
+        "mean": [
+          10.755710471105788,
+          0.5
+        ],
+        "std": [
+          5.175378771115323,
+          0.34156503553198453
+        ],
+        "weights": [
+          4.163946510819181,
+          0.11412359973281586,
+          8.709354533615171
+        ]
+      },
+      "fixed": [
+        {
+          "m": 2,
+          "symbols": 2.0,
+          "quality": 0.6592702269554138,
+          "success": 0.6592702169625246
+        },
+        {
+          "m": 4,
+          "symbols": 4.0,
+          "quality": 0.8991617560386658,
+          "success": 0.8991617357001972
+        },
+        {
+          "m": 6,
+          "symbols": 6.0,
+          "quality": 0.966469407081604,
+          "success": 0.9664694280078896
+        },
+        {
+          "m": 8,
+          "symbols": 8.0,
+          "quality": 0.9834812879562378,
+          "success": 0.9834812623274162
+        },
+        {
+          "m": 12,
+          "symbols": 12.0,
+          "quality": 0.9916173815727234,
+          "success": 0.9916173570019724
+        },
+        {
+          "m": 16,
+          "symbols": 16.0,
+          "quality": 0.9955621361732483,
+          "success": 0.9955621301775148
+        }
+      ],
+      "oracle": {
+        "symbols": 3.0212031558185406,
+        "quality": 0.9967948794364929,
+        "success": 0.9967948717948718
+      }
+    }
+  ],
+  "config": {
+    "name": "gpt2",
+    "seed": 0,
+    "device": "cuda",
+    "threads": 0,
+    "out_dir": "/content/drive/MyDrive/dnsc_runs/gpt2_published",
+    "backbone": {
+      "name": "models/gpt2",
+      "tiny": {
+        "hidden": 96,
+        "layers": 2,
+        "heads": 4,
+        "vocab": 600,
+        "lm_steps": 0,
+        "lm_lr": 0.003,
+        "lm_focus": "",
+        "lm_other_share": 1.0,
+        "corpora": []
+      }
+    },
+    "codec": {
+      "granularities": [
+        2,
+        4,
+        6,
+        8,
+        12,
+        16
+      ],
+      "max_tokens": 48,
+      "codebook_hidden": 256,
+      "peak_ratio": 4.0,
+      "lora": {
+        "r": 8,
+        "alpha": 16,
+        "dropout": 0.0,
+        "targets": [
+          "c_attn"
+        ],
+        "last_n": 6,
+        "slots": 2
+      }
+    },
+    "context": {
+      "enabled": true,
+      "max_tokens": 48
+    },
+    "cache": {
+      "enabled": false,
+      "decay": 0.98,
+      "weight": 0.05,
+      "min_mass": 50.0
+    },
+    "channel": {
+      "type": "awgn",
+      "snr_train": [
+        0.0,
+        20.0
+      ]
+    },
+    "data": {
+      "cache_dir": "data",
+      "base": [
+        "europarl_nltk"
+      ],
+      "min_words": 4,
+      "max_words": 30,
+      "max_sentences": 40000
+    },
+    "pretrain": {
+      "steps": 2000,
+      "batch_tokens": 256,
+      "grans_per_step": 3,
+      "uniform_share": 0.25,
+      "lr": 0.002,
+      "warmup": 100,
+      "weight_decay": 0.0,
+      "grad_clip": 1.0,
+      "eval_every": 500,
+      "eval_tokens": 2000,
+      "log_every": 50
+    },
+    "stream": {
+      "kind": "hier",
+      "domains": [
+        "ag_news",
+        "teleqna"
+      ],
+      "cycles": 2,
+      "tau_slow": 150,
+      "tau_med": 30,
+      "kappa": 0.9,
+      "temporal_corpus": "huffpost_gh",
+      "temporal_steps": 600,
+      "temporal_eras": 4,
+      "batch_size": 6,
+      "snr": {
+        "mean": 10.0,
+        "rho": 0.95,
+        "sigma": 4.0,
+        "min": 0.0,
+        "max": 20.0
+      },
+      "m_op": 6,
+      "extra_grans": 1,
+      "thresholds": [
+        0.5,
+        0.7,
+        0.9,
+        0.95,
+        0.99
+      ],
+      "threshold": 0.9,
+      "target_acc": 0.9,
+      "probe_size": 48,
+      "gen_every": 0,
+      "gen_sentences": 4,
+      "live_every": 47,
+      "live_thresholds": [
+        0.5,
+        0.7,
+        0.9
+      ]
+    },
+    "nested": {
+      "periods": {
+        "medium": 10,
+        "slow": 50
+      },
+      "lrs": {
+        "medium": 0.001,
+        "slow": 0.0005
+      },
+      "rule": "local",
+      "select_every": 10,
+      "select_margin": 0.05,
+      "ema": {
+        "enabled": false,
+        "decay": 0.99,
+        "beta": 0.9
+      },
+      "sync": {
+        "bits": 8,
+        "topk": 1.0
+      },
+      "grad_clip": 1.0,
+      "adapt_codebook": false,
+      "codebook_lr": 0.0001,
+      "single_period": "auto",
+      "ewc_lambda": 10.0,
+      "ewc_batches": 20
+    },
+    "link": {
+      "traffic_per_step": 1000
+    },
+    "stats": {
+      "equiv_margin_bits": 0.05,
+      "equiv_margin_symbols": 0.05,
+      "min_seeds_for_test": 6
+    },
+    "eval": {
+      "snrs": [
+        0.0,
+        10.0,
+        20.0
+      ],
+      "channels": [
+        "awgn",
+        "rayleigh"
+      ],
+      "priors": [
+        "llm_ctx",
+        "llm",
+        "unigram",
+        "none"
+      ],
+      "n_test": 200,
+      "batch_size": 16,
+      "sim_model": null
+    },
+    "refine": {
+      "n_val": 150,
+      "n_test": 200,
+      "n_live": 64,
+      "live_thresholds": [
+        0.5,
+        0.7,
+        0.9
+      ]
+    }
+  },
+  "env": {
+    "python": "3.13.15",
+    "platform": "Linux-6.6.122+-x86_64-with-glibc2.39",
+    "machine": "x86_64",
+    "torch": "2.11.0+cu130",
+    "threads": 1,
+    "transformers": "5.19.0",
+    "gpu": "Tesla T4",
+    "git": "ed2e023",
+    "time": "2026-10-14 22:22:52"
+  }
+}

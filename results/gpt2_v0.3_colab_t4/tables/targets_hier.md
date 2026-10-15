@@ -1,0 +1,13 @@
+**Forward symbols per token needed on the 'hier' stream for three target token accuracies (mean over seeds; n/a = not reached within the measured curve, or below its cheapest point for one of the seeds)**
+
+| method | seeds | fixed, 85% | selective, 85% | fixed, 90% | selective, 90% | fixed, 95% | selective, 95% |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| context_only | 3 | 6.906 | 4.759 | 8.162 | 5.286 | 10.843 | 6.246 |
+| ewc | 1 | 6.415 | 4.395 | 7.642 | 4.874 | 10.285 | 5.783 |
+| frozen | 3 | 7.749 | 5.670 | 9.490 | 6.276 | 11.567 | 7.175 |
+| full_online | 3 | 6.543 | 4.451 | 7.771 | 4.950 | 10.508 | 5.898 |
+| nested | 3 | 6.552 | 4.451 | 7.774 | 4.956 | 10.502 | 5.903 |
+| nested_no_context | 1 | 7.199 | 5.207 | 8.506 | 5.723 | 10.984 | 6.624 |
+| nested_no_slots | 3 | 6.653 | 4.516 | 7.851 | 5.026 | 10.604 | 5.978 |
+| nested_two_level | 1 | 6.291 | 4.317 | 7.559 | 4.794 | 10.166 | 5.701 |
+| single_rate | 3 | 6.665 | 4.528 | 7.859 | 5.033 | 10.616 | 5.987 |

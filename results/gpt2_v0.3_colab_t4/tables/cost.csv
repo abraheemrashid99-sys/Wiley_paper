@@ -1,0 +1,23 @@
+quantity,value
+device,cuda (1 CPU threads)
+"receiver, forward only (stream step, it/s)",56.99
+"transmitter, bias adaptation (stream step, it/s)",53.32
+"transmitter, bias + LoRA adaptation (stream step, it/s)",22.98
+codebook training (it/s),26.01
+parameters: frozen backbone,"124,439,808"
+parameters: codebook (trained once),"213,248"
+parameters: medium memory (fusion weights and logit bias),771
+parameters: slow memory (one LoRA slot),"147,456"
+peak resident memory of the benchmark process (MB),1633
+"decode latency, one message of 19 tokens, prior 'llm', m=2 (ms)",198.8
+"decode latency, one message of 19 tokens, prior 'llm', m=4 (ms)",193.1
+"decode latency, one message of 19 tokens, prior 'llm', m=6 (ms)",197.8
+"decode latency, one message of 19 tokens, prior 'llm', m=8 (ms)",193.9
+"decode latency, one message of 19 tokens, prior 'llm', m=12 (ms)",197.8
+"decode latency, one message of 19 tokens, prior 'llm', m=16 (ms)",195.0
+"decode latency, one message of 19 tokens, prior 'none', m=2 (ms)",3.4
+"decode latency, one message of 19 tokens, prior 'none', m=4 (ms)",3.4
+"decode latency, one message of 19 tokens, prior 'none', m=6 (ms)",3.4
+"decode latency, one message of 19 tokens, prior 'none', m=8 (ms)",3.5
+"decode latency, one message of 19 tokens, prior 'none', m=12 (ms)",3.7
+"decode latency, one message of 19 tokens, prior 'none', m=16 (ms)",3.7

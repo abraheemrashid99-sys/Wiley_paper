@@ -1,0 +1,13 @@
+**Derived net semantic rate (real symbols per message, payload at equal fidelity plus amortised synchronisation) on the 'hier' stream as a function of messages carried per adaptation step N, at 10 dB**
+
+| method | sym/token for 90% tok-acc | saving vs frozen | payload (sym/msg) | N=1 | N=10 | N=100 | N=1000 | N=10000 | N=100000 | N* (vs frozen) | N* (vs context_only) |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| context_only | 5.286 | +15.8% | 94.8 | 94.8 | 94.8 | 94.8 | 94.8 | 94.8 | 94.8 | - | - |
+| ewc | 4.874 | +22.3% | 87.7 | 13804.3 | 1459.3 | 224.9 | 101.4 | 89.1 | 87.8 | 544 | 1851 |
+| frozen | 6.276 | +0.0% | 112.9 | 112.9 | 112.9 | 112.9 | 112.9 | 112.9 | 112.9 | - | - |
+| full_online | 4.950 | +21.1% | 88.8 | 685633.3 | 68643.2 | 6944.2 | 774.3 | 157.3 | 95.6 | 28825 | 113757 |
+| nested | 4.956 | +21.0% | 88.9 | 14095.0 | 1489.5 | 228.9 | 102.9 | 90.3 | 89.0 | 591 | 2365 |
+| nested_no_context | 5.723 | +8.8% | 103.3 | 14109.4 | 1503.9 | 243.4 | 117.3 | 104.7 | 103.4 | 1404 | never |
+| nested_no_slots | 5.026 | +19.9% | 90.1 | 14096.1 | 1490.7 | 230.2 | 104.1 | 91.5 | 90.3 | 625 | 3003 |
+| nested_two_level | 4.794 | +23.6% | 86.2 | 17214.0 | 1799.0 | 257.5 | 103.4 | 88.0 | 86.4 | 642 | 1935 |
+| single_rate | 5.033 | +19.8% | 90.3 | 13806.8 | 1461.9 | 227.4 | 104.0 | 91.6 | 90.4 | 615 | 3021 |

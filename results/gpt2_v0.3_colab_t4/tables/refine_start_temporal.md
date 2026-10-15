@@ -1,0 +1,34 @@
+**Selective refinement on the 'temporal' stream by the shell sent in the first round: symbols per token for 90% token accuracy (n/a = the target is not reached on that curve). The paper's policy is the first row of every method; the other rows are a post-hoc exploration, not a tuned result**
+
+| method | seeds | first shell (symbols) | forward only | + feedback (bitmap) | + feedback (entropy) |
+| --- | --- | --- | --- | --- | --- |
+| context_only | 2 | 2 | 5.720 | 7.239 | 7.095 |
+| context_only | 2 | 4 | 6.074 | 7.139 | 7.115 |
+| context_only | 2 | 6 | 6.860 | 7.609 | 7.434 |
+| context_only | 2 | 8 | 8.461 | 9.094 | 8.759 |
+| context_only | 2 | 12 | 12.099 | 12.677 | 12.194 |
+| context_only | 2 | 16 | 16.000 | 16.000 | 16.000 |
+| frozen | 2 | 2 | 5.957 | 7.534 | 7.355 |
+| frozen | 2 | 4 | 6.297 | 7.412 | 7.386 |
+| frozen | 2 | 6 | 7.031 | 7.812 | 7.671 |
+| frozen | 2 | 8 | 8.509 | 9.148 | 8.830 |
+| frozen | 2 | 12 | 12.108 | 12.686 | 12.210 |
+| frozen | 2 | 16 | 16.000 | 16.000 | 16.000 |
+| full_online | 1 | 2 | 5.438 | 6.900 | 6.784 |
+| full_online | 1 | 4 | 5.840 | 6.859 | 6.829 |
+| full_online | 1 | 6 | 6.664 | 7.379 | 7.165 |
+| full_online | 1 | 8 | 8.374 | 8.998 | 8.632 |
+| full_online | 1 | 12 | 12.074 | 12.652 | 12.150 |
+| full_online | 1 | 16 | 16.000 | 16.000 | 16.000 |
+| nested | 2 | 2 | 5.572 | 7.060 | 6.932 |
+| nested | 2 | 4 | 5.953 | 6.993 | 6.967 |
+| nested | 2 | 6 | 6.758 | 7.489 | 7.293 |
+| nested | 2 | 8 | 8.417 | 9.045 | 8.695 |
+| nested | 2 | 12 | 12.089 | 12.667 | 12.176 |
+| nested | 2 | 16 | 16.000 | 16.000 | 16.000 |
+| single_rate | 2 | 2 | 5.580 | 7.069 | 6.942 |
+| single_rate | 2 | 4 | 5.960 | 7.001 | 6.976 |
+| single_rate | 2 | 6 | 6.758 | 7.489 | 7.294 |
+| single_rate | 2 | 8 | 8.418 | 9.046 | 8.697 |
+| single_rate | 2 | 12 | 12.090 | 12.668 | 12.178 |
+| single_rate | 2 | 16 | 16.000 | 16.000 | 16.000 |

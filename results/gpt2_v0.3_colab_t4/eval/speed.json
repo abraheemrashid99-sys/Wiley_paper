@@ -1,0 +1,41 @@
+{
+  "device": "cuda",
+  "threads": 1,
+  "pretrain_it_per_s": 26.01043247232618,
+  "stream_forward_it_per_s": 56.992796087793224,
+  "stream_medium_it_per_s": 53.318729404481445,
+  "stream_full_it_per_s": 22.979547421485375,
+  "decode_ms": {
+    "llm_m2": 198.79494699989664,
+    "llm_m4": 193.1066899999223,
+    "llm_m6": 197.84236899999996,
+    "llm_m8": 193.8706490000186,
+    "llm_m12": 197.82321200000297,
+    "llm_m16": 195.01036599990584,
+    "none_m2": 3.4280969998690125,
+    "none_m4": 3.438524999864967,
+    "none_m6": 3.419185999973706,
+    "none_m8": 3.4963850000622188,
+    "none_m12": 3.6872160001166776,
+    "none_m16": 3.725056999883236
+  },
+  "tokens": 19,
+  "parameters": {
+    "frozen backbone": 124439808,
+    "codebook (trained once)": 213248,
+    "medium memory (fusion weights and logit bias)": 771,
+    "slow memory (one LoRA slot)": 147456
+  },
+  "peak_rss_mb": 1633.0625,
+  "env": {
+    "python": "3.13.15",
+    "platform": "Linux-6.6.122+-x86_64-with-glibc2.39",
+    "machine": "x86_64",
+    "torch": "2.11.0+cu130",
+    "threads": 1,
+    "transformers": "5.19.0",
+    "gpu": "Tesla T4",
+    "git": "ed2e023",
+    "time": "2026-10-14 20:40:19"
+  }
+}

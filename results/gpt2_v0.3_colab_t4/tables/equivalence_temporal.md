@@ -1,0 +1,8 @@
+**Equivalence tests against 'nested' on the 'temporal' stream: two one-sided tests at 5% on the per-step paired differences (90% block-bootstrap interval inside the margin). The margins are fixed in the configuration before the runs; 'no' means equivalence was not shown, not that a difference was shown**
+
+| method | seeds | prior bits/token: this − nested [90% CI] | prior bits/token: equivalent within ±0.05 | selective sym/token: this − nested [90% CI] | selective sym/token: equivalent within ±0.05 |
+| --- | --- | --- | --- | --- | --- |
+| context_only | 2 | +0.2628 [+0.2293, +0.2951] | no | +0.1355 [+0.1151, +0.1548] | no |
+| frozen | 2 | +0.4749 [+0.4510, +0.4979] | no | +0.4270 [+0.4000, +0.4558] | no |
+| full_online | 1 | -0.0139 [-0.0203, -0.0079] | yes | -0.0046 [-0.0106, +0.0009] | yes |
+| single_rate | 2 | +0.0050 [+0.0019, +0.0081] | yes | +0.0052 [+0.0006, +0.0095] | yes |

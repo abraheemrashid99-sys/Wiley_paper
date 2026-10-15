@@ -1,0 +1,11 @@
+stream,method,seed,variant,changed,prior bits/token,tok-acc @m_op,selective sym/token,selective tok-acc,sym/token for 90%,sync kbit/step,N* (vs context_only),slot switches
+hier,context_only,0,(reference),-,5.6538,0.8229,6.257,0.9647,5.052,0.00,-,0
+hier,context_only,0,rayleigh,channel.type=rayleigh,5.8394,0.7272,8.008,0.8895,8.568,0.00,-,0
+hier,frozen,0,(reference),-,6.8430,0.7685,7.093,0.9612,6.031,0.00,-,0
+hier,frozen,0,rayleigh,channel.type=rayleigh,6.8430,0.6736,8.746,0.8733,not reached,0.00,-,0
+hier,nested,0,(reference),-,5.2906,0.8394,5.993,0.9658,4.782,24.23,2877,5
+hier,nested,0,biasonly,nested.lrs.slow=0.0,5.5501,0.8292,6.210,0.9661,4.970,0.63,245,0
+hier,nested,0,bits4,nested.sync.bits=4,5.2908,0.8392,5.992,0.9657,4.782,12.12,1439,5
+hier,nested,0,lean,nested.periods.slow=100; nested.sync.bits=4; nested.sync.topk=0.1,5.4273,0.8331,6.122,0.9662,4.886,3.31,637,2
+hier,nested,0,lr3x,nested.lrs.medium=0.002; nested.lrs.slow=0.0015,5.2849,0.8390,5.964,0.9653,4.767,24.23,2732,5
+hier,nested,0,rayleigh,channel.type=rayleigh,5.4248,0.7496,7.661,0.8963,7.879,24.23,1131,3

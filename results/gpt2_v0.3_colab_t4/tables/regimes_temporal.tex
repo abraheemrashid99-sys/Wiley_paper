@@ -1,0 +1,27 @@
+% The 'temporal' stream by slow regime: prequential metrics while the regime is active, and held-out probes of it at the end of the stream (mean ± SD over seeds). A probe scores the receiver's copy at that moment: methods are comparable on a probe only at equal staleness (steps since the slowest level was shipped)
+\begin{tabular}{llllllllll}
+\hline
+method & regime & seeds & prior bits/token & tok-acc @m\_op & selective sym/token & selective tok-acc & held-out prior bits (end) & held-out tok-acc (end) & receiver staleness at the probe (steps) \\
+\hline
+context\_only & era0 & 2 & 5.8994 $\pm$ 0.0440 & 0.8280 $\pm$ 0.0641 & 6.3290 $\pm$ 0.9486 & 0.9700 $\pm$ 0.0064 & 6.1681 & 0.8046 & - \\
+context\_only & era1 & 2 & 5.9627 $\pm$ 0.0103 & 0.7203 $\pm$ 0.0279 & 8.1073 $\pm$ 0.4910 & 0.9487 $\pm$ 0.0044 & 6.3999 & 0.8123 & - \\
+context\_only & era2 & 2 & 6.2958 $\pm$ 0.0049 & 0.7887 $\pm$ 0.0161 & 6.9302 $\pm$ 0.3224 & 0.9670 $\pm$ 0.0024 & 6.3379 & 0.7923 & - \\
+context\_only & era3 & 2 & 6.3192 $\pm$ 0.0041 & 0.8478 $\pm$ 0.0337 & 6.0974 $\pm$ 0.4155 & 0.9645 $\pm$ 0.0044 & 6.4038 & 0.8248 & - \\
+frozen & era0 & 2 & 6.2074 $\pm$ 0.0076 & 0.8075 $\pm$ 0.0666 & 6.6610 $\pm$ 0.9896 & 0.9722 $\pm$ 0.0043 & 6.5289 & 0.7781 & - \\
+frozen & era1 & 2 & 6.2466 $\pm$ 0.0182 & 0.6965 $\pm$ 0.0314 & 8.4917 $\pm$ 0.5564 & 0.9445 $\pm$ 0.0069 & 6.5974 & 0.7959 & - \\
+frozen & era2 & 2 & 6.3991 $\pm$ 0.0034 & 0.7742 $\pm$ 0.0177 & 7.1566 $\pm$ 0.2771 & 0.9682 $\pm$ 0.0020 & 6.5500 & 0.8173 & - \\
+frozen & era3 & 2 & 6.4726 $\pm$ 0.0004 & 0.8333 $\pm$ 0.0368 & 6.3207 $\pm$ 0.4775 & 0.9661 $\pm$ 0.0084 & 6.4767 & 0.8160 & - \\
+full\_online & era0 & 1 & 5.7659 $\pm$ 0.0000 & 0.8772 $\pm$ 0.0000 & 5.6181 $\pm$ 0.0000 & 0.9763 $\pm$ 0.0000 & 5.9989 & 0.8151 & 0 \\
+full\_online & era1 & 1 & 5.7770 $\pm$ 0.0000 & 0.7519 $\pm$ 0.0000 & 7.5930 $\pm$ 0.0000 & 0.9514 $\pm$ 0.0000 & 6.1596 & 0.8269 & 0 \\
+full\_online & era2 & 1 & 5.9264 $\pm$ 0.0000 & 0.7897 $\pm$ 0.0000 & 6.9542 $\pm$ 0.0000 & 0.9646 $\pm$ 0.0000 & 5.8400 & 0.8227 & 0 \\
+full\_online & era3 & 1 & 5.9054 $\pm$ 0.0000 & 0.8392 $\pm$ 0.0000 & 6.1906 $\pm$ 0.0000 & 0.9706 $\pm$ 0.0000 & 5.9624 & 0.8513 & 0 \\
+nested & era0 & 2 & 5.8116 $\pm$ 0.0324 & 0.8332 $\pm$ 0.0623 & 6.2880 $\pm$ 0.9456 & 0.9710 $\pm$ 0.0071 & 5.9853 & 0.8183 & 600 \\
+nested & era1 & 2 & 5.7691 $\pm$ 0.0244 & 0.7312 $\pm$ 0.0283 & 7.9922 $\pm$ 0.5387 & 0.9496 $\pm$ 0.0013 & 6.1504 & 0.8251 & 600 \\
+nested & era2 & 2 & 5.9281 $\pm$ 0.0035 & 0.8016 $\pm$ 0.0187 & 6.7339 $\pm$ 0.3056 & 0.9665 $\pm$ 0.0033 & 5.8662 & 0.8227 & 600 \\
+nested & era3 & 2 & 5.9172 $\pm$ 0.0106 & 0.8607 $\pm$ 0.0317 & 5.9077 $\pm$ 0.4044 & 0.9663 $\pm$ 0.0056 & 5.9805 & 0.8541 & 600 \\
+single\_rate & era0 & 2 & 5.8232 $\pm$ 0.0291 & 0.8329 $\pm$ 0.0611 & 6.2909 $\pm$ 0.9370 & 0.9707 $\pm$ 0.0068 & 5.9699 & 0.8202 & 12 \\
+single\_rate & era1 & 2 & 5.7719 $\pm$ 0.0280 & 0.7303 $\pm$ 0.0281 & 7.9988 $\pm$ 0.5312 & 0.9499 $\pm$ 0.0013 & 6.1448 & 0.8258 & 12 \\
+single\_rate & era2 & 2 & 5.9397 $\pm$ 0.0102 & 0.8011 $\pm$ 0.0183 & 6.7449 $\pm$ 0.3049 & 0.9662 $\pm$ 0.0036 & 5.8591 & 0.8208 & 12 \\
+single\_rate & era3 & 2 & 5.9110 $\pm$ 0.0131 & 0.8605 $\pm$ 0.0315 & 5.9079 $\pm$ 0.4064 & 0.9670 $\pm$ 0.0054 & 5.9805 & 0.8532 & 12 \\
+\hline
+\end{tabular}
