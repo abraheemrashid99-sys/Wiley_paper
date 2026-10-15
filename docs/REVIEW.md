@@ -1,4 +1,4 @@
-# Review of the version 0.2 study, and what version 0.3 does about it
+# Review of the version 0.2 study, and what versions 0.3 and 0.4 do about it
 
 This is a referee-style review of the code and of the result set in
 `results/gpt2`, written before any text of the paper exists. It lists every
@@ -14,7 +14,11 @@ The evidence, however, does not support the claims as they were worded: the
 headline rests on a cost that was not charged, on an emulation that was not
 audited, and on three seeds. The first audited runs (section E) show that
 the first two matter a great deal: decoded for real and with its signalling
-charged, the full system saves well under half of what the pilot reported.
+charged, the full system saved about half of what the pilot reported (25.7 %
+against 47.7 % on three seeds, `results/gpt2/RESULTS.md`, section 12).
+Version 0.4 replaces the refinement decoder by one chosen on validation text
+(A7), which on that text lowers the cost of refinement with signalling by
+8 %.
 
 Status key — **Fixed**: done and tested in version 0.3. **Fixed in code,
 needs the run**: the measurement or protocol exists and is tested, but the
@@ -31,7 +35,7 @@ done; what it takes is stated.
 | A4 | **"Indistinguishable" was read off a non-significant test.** The interval of `nested` against `full_online` contains zero, which is absence of evidence. | `RESULTS.md`, section 5. | Two one-sided equivalence tests on the per-step differences with margins fixed in the configuration before the runs (±0.05 bits/token, ±0.05 symbols/token). | Fixed in code, needs the run. |
 | A5 | **The result set is not one experiment.** The 37 stream runs carry five code revisions; the code was being optimised while they were launched, and only two runs were repeated afterwards. | `env.git` in the result files: 11, 9, 8, 6 and 3 runs. | One command runs a profile from scratch on one revision; the comparison report shows provenance and flags a folder that mixes revisions. | Fixed in code, needs the run. Section E reports the 6 runs repeated for this review. |
 | A6 | **One language model, from 2019.** For a special issue on LLM-enabled semantic communication, GPT-2 (124M) alone will not pass. | — | `configs/laptop.yaml` (SmolLM2-135M, official corpora) runs with the same command. | **Open**: needs a machine that reaches Hugging Face. The configuration has never been run end to end. |
-| A7 | **Real decoding is much weaker than the emulation at short prefixes** (found by the audit of A2). The receiver's own wrong decisions mislead the language prior, so the selective policy, which starts at 2 symbols per token, spends rounds and signalling on decisions taken in a corrupted context. With signalling charged and both sides decoded for real, refinement adds only a few percent to what the memories give (section E). | Section E; `live_fixed_curve` and `live_curve` in the result files. | None yet: this is a finding of the review, and the remedy is method work. Candidates, each to be chosen on validation text only: a later first shell, beam search, reopening closed tokens, a prior weight tied to the SNR. The first-shell table gives the emulated side of the first one. | **Open** — to be done before the confirmatory runs. |
+| A7 | **Real decoding is much weaker than the emulation at short prefixes** (found by the audit of A2). The receiver's own wrong decisions mislead the language prior, so the selective policy, which starts at 2 symbols per token, spends rounds and signalling on decisions taken in a corrupted context. With signalling charged and both sides decoded for real, refinement adds only a few percent to what the memories give (section E). | Section E; `live_fixed_curve` and `live_curve` in the result files. | Version 0.4: three remedies (first shell of 2, 4 or 6 symbols; reopening of closed tokens; beam search of width 2 or 4) pre-registered in METHOD 2.5 and compared on validation text only, by real symbols at the target with the signalling charged. Selected: beam 4, first shell 6 symbols, no reopening — 8.248 symbols per token against 8.971 for the version 0.3 decoder and 10.541 for the fixed prefix with the same beam (`results/decoder_selection`). Written into the configurations; the audit is denser (every 23rd step, five thresholds), pooled over seeds, with paired bootstrap intervals (`tables/realdecode_*.md`). On the three seeds of the GPU reproduction the version 0.3 decoder already saved 25.7 % against the frozen fixed prefix when decoded for real (RESULTS, section 12). | **Addressed on validation text; to be confirmed by the confirmatory runs.** |
 
 ## B. Major
 
@@ -45,7 +49,7 @@ done; what it takes is stated.
 | B6 | **No semantic fidelity metric** in a semantic-communication paper, and the decoded texts needed to add one were not kept (contrary to the text). | `results/gpt2/eval/rate_europarl_nltk.json` has no texts. | chrF and word error rate are computed everywhere; decoded texts of every prior are exported; `scripts/add_similarity.py` adds sentence-embedding similarity from them. | Fixed in code. Sentence similarity itself: **open** (needs Hugging Face). |
 | B7 | **No cost figures**, although the call asks for efficiency and the receiver evaluates a 50 257-way posterior per token. | — | The speed benchmark is part of every profile and records step rates, per-message decode latency at every prefix, parameter counts and peak memory; a cost table is generated. | Fixed in code, needs the run. Energy: **open**. |
 | B8 | **No trained end-to-end baseline**, and the ideal-separation reference beats the scheme at a fixed rate (96.5 % of messages delivered at 6 symbols/token against 85.7 % token accuracy). | `RESULTS.md`, section 3. | None in code. The paper must state plainly that the fixed-rate token scheme does not beat ideal separation and that its case rests on graceful degradation and refinement. | **Open**: a DeepSC-style baseline at matched symbols per token. |
-| B9 | **The LLM prior hurts at 0 dB** with greedy free-running decoding (token accuracy 0.119 against 0.196 for the unigram receiver at 8 symbols). | `RESULTS.md`, section 9. | None in code; the `snr_low` study (mean 5 dB) will show how far it reaches into the operating range. | **Open**: beam search, or a prior weight tied to the SNR and tuned on validation text only. |
+| B9 | **The LLM prior hurts at 0 dB** with greedy free-running decoding (token accuracy 0.119 against 0.196 for the unigram receiver at 8 symbols). | `RESULTS.md`, section 9. | Version 0.4 decodes the streams with beam search (A7); the `snr_low` study (mean 5 dB) will show how far the problem reaches into the operating range. The rate evaluation of the base corpus still decodes greedily. | **Open** for the base-corpus evaluation at 0 dB; a prior weight tied to the SNR is not tried. |
 | B10 | **Missing artefacts.** The Colab notebook the README linked to and the codebook checkpoint `RESULTS.md` pointed to were not in the repository. | `notebooks/` absent; `*.pt` ignored. | Notebook added; the codebook was retrained with the published code and reproduces the published training log line by line (45 of 45), so the file added is the published codebook. | Fixed. The notebook has not been executed on a GPU. |
 
 ## C. Minor
@@ -120,9 +124,10 @@ headline must not be written into a paper.
 
 ## F. What has to happen before the paper is written
 
-**First, the decoder (A7).** The first look in section E says that the
-simplest refinement policy does not pay for itself once it is decoded for
-real. Before any confirmatory run:
+**First, the decoder (A7) — done in version 0.4** on validation text with
+the tuning script below instead of `eval_refine.py` (`docs/METHOD.md`,
+section 2.5; `results/decoder_selection`): beam 4, first shell 6 symbols, no
+reopening. The plan as it was written:
 
 1. Extend the base-corpus refinement evaluation (`scripts/eval_refine.py`)
    to decode for real with a later first shell, with beam search and with

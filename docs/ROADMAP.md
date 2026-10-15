@@ -13,8 +13,9 @@ LLM-enabled semantic communications, deadline **31 March 2027**.
 | Strict review of that result set (`docs/REVIEW.md`) | done |
 | Measurement fixes from the review (signalling of refinement, free-running audit, statistics, artefacts) | done in version 0.3, tested |
 | Confirmatory protocol written down (`docs/METHOD.md`, section 9) | done |
-| **Decoder for selective refinement that holds up when decoded for real** (`docs/REVIEW.md`, A7 and F) | **open — next** |
-| Confirmatory runs (`--profile core`) | to run after that |
+| Independent reproduction of the pilot on a GPU (Colab T4, all 37 runs) | done: REPRODUCED, `results/gpt2_v0.3_colab_t4`; new measurements on every seed in `results/gpt2/RESULTS.md`, section 12 |
+| Decoder for selective refinement, chosen on validation text (`docs/REVIEW.md`, A7) | done in version 0.4: beam 4, first shell 6 symbols (`results/decoder_selection`) |
+| **Confirmatory runs (`--profile core`)** | **next** (Colab notebook, `PROFILE = "core"`) |
 | Sensitivity studies (`--profile paper`) | to run |
 | Second backbone (SmolLM2-135M, `configs/laptop.yaml`) | to run where Hugging Face is reachable |
 | Sentence-embedding similarity | to add where Hugging Face is reachable (`scripts/add_similarity.py`) |
@@ -39,17 +40,17 @@ survive, the gain of the memories does.
 
 ## Remaining experiments, in order
 
-### 0. The decoder comes first
+### 0. The decoder comes first — done (version 0.4)
 
-The first runs with the corrected code (`results/gpt2/RESULTS.md`, section
-11) show that the simplest refinement policy loses most of its emulated gain
-when it is decoded for real and its signalling is charged. Running six seeds
-of a policy that is known to be weak wastes the machine time. First extend
-`scripts/eval_refine.py` so that it decodes for real, on the validation split
-of the base corpus, with a later first shell, beam search and reopening of
-closed tokens; pick one variant by total symbols at the target accuracy;
-write it into `docs/METHOD.md`. Then go on with A. The steps are in
-`docs/REVIEW.md`, section F.
+The first runs with the corrected code showed that the simplest refinement
+policy loses about half of its emulated gain when it is decoded for real and
+its signalling is charged (`results/gpt2/RESULTS.md`, sections 11 and 12).
+Version 0.4 chose a better decoder on validation text only, by the rule
+written into `docs/METHOD.md`, section 2.5, before it was run: beam search
+of width 4 and a first round of 6 symbols per token (8.1 % fewer symbols
+with signalling than the version 0.3 decoder on the validation set). It is
+in the configurations; `--profile core` uses it, and `--profile published`
+keeps the decoder of the published runs.
 
 ### A. Confirmatory study with GPT-2 (one command)
 
@@ -58,8 +59,9 @@ python scripts/reproduce.py --config configs/gpt2.yaml --out runs/gpt2_core \
     --export results_repro/gpt2_core --reference results/gpt2 --profile core
 ```
 
-88 stream runs; on two CPU cores roughly a day and a half, on a GPU a
-fraction of that. It contains the published runs, so its `COMPARISON.md`
+88 stream runs and the decoder selection repeated as a check; on two CPU
+cores several days with the version 0.4 audit (beam search on every audited
+step), on a Colab T4 roughly 10–15 hours, resumable from Google Drive. It contains the published runs, so its `COMPARISON.md`
 also checks the pilot. Afterwards:
 
 ```

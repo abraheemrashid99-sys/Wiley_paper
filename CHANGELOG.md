@@ -1,5 +1,53 @@
 # Changelog
 
+## 0.4.0 — the refinement decoder, and the real-decoding endpoint
+
+**Finding.** The independent GPU reproduction (Colab T4) of all 37 published
+runs is REPRODUCED (largest headline difference 1.84 %). Its new
+measurements on every seed: decoded for real and with the signalling
+charged, the full system saves 25.7 % (hierarchical stream) and 21.1 %
+(temporal) of the symbols of the frozen fixed-prefix receiver, against 47.7 %
+and 38 % emulated without signalling (`results/gpt2/RESULTS.md`, section 12).
+
+Method
+- Decoder of selective refinement chosen on validation text only, by a rule
+  written down before it ran (`docs/METHOD.md`, section 2.5;
+  `scripts/tune_decoder.py`; `results/decoder_selection`): **beam search of
+  width 4, a first round of 6 symbols per token, no reopening** — 8.248
+  symbols per token at 90 % token accuracy with signalling, against 8.971
+  for the version 0.3 decoder and 10.541 for the fixed prefix with the same
+  beam. Beam search (with the language model's cache reordered per beam) and
+  reopening of closed tokens are implemented and tested; the configured
+  decoder is used for selective refinement and the fixed-prefix reference
+  alike.
+- The emulated policy, and the decisions that feed the receiver's memories,
+  start at the decoder's first shell.
+
+Measurement and statistics
+- Primary endpoint decoded for real (`tables/realdecode_*.md`): operating
+  curves pooled over the seeds, every receiver against the frozen fixed
+  prefix on the same seeds and steps, 95 % paired bootstrap intervals over
+  the audited steps (a missed target counts as an infinite cost), per-seed
+  readings and the exact seed-level test with Holm correction.
+- Denser audit in the study configurations: every 23rd step (was 47th), at
+  every threshold of the curve (0.5–0.99), so that the target accuracy is
+  bracketed when decoding for real; each audited step keeps its request
+  decisions so that the entropy of the signalling is exact for any subset.
+- The report's headline adds the real-decoding comparison; both headline
+  tables and the net-rate table compare every receiver with the frozen
+  receiver on the same seeds. The published `TABLES.md` compared runs with
+  one seed with the three-seed mean, which flattered `nested_two_level`,
+  `ewc`, `nested_no_context` and temporal `full_online` by 2–3 points
+  (`docs/REVIEW.md`, C8).
+- Result files record the code revision at which their process started.
+
+Reproduction
+- `--profile published` pins the decoder of the published runs; `core` and
+  `paper` use the configured one and repeat the decoder selection as a check.
+- `compare_results.py` states the decoder of both folders and does not call
+  two folders with different first shells a reproduction.
+- The Colab notebook defaults to the confirmatory profile.
+
 ## 0.3.1
 
 - Scripts that print a report crashed on Windows consoles, whose default

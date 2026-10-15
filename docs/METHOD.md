@@ -213,6 +213,48 @@ and the tie goes to the one with fewer rounds per message. The selected
 decoder is then fixed for every stream run; its result on the validation set
 is reported, but the claims of the paper rest on the streams.
 
+*Selected decoder* (`results/decoder_selection`; 96 messages, 1633 tokens,
+SNR mean 9.8 dB). Symbols per token at 90 % token accuracy, decoded for
+real, with the signalling charged at its entropy:
+
+| First shell | Reopening | Greedy | Beam 2 | Beam 4 |
+| --- | --- | --- | --- | --- |
+| 2 symbols (version 0.3) | no | 8.971 | | |
+| 2 symbols | yes | 9.937 | | |
+| 4 symbols | no | **8.652** | | |
+| 4 symbols | yes | 9.640 | | |
+| 6 symbols | no | 8.730 (tied, fewer rounds: stage-1 winner) | 8.476 | **8.248 (selected)** |
+| 6 symbols | yes | 9.533 | | |
+| Fixed prefix, same beam | — | 10.994 | 10.712 | 10.541 |
+
+Stage 1: the first shell of 4 symbols is lowest (8.652); 6 symbols (8.730)
+is within 1 % and needs fewer rounds (3.0 against 4.0 per message at
+confidence 0.95), so it wins under the rule. Reopening loses in every case:
+it decodes more accurately for the same forward symbols, but every token
+with shells left takes part in every round's decisions, and that signalling
+costs more than it saves (at its entropy, 3.5–4.2 bits per token against
+2.4–2.5 without reopening for a first shell of 2 symbols, 3.2–3.4 against
+2.1–2.3 for 4, and 2.3–2.6 against 1.6–1.9 for 6). Stage 2: beam 4 lowers the criterion by 5.5 % (beam 2 by
+2.9 %), above the 2 % bar. **The decoder of every stream run from version
+0.4 on is therefore: beam search of width 4, a first round of 6 symbols per
+token, no reopening** (`decoder` in the configurations). On the validation
+set it needs 8.1 % fewer symbols than the version 0.3 decoder, and 21.8 %
+fewer than the fixed prefix decoded with the same beam (25.0 % fewer than
+the greedy fixed prefix).
+
+Two limits of the selection, stated as they fell. (i) With a first shell of 6
+symbols, and with reopening, the operating curve already exceeds 90 % at the
+lowest threshold of the grid (0.7), so the criterion of those candidates is
+read at that point and is an upper bound; a lower threshold could only have
+favoured them, and the selected candidate is one of them. The stream audits
+therefore include the threshold 0.5. (ii) The selection was made with GPT-2
+and the published codebook; the other configurations use the same decoder,
+and every confirmatory run repeats the selection on its own codebook as a
+check (`scripts/reproduce.py --profile core`). The file records the
+revision at which it was written (`9f66973+dirty`); the selection was
+launched at revision `5305d3f`, and the code it uses did not change in
+between (`results/decoder_selection/README.md`).
+
 *First shell.* Starting at the shortest prefix maximises the number of rounds.
 The same policy is therefore also scored with every later shell as the first
 one (fewer rounds and less signalling for more forward symbols). The paper's

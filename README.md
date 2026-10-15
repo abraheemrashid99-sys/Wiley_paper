@@ -6,15 +6,20 @@ Communication Systems* special issue "Next-Generation 6G Mobile Networks and
 Services: LLM-Enabled Semantic Communications" (submission deadline
 31 March 2027).
 
-**Status: v0.3 (review release).** The method, the full experiment pipeline
-and a first complete set of results with a pretrained LLM (GPT-2, 124M) are
-in this repository: see [`results/gpt2/RESULTS.md`](results/gpt2/RESULTS.md).
-That result set (version 0.2) was then reviewed strictly:
-[`docs/REVIEW.md`](docs/REVIEW.md) lists every finding and what was done
-about it. Version 0.3 fixes what can be fixed in code and in the write-up and
-adds the confirmatory protocol ([`docs/METHOD.md`](docs/METHOD.md),
-section 9); **the confirmatory runs themselves have not been made yet**, so
-the numbers in `results/gpt2` are to be read as a pilot. Version 0.1 (a
+**Status: v0.4.** The method, the full experiment pipeline and a first
+complete set of results with a pretrained LLM (GPT-2, 124M) are in this
+repository: see [`results/gpt2/RESULTS.md`](results/gpt2/RESULTS.md). That
+result set (version 0.2) was reviewed strictly
+([`docs/REVIEW.md`](docs/REVIEW.md) lists every finding and what was done
+about it) and reproduced independently on a GPU (all 37 runs, REPRODUCED).
+Version 0.3 added the measurements the review asked for and the confirmatory
+protocol ([`docs/METHOD.md`](docs/METHOD.md), section 9); they show that,
+decoded for real and with its return-link signalling charged, the full
+system saves about a quarter of the channel symbols of a frozen fixed-rate
+receiver, not half. Version 0.4 replaces the refinement decoder by one chosen
+on validation text only (beam search, a first round of 6 symbols per token).
+**The confirmatory runs have not been made yet**, so the numbers in
+`results/gpt2` are to be read as a pilot. Version 0.1 (a
 sentence-level soft-prompt autoencoder) could not be trained on a CPU; that
 negative result is recorded in `docs/METHOD.md`, section 8.
 
@@ -109,8 +114,9 @@ displays `COMPARISON.md`. A CPU and a GPU do not produce bit-identical
 numbers, so the comparison against a tolerance and against the conclusions
 is the meaningful test; on the same machine, with the same library versions,
 the runs are repeatable bit for bit (`requirements-lock.txt` lists the
-versions behind `results/gpt2`). The notebook has not been executed on a GPU
-by the authors yet.
+versions behind `results/gpt2`). Run with `PROFILE = "published"` on a Colab
+T4, it reproduced all 37 published runs (`results/gpt2_v0.3_colab_t4`); its
+default is now `"core"`, the confirmatory study.
 
 ### A second backbone on a CPU-only laptop (`configs/laptop.yaml`)
 
@@ -191,8 +197,9 @@ Verified by the test suite (Linux, CPU, PyTorch 2.14, Transformers 5.19;
   shipped, with a bit-exact ledger;
 - the accounting of refinement signalling against hand-computed cases; the
   free-running refinement decoder against the emulation where the two must
-  coincide (one-token messages) and at its limits; that the audit moves no
-  other number;
+  coincide (one-token messages) and at its limits; beam search against greedy
+  decoding at width one and against exhaustive search at full width; that the
+  audit moves no other number; the bootstrap of the real-decoding endpoint;
 - every script run from the shell, the reproduction plans of all profiles,
   the comparison report on a matching and on a tampered folder, and the code
   path used for real backbones (Llama-style and GPT-2-style layers).
@@ -202,22 +209,21 @@ two CPU cores). For version 0.3 the published codebook was regenerated
 (training log identical line by line) and 6 of the 37 published
 stream runs were repeated with the corrected code: all are identical to the
 published per-step logs in every measured value. `results/gpt2/RESULTS.md`,
-section 11, reports this and the first values of the new measurements.
+section 11, reports this and the first values of the new measurements;
+section 12 the reproduction of all 37 runs on a Colab T4 and the new
+measurements on every seed. The decoder selection of version 0.4 is in
+`results/decoder_selection`.
 
 **Not done yet:**
 
-- a refinement decoder that holds up when decoded for real (the first
-  audited runs show that the simplest one does not: `docs/REVIEW.md`, A7);
-- the confirmatory runs (`--profile core`) and the sensitivity studies
-  (`--profile paper`);
+- the confirmatory runs (`--profile core`, with the decoder chosen in
+  version 0.4) and the sensitivity studies (`--profile paper`);
 - a second backbone (`configs/laptop.yaml` is ready for it) and
   sentence-embedding similarity (`scripts/add_similarity.py`); both need
   Hugging Face;
 - a trained end-to-end baseline, and decoding at low SNR;
-- execution on a physical GPU, on Windows or on macOS by the authors. The
-  device handling was checked on a CPU with a virtual second device
-  (`tools/device_audit`) for version 0.2 only; the Colab notebook starts with
-  a GPU self-test of the complete protocol. Apple MPS is untested.
+- execution on macOS. The published profile has run on a Colab T4 GPU and
+  the test suite on Windows 11; Apple MPS is untested.
 
 ## Reproducibility rules this repository follows
 
