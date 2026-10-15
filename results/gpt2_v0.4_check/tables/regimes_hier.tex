@@ -1,0 +1,13 @@
+% The 'hier' stream by slow regime: prequential metrics while the regime is active, and held-out probes of it at the end of the stream (mean ± SD over seeds). A probe scores the receiver's copy at that moment: methods are comparable on a probe only at equal staleness (steps since the slowest level was shipped)
+\begin{tabular}{llllllllll}
+\hline
+method & regime & seeds & prior bits/token & tok-acc @m\_op & selective sym/token & selective tok-acc & held-out prior bits (end) & held-out tok-acc (end) & receiver staleness at the probe (steps) \\
+\hline
+context\_only & ag\_news & 1 & 6.1867 $\pm$ 0.0000 & 0.8167 $\pm$ 0.0000 & 7.6675 $\pm$ 0.0000 & 0.9804 $\pm$ 0.0000 & 6.3420 & 0.8316 & - \\
+context\_only & teleqna & 1 & 5.0517 $\pm$ 0.0000 & 0.8209 $\pm$ 0.0000 & 7.7804 $\pm$ 0.0000 & 0.9753 $\pm$ 0.0000 & 4.8965 & 0.8782 & - \\
+frozen & ag\_news & 1 & 6.5875 $\pm$ 0.0000 & 0.7992 $\pm$ 0.0000 & 7.8235 $\pm$ 0.0000 & 0.9809 $\pm$ 0.0000 & 6.6539 & 0.8081 & - \\
+frozen & teleqna & 1 & 7.0986 $\pm$ 0.0000 & 0.7269 $\pm$ 0.0000 & 8.6042 $\pm$ 0.0000 & 0.9690 $\pm$ 0.0000 & 7.2270 & 0.7915 & - \\
+nested & ag\_news & 1 & 5.9627 $\pm$ 0.0000 & 0.8244 $\pm$ 0.0000 & 7.5944 $\pm$ 0.0000 & 0.9815 $\pm$ 0.0000 & 5.8482 & 0.8349 & 150 \\
+nested & teleqna & 1 & 4.5322 $\pm$ 0.0000 & 0.8431 $\pm$ 0.0000 & 7.5596 $\pm$ 0.0000 & 0.9766 $\pm$ 0.0000 & 4.1277 & 0.9091 & 150 \\
+\hline
+\end{tabular}

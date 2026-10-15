@@ -1,0 +1,7 @@
+**Forward symbols per token needed on the 'hier' stream for three target token accuracies (mean over seeds; n/a = not reached within the measured curve, or below its cheapest point for one of the seeds)**
+
+| method | seeds | fixed, 85% | selective, 85% | fixed, 90% | selective, 90% | fixed, 95% | selective, 95% |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| context_only | 1 | 6.714 | 6.624 | 7.858 | 6.624 | 10.562 | 7.151 |
+| frozen | 1 | 7.546 | 6.879 | 9.089 | 7.075 | 11.315 | 7.710 |
+| nested | 1 | 6.404 | 6.555 | 7.648 | 6.555 | 10.262 | 6.967 |

@@ -1,0 +1,4 @@
+method,seeds,audited steps,fixed prefix,fixed prefix vs frozen fixed,selective + feedback (entropy),vs frozen fixed [95% CI],vs own fixed (what refinement adds),selective + feedback (bitmap),bitmap vs frozen fixed,draws missing the target,per-seed saving vs frozen fixed (entropy),p (seed-level),p (Holm),smallest attainable p
+frozen,1,26,10.253,—,8.430,"-17.8% [-21.5%, -5.7%]","-17.8% [-21.5%, -5.7%]",8.498,"-17.1% [-20.9%, -3.8%]",0.0%,-17.8%,-,-,1.0000
+context_only,1,26,8.763,"-14.5% [-20.9%, -7.5%]",7.502,"-26.8% [-31.8%, -11.4%]","-14.4% [-20.8%, -2.5%]",7.674,"-25.2% [-30.5%, -8.5%]",0.0%,-26.8%,-,-,1.0000
+nested,1,26,7.979,"-22.2% [-26.9%, -10.8%]",7.392,"-27.9% [-33.7%, -12.5%]","-7.4% [-19.2%, +0.3%]",7.582,"-26.1% [-32.3%, -9.2%]",0.0%,-27.9%,-,-,1.0000

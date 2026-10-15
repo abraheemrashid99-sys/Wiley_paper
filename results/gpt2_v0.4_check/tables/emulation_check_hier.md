@@ -1,0 +1,7 @@
+**Emulation check on the 'hier' stream (docs/METHOD.md, section 9): free-running against teacher-forced forward symbols per token for 90% token accuracy on exactly the audited steps, curves pooled over the seeds. Verdict: every method within 5% - the teacher-forced curves stand as the measurement, the free-running ones are reported next to them**
+
+| method | seeds | free-running, forward | emulated on the same steps | gap | within 5% |
+| --- | --- | --- | --- | --- | --- |
+| context_only | 1 | 6.906 | 6.670 | +3.5% | yes |
+| frozen | 1 | 7.604 | 7.289 | +4.3% | yes |
+| nested | 1 | 6.831 | 6.609 | +3.4% | yes |

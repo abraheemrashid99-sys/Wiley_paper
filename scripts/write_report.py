@@ -35,6 +35,13 @@ SECTIONS = [
 STREAM_REFINE = ("refine_cost_", "refine_start_")
 
 
+def ordinal(n) -> str:
+    if not isinstance(n, int):
+        return "?th"
+    suffix = "th" if 10 <= n % 100 <= 20 else {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
+    return f"{n}{suffix}"
+
+
 def headline(stream_dir: Path, kind: str) -> list[str]:
     runs = defaultdict(dict)
     for path in sorted(glob.glob(str(stream_dir / f"{kind}_*.json"))):
@@ -58,7 +65,7 @@ def headline(stream_dir: Path, kind: str) -> list[str]:
     target = next(iter(runs["frozen"].values()))["target_acc"]
     fixed, n_fixed = need("frozen", "symbols_at_target_fixed")
     lines = [
-        f"Real symbols per token needed for {target:.0%} token accuracy on the '{kind}' stream (mean over seeds; read off each method's measured operating curve). Every receiver is compared with the frozen receiver on the same seeds.",
+        f"Real channel symbols per token needed for {target:.0%} token accuracy on the '{kind}' stream, teacher-forced on every step (mean over seeds; read off each method's measured operating curve). Every receiver is compared with the frozen receiver on the same seeds.",
         "",
         "| Receiver | Seeds | Prior bits/token | Symbols/token | vs. frozen at a fixed rate | vs. frozen with refinement | Sync kbit/step | Symbols/token incl. feedback (entropy) | vs. frozen at a fixed rate, feedback charged |",
         "| --- | --- | --- | --- | --- | --- | --- | --- | --- |",
@@ -85,7 +92,7 @@ def headline(stream_dir: Path, kind: str) -> list[str]:
         shell = "the smallest" if decoder["start_m"] is None else f"{decoder['start_m']} symbols"
         lines += [
             "",
-            f"**Decoded for real.** The same symbols decoded free-running on the audited steps (every {first.get('live_every', '?')}th step of every run, pooled over the seeds of a method) with the decoder of the run (beam {decoder['beam']}, first shell {shell}, reopening {'on' if decoder['reopen'] else 'off'}), for selective refinement and the fixed-prefix reference alike; selective refinement is charged its signalling. Every receiver is compared with the frozen receiver's fixed prefix on the same seeds.",
+            f"**Decoded for real.** The same symbols decoded free-running on the audited steps (every {ordinal(first.get('live_every'))} step of every run, pooled over the seeds of a method) with the decoder of the run (beam {decoder['beam']}, first shell {shell}, reopening {'on' if decoder['reopen'] else 'off'}), for selective refinement and the fixed-prefix reference alike; selective refinement is charged its signalling. Every receiver is compared with the frozen receiver's fixed prefix on the same seeds.",
             "",
             "| Receiver | Seeds | Audited steps | Fixed prefix | vs. frozen fixed prefix | Selective + signalling (entropy) | vs. frozen fixed prefix | Selective + signalling (bitmap) | vs. frozen fixed prefix |",
             "| --- | --- | --- | --- | --- | --- | --- | --- | --- |",

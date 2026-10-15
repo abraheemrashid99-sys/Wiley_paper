@@ -21,7 +21,8 @@ material, and results that go against the method are listed in Section 9.
 > 3. **Refinement on the streams is emulated teacher-forced**, not decoded for
 >    real.
 > 4. **The 37 stream runs were produced by five code revisions** and were
->    never re-run from scratch as a whole.
+>    never re-run from scratch as a whole here (they were on a GPU, from one
+>    revision: Section 12).
 >
 > Version 0.3 of the code measures items 2 and 3 and fixes the protocol for
 > items 1 and 4 (`docs/METHOD.md`, section 9). Section 11 reports what was
@@ -29,7 +30,10 @@ material, and results that go against the method are listed in Section 9.
 > all of it on a GPU with the new measurements on every seed: **decoded for
 > real and with the signalling charged, the full system saves about 26 %
 > (hierarchical stream) and 21 % (temporal stream) of the symbols of a frozen
-> fixed-rate receiver, not 47.7 % and 38 %.**
+> fixed-rate receiver, not 47.7 % and 38 %.** Section 13 reports the decoder
+> chosen for version 0.4 on validation text and a first look at it on one
+> test seed (27.9 % decoded for real, and an emulation that now holds within
+> 5 %).
 
 ## 1. Setup in brief
 
@@ -560,4 +564,61 @@ stream `full_online` −37.5 % (−39.6 %). In particular `nested_two_level` doe
 not beat `nested` (−47.7 %); the paired per-step comparison of Section 5
 already showed it slightly worse. The published `TABLES.md` is left as it
 was produced; the corrected script prints the matched figures.
+
+## 13. The decoder of version 0.4, and a first look at it on a test stream
+
+**The decoder** was chosen on validation text only, by a rule written down
+before it ran (`docs/METHOD.md`, section 2.5; `results/decoder_selection`):
+beam search of width 4 (ranking sentences by their joint posterior), a first
+round of 6 symbols per token, and no reopening of closed tokens. On 96
+validation messages it needs 8.306 symbols per token for 90 % token accuracy
+decoded for real with the signalling charged, against 8.971 for the decoder
+of version 0.3 (−7.4 %). Beam search also lowers the fixed prefix, from
+10.994 to 9.049 symbols per token (−17.7 %): much of what refinement had
+recovered was error propagation at short prefixes, which a better decoder
+removes for the fixed-rate receiver too. Both sides of every comparison
+below use the same decoder.
+
+**First look on the hierarchical stream, seed 0** (`frozen`,
+`context_only`, `nested`; files in
+[`../gpt2_v0.4_check`](../gpt2_v0.4_check); 26 audited steps, 156 messages
+per receiver). Symbols per token for 90 % token accuracy; intervals are 95 %
+paired bootstrap intervals over the audited steps.
+
+| Receiver | Teacher-forced (600 steps): fixed prefix | selective + signalling (entropy) | vs. frozen fixed | Real: fixed prefix | Real: selective + signalling (entropy) | vs. frozen fixed (real) | what refinement adds (real) |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `frozen` | 9.089 | 7.734 | −14.9 % | 10.253 | 8.430 | −17.8 % [−21.5 %, −5.7 %] | −17.8 % [−21.5 %, −5.7 %] |
+| `context_only` | 7.858 | 7.100 | −21.9 % | 8.763 | 7.502 | −26.8 % [−31.8 %, −11.4 %] | −14.4 % [−20.8 %, −2.5 %] |
+| **`nested`** | 7.648 | **6.998** | **−23.0 %** | 7.979 | **7.392** | **−27.9 % [−33.7 %, −12.5 %]** | −7.4 % [−19.2 %, +0.3 %] |
+
+What it shows, on this one seed:
+
+- **The emulation now holds.** On the audited steps, selective refinement
+  decoded for real needs 3.4–4.3 % more forward symbols than the
+  teacher-forced emulation (version 0.3 decoder on the same seed: 29.6–33.2 %,
+  Section 11), and the fixed prefix 0.5–7.1 % more (12.6 % for `frozen`
+  before). By the decision
+  rule of `docs/METHOD.md`, section 9 (at most 5 % for every method), the
+  teacher-forced curves would stand as the measurement, with the
+  free-running ones next to them (`tables/emulation_check_hier.md`). The
+  first round of 6 symbols removes the short prefixes at which the
+  receiver's own errors mislead the language model, and beam search
+  repairs much of the rest.
+- **The signalling is lighter.** At confidence 0.9 the requests cost 1.4–1.6
+  bits per token at their entropy (1.5–1.7 as a bitmap), over about three
+  rounds per message, against about 2.5 bits and five rounds with the
+  version 0.3 decoder.
+- **The full system saves 23.0 % teacher-forced and 27.9 % decoded for
+  real** against the frozen fixed prefix with the same decoder, signalling
+  charged; with the version 0.3 decoder this seed gave 17.9 % decoded for real
+  (Section 11, other audited steps). Refinement alone saves the frozen
+  receiver 17.8 % (it changed its cost by −1.2 % before), and the memories at
+  a fixed prefix 14.5 % (context) and 22.2 % (`nested`).
+- **What refinement adds shrinks as the receiver improves:** 17.8 % for the
+  frozen receiver, 14.4 % with the context memory, 7.4 % for `nested`, whose
+  interval reaches zero. The memories and refinement overlap: both remove
+  the uncertainty that refinement would otherwise pay to resolve.
+
+One seed, and one that had been seen before: the confirmatory runs
+(`--profile core`, six seeds, both streams) decide what the paper may claim.
 
