@@ -319,50 +319,50 @@
       "points": [
         {
           "threshold": 0.7,
-          "symbols": 7.627679118187385,
-          "tok_acc": 0.9252908756889161,
-          "rounds": 2.625000014901161,
-          "feedback_bits": 1.5456215554194734,
-          "feedback_entropy_bits": 1.467019602142284,
-          "symbols_total": 8.521248771128413,
-          "symbols_total_entropy": 8.475806651183778
+          "symbols": 7.737905695039804,
+          "tok_acc": 0.9485609308022045,
+          "rounds": 2.6666666492819786,
+          "feedback_bits": 1.556031843233313,
+          "feedback_entropy_bits": 1.495643555244296,
+          "symbols_total": 8.637493844058485,
+          "symbols_total_entropy": 8.602581584100125
         },
         {
           "threshold": 0.85,
-          "symbols": 8.17636252296387,
-          "tok_acc": 0.9503980404164115,
-          "rounds": 2.8854166716337204,
-          "feedback_bits": 1.693202694427434,
-          "feedback_entropy_bits": 1.6565042133393015,
-          "symbols_total": 9.155253208535163,
-          "symbols_total_entropy": 9.13403672841142
+          "symbols": 8.156766687078996,
+          "tok_acc": 0.9693815064298836,
+          "rounds": 2.875000014901161,
+          "feedback_bits": 1.6809552969993877,
+          "feedback_entropy_bits": 1.6463370802115382,
+          "symbols_total": 9.12857678902952,
+          "symbols_total_entropy": 9.108562971383089
         },
         {
           "threshold": 0.95,
-          "symbols": 8.723821187997551,
-          "tok_acc": 0.9650949173300674,
+          "symbols": 8.666258420085732,
+          "tok_acc": 0.9828536436007348,
           "rounds": 3.010416656732559,
-          "feedback_bits": 1.8322106552357624,
-          "feedback_entropy_bits": 1.7993774662970343,
-          "symbols_total": 9.783076497664569,
-          "symbols_total_entropy": 9.764094657548497
+          "feedback_bits": 1.8193508879363136,
+          "feedback_entropy_bits": 1.786534461384608,
+          "symbols_total": 9.718079116950943,
+          "symbols_total_entropy": 9.69910696766786
         },
         {
           "threshold": 0.99,
-          "symbols": 9.371708511941213,
-          "tok_acc": 0.9742804654011022,
+          "symbols": 9.320269442743417,
+          "tok_acc": 0.9859154929577465,
           "rounds": 3.15625,
-          "feedback_bits": 1.9969381506429884,
-          "feedback_entropy_bits": 1.916657509823086,
-          "symbols_total": 10.526197671307573,
-          "symbols_total_entropy": 10.479785052316984
+          "feedback_bits": 1.9810165339865278,
+          "feedback_entropy_bits": 1.9062584357320878,
+          "symbols_total": 10.465553843402777,
+          "symbols_total_entropy": 10.422333970027225
         }
       ],
-      "forward": 7.627679118187385,
-      "total_entropy": 8.475806651183778,
-      "total_bitmap": 8.521248771128413,
-      "fixed": 10.711961722488038,
-      "seconds": 859.0946016311646
+      "forward": 7.737905695039804,
+      "total_entropy": 8.602581584100125,
+      "total_bitmap": 8.637493844058485,
+      "fixed": 10.043781094527363,
+      "seconds": 870.6902792453766
     },
     "beam4_start2_closed": {
       "beam": 4,
@@ -371,50 +371,50 @@
       "points": [
         {
           "threshold": 0.7,
-          "symbols": 7.4464176362522965,
-          "tok_acc": 0.9173300673606859,
-          "rounds": 2.593750014901161,
-          "feedback_bits": 1.4874464176362523,
-          "feedback_entropy_bits": 1.3862454064120497,
-          "symbols_total": 8.306354516994672,
-          "symbols_total_entropy": 8.247847211529235
+          "symbols": 7.491733006736069,
+          "tok_acc": 0.9448867115737906,
+          "rounds": 2.656249977648258,
+          "feedback_bits": 1.4972443355786895,
+          "feedback_entropy_bits": 1.40872282847973,
+          "symbols_total": 8.357334354375059,
+          "symbols_total_entropy": 8.306157446225143
         },
         {
           "threshold": 0.85,
-          "symbols": 7.985303123086344,
-          "tok_acc": 0.939987752602572,
-          "rounds": 2.875000014901161,
-          "feedback_bits": 1.6417636252296388,
-          "feedback_entropy_bits": 1.5947580394066998,
-          "symbols_total": 8.934455357450407,
-          "symbols_total_entropy": 8.90728003444665
+          "symbols": 7.96325780771586,
+          "tok_acc": 0.966319657072872,
+          "rounds": 2.875,
+          "feedback_bits": 1.6264543784445806,
+          "feedback_entropy_bits": 1.5888408944543815,
+          "symbols_total": 8.903559312553963,
+          "symbols_total_entropy": 8.881813842120287
         },
         {
           "threshold": 0.95,
-          "symbols": 8.603796693202694,
-          "tok_acc": 0.9650949173300674,
-          "rounds": 2.999999985098839,
-          "feedback_bits": 1.8046540110226577,
-          "feedback_entropy_bits": 1.7716620477417122,
-          "symbols_total": 9.647120689722982,
-          "symbols_total_entropy": 9.628047057451598
+          "symbols": 8.475199020208207,
+          "tok_acc": 0.9785670545009185,
+          "rounds": 3.010416656732559,
+          "feedback_bits": 1.7648499693815065,
+          "feedback_entropy_bits": 1.7407949107612242,
+          "symbols_total": 9.495511119960996,
+          "symbols_total_entropy": 9.481604177276719
         },
         {
           "threshold": 0.99,
-          "symbols": 9.282302510716473,
-          "tok_acc": 0.9791794243723209,
+          "symbols": 9.180649112063687,
+          "tok_acc": 0.9840783833435395,
           "rounds": 3.15625,
-          "feedback_bits": 1.9730557256582977,
-          "feedback_entropy_bits": 1.900372913087471,
-          "symbols_total": 10.422984532022333,
-          "symbols_total_entropy": 10.38096444283817
+          "feedback_bits": 1.9473361910593998,
+          "feedback_entropy_bits": 1.8836223041306628,
+          "symbols_total": 10.306461907765932,
+          "symbols_total_entropy": 10.269627020447746
         }
       ],
-      "forward": 7.4464176362522965,
-      "total_entropy": 8.247847211529235,
-      "total_bitmap": 8.306354516994672,
-      "fixed": 10.540782122905028,
-      "seconds": 1036.9094121456146
+      "forward": 7.491733006736069,
+      "total_entropy": 8.306157446225143,
+      "total_bitmap": 8.357334354375059,
+      "fixed": 9.048571428571428,
+      "seconds": 1052.7680735588074
     }
   },
   "fixed": {
@@ -447,66 +447,55 @@
     "beam2": [
       {
         "m": 2,
-        "tok_acc": 0.1341090018371096
+        "tok_acc": 0.15615431720759337
       },
       {
         "m": 4,
-        "tok_acc": 0.39191671769748926
+        "tok_acc": 0.40293937538273117
       },
       {
         "m": 6,
-        "tok_acc": 0.6613594611145132
+        "tok_acc": 0.6925903245560319
       },
       {
         "m": 8,
-        "tok_acc": 0.8132271892222903
+        "tok_acc": 0.837109614206981
       },
       {
         "m": 12,
-        "tok_acc": 0.9412124923453766
+        "tok_acc": 0.9601959583588487
       },
       {
         "m": 16,
-        "tok_acc": 0.9791794243723209
+        "tok_acc": 0.9871402327005512
       }
     ],
     "beam4": [
       {
         "m": 2,
-        "tok_acc": 0.15676668707899571
+        "tok_acc": 0.1855480710349051
       },
       {
         "m": 4,
-        "tok_acc": 0.4353949785670545
+        "tok_acc": 0.488671157379057
       },
       {
         "m": 6,
-        "tok_acc": 0.677893447642376
+        "tok_acc": 0.7274954072259645
       },
       {
         "m": 8,
-        "tok_acc": 0.8303735456215554
+        "tok_acc": 0.8775260257195346
       },
       {
         "m": 12,
-        "tok_acc": 0.939987752602572
+        "tok_acc": 0.9632578077158603
       },
       {
         "m": 16,
-        "tok_acc": 0.9804041641151255
+        "tok_acc": 0.9883649724433557
       }
     ]
-  },
-  "decision": {
-    "stage1_winner": "beam1_start2_closed",
-    "chosen": "beam4_start2_closed",
-    "beam": 4,
-    "start_m": 6,
-    "reopen": false,
-    "criterion": 8.247847211529235,
-    "fixed_same_beam": 10.540782122905028,
-    "fixed_greedy": 10.994444444444447,
-    "baseline_v03": 8.970677864049767
   },
   "n_messages": 96,
   "n_tokens": 1633,
@@ -637,11 +626,13 @@
       "probe_size": 48,
       "gen_every": 0,
       "gen_sentences": 4,
-      "live_every": 47,
+      "live_every": 23,
       "live_thresholds": [
         0.5,
         0.7,
-        0.9
+        0.9,
+        0.95,
+        0.99
       ]
     },
     "nested": {
@@ -673,8 +664,8 @@
       "ewc_batches": 20
     },
     "decoder": {
-      "beam": 1,
-      "start_m": null,
+      "beam": 4,
+      "start_m": 6,
       "reopen": false
     },
     "link": {
@@ -724,7 +715,31 @@
     "threads": 2,
     "transformers": "5.19.0",
     "gpu": "",
-    "git": "9f66973+dirty",
+    "git": "5305d3f",
     "time": "2026-10-15 11:01:44"
+  },
+  "resumed": [
+    {
+      "python": "3.13.16",
+      "platform": "Linux-6.18.44-fc-v114-x86_64-with-glibc2.39",
+      "machine": "x86_64",
+      "torch": "2.14.1+cu130",
+      "threads": 2,
+      "transformers": "5.19.0",
+      "gpu": "",
+      "git": "e7baa62+dirty",
+      "time": "2026-10-15 11:35:26"
+    }
+  ],
+  "decision": {
+    "stage1_winner": "beam1_start2_closed",
+    "chosen": "beam4_start2_closed",
+    "beam": 4,
+    "start_m": 6,
+    "reopen": false,
+    "criterion": 8.306157446225143,
+    "fixed_same_beam": 9.048571428571428,
+    "fixed_greedy": 10.994444444444447,
+    "baseline_v03": 8.970677864049767
   }
 }

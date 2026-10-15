@@ -1,0 +1,730 @@
+{
+  "candidates": {
+    "beam1_start0_closed": {
+      "beam": 1,
+      "start_m": 2,
+      "reopen": false,
+      "points": [
+        {
+          "threshold": 0.7,
+          "symbols": 6.289038579301899,
+          "tok_acc": 0.7740355174525413,
+          "rounds": 4.666666731238365,
+          "feedback_bits": 2.8683404776484998,
+          "feedback_entropy_bits": 2.4606276531678524,
+          "symbols_total": 7.947311263285961,
+          "symbols_total_entropy": 7.711600389693813
+        },
+        {
+          "threshold": 0.85,
+          "symbols": 7.131659522351501,
+          "tok_acc": 0.87630128597673,
+          "rounds": 4.874999985098839,
+          "feedback_bits": 3.181261481935089,
+          "feedback_entropy_bits": 2.501255237108707,
+          "symbols_total": 8.970841117846206,
+          "symbols_total_entropy": 8.577709343734572
+        },
+        {
+          "threshold": 0.95,
+          "symbols": 8.019595835884875,
+          "tok_acc": 0.9295774647887324,
+          "rounds": 5.000000029802322,
+          "feedback_bits": 3.477036129822413,
+          "feedback_entropy_bits": 2.4934391534613476,
+          "symbols_total": 10.029773525821149,
+          "symbols_total_entropy": 9.461126947543926
+        },
+        {
+          "threshold": 0.99,
+          "symbols": 8.876913655848131,
+          "tok_acc": 0.9589712186160441,
+          "rounds": 5.15625,
+          "feedback_bits": 3.7526025719534597,
+          "feedback_entropy_bits": 2.442892387125988,
+          "symbols_total": 11.046404477251704,
+          "symbols_total_entropy": 10.28922218304386
+        }
+      ],
+      "forward": 7.526638089406002,
+      "total_entropy": 8.970677864049767,
+      "total_bitmap": 9.441883464841958,
+      "fixed": 10.994444444444447,
+      "seconds": 1258.2801826000214
+    },
+    "beam1_start0_reopen": {
+      "beam": 1,
+      "start_m": 2,
+      "reopen": true,
+      "points": [
+        {
+          "threshold": 0.7,
+          "symbols": 7.485609308022045,
+          "tok_acc": 0.9295774647887324,
+          "rounds": 5.291666686534882,
+          "feedback_bits": 5.284751990202082,
+          "feedback_entropy_bits": 4.240571406747811,
+          "symbols_total": 10.5408811403838,
+          "symbols_total_entropy": 9.93720938238236
+        },
+        {
+          "threshold": 0.85,
+          "symbols": 8.045315370483772,
+          "tok_acc": 0.9595835884874464,
+          "rounds": 5.354166626930237,
+          "feedback_bits": 5.199632578077159,
+          "feedback_entropy_bits": 3.9654609578758864,
+          "symbols_total": 11.051377146681183,
+          "symbols_total_entropy": 10.33786593660129
+        },
+        {
+          "threshold": 0.95,
+          "symbols": 8.551132884262094,
+          "tok_acc": 0.9724433557868953,
+          "rounds": 5.34375,
+          "feedback_bits": 5.1451316595223515,
+          "feedback_entropy_bits": 3.700416938362517,
+          "symbols_total": 11.525686063347083,
+          "symbols_total_entropy": 10.690453643445156
+        },
+        {
+          "threshold": 0.99,
+          "symbols": 9.240661359461114,
+          "tok_acc": 0.9761175750153093,
+          "rounds": 5.375000029802322,
+          "feedback_bits": 5.112676056338028,
+          "feedback_entropy_bits": 3.478981405129293,
+          "symbols_total": 12.196450991951066,
+          "symbols_total_entropy": 11.251963670734835
+        }
+      ],
+      "forward": 7.485609308022045,
+      "total_entropy": 9.93720938238236,
+      "total_bitmap": 10.5408811403838,
+      "fixed": 10.994444444444447,
+      "seconds": 2814.0587198734283
+    },
+    "beam1_start1_closed": {
+      "beam": 1,
+      "start_m": 4,
+      "reopen": false,
+      "points": [
+        {
+          "threshold": 0.7,
+          "symbols": 6.972443355786895,
+          "tok_acc": 0.8714023270055113,
+          "rounds": 3.6875000447034836,
+          "feedback_bits": 2.189222290263319,
+          "feedback_entropy_bits": 2.1057011251539026,
+          "symbols_total": 8.238097677999326,
+          "symbols_total_entropy": 8.189811615826883
+        },
+        {
+          "threshold": 0.85,
+          "symbols": 7.660747091243111,
+          "tok_acc": 0.9179424372320881,
+          "rounds": 3.885416716337204,
+          "feedback_bits": 2.4115125535823636,
+          "feedback_entropy_bits": 2.215520835463454,
+          "symbols_total": 9.054914006172496,
+          "symbols_total_entropy": 8.94160538225692
+        },
+        {
+          "threshold": 0.95,
+          "symbols": 8.33435394978567,
+          "tok_acc": 0.9565217391304348,
+          "rounds": 4.01041667163372,
+          "feedback_bits": 2.621555419473362,
+          "feedback_entropy_bits": 2.2810184130688005,
+          "symbols_total": 9.84995287381124,
+          "symbols_total_entropy": 9.653078332588944
+        },
+        {
+          "threshold": 0.99,
+          "symbols": 9.06062461726883,
+          "tok_acc": 0.969993876301286,
+          "rounds": 4.15625,
+          "feedback_bits": 2.8364972443355785,
+          "feedback_entropy_bits": 2.2974234549001027,
+          "symbols_total": 10.700487783838893,
+          "symbols_total_entropy": 10.38883324120751
+        }
+      ],
+      "forward": 7.395387887968544,
+      "total_entropy": 8.651769101251658,
+      "total_bitmap": 8.740009816495208,
+      "fixed": 10.994444444444447,
+      "seconds": 561.2147097587585
+    },
+    "beam1_start1_reopen": {
+      "beam": 1,
+      "start_m": 4,
+      "reopen": true,
+      "points": [
+        {
+          "threshold": 0.7,
+          "symbols": 7.68156766687079,
+          "tok_acc": 0.9387630128597673,
+          "rounds": 4.135416626930237,
+          "feedback_bits": 4.114513165952235,
+          "feedback_entropy_bits": 3.3877155067736706,
+          "symbols_total": 10.060289734268082,
+          "symbols_total_entropy": 9.640106456030683
+        },
+        {
+          "threshold": 0.85,
+          "symbols": 8.167789344764238,
+          "tok_acc": 0.9632578077158603,
+          "rounds": 4.177083313465118,
+          "feedback_bits": 4.041641151255358,
+          "feedback_entropy_bits": 3.324737443283536,
+          "symbols_total": 10.504381939617954,
+          "symbols_total_entropy": 10.089918647954905
+        },
+        {
+          "threshold": 0.95,
+          "symbols": 8.638089406001225,
+          "tok_acc": 0.9730557256582976,
+          "rounds": 4.21875,
+          "feedback_bits": 4.060012247397428,
+          "feedback_entropy_bits": 3.2450671962709174,
+          "symbols_total": 10.985302876286095,
+          "symbols_total_entropy": 10.514158976961081
+        },
+        {
+          "threshold": 0.99,
+          "symbols": 9.271279853031231,
+          "tok_acc": 0.9761175750153093,
+          "rounds": 4.291666656732559,
+          "feedback_bits": 4.077770973668096,
+          "feedback_entropy_bits": 3.191922550318357,
+          "symbols_total": 11.628760169566217,
+          "symbols_total_entropy": 11.116624928287083
+        }
+      ],
+      "forward": 7.68156766687079,
+      "total_entropy": 9.640106456030683,
+      "total_bitmap": 10.060289734268082,
+      "fixed": 10.994444444444447,
+      "seconds": 622.1411375999451
+    },
+    "beam1_start2_closed": {
+      "beam": 1,
+      "start_m": 6,
+      "reopen": false,
+      "points": [
+        {
+          "threshold": 0.7,
+          "symbols": 7.835884874464177,
+          "tok_acc": 0.9179424372320881,
+          "rounds": 2.645833343267441,
+          "feedback_bits": 1.5958358848744643,
+          "feedback_entropy_bits": 1.5464059452050263,
+          "symbols_total": 8.758484920250357,
+          "symbols_total_entropy": 8.729908006399457
+        },
+        {
+          "threshold": 0.85,
+          "symbols": 8.292712798530312,
+          "tok_acc": 0.9436619718309859,
+          "rounds": 2.8854166716337204,
+          "feedback_bits": 1.7225964482547458,
+          "feedback_entropy_bits": 1.6938320722825735,
+          "symbols_total": 9.288596884791449,
+          "symbols_total_entropy": 9.271967346102372
+        },
+        {
+          "threshold": 0.95,
+          "symbols": 8.825474586650337,
+          "tok_acc": 0.9657072872014697,
+          "rounds": 3.010416656732559,
+          "feedback_bits": 1.8616044090630741,
+          "feedback_entropy_bits": 1.8260570159775413,
+          "symbols_total": 9.901723297007202,
+          "symbols_total_entropy": 9.881172294990554
+        },
+        {
+          "threshold": 0.99,
+          "symbols": 9.43417023882425,
+          "tok_acc": 0.9748928352725046,
+          "rounds": 3.15625,
+          "feedback_bits": 2.012859767299449,
+          "feedback_entropy_bits": 1.925960424517794,
+          "symbols_total": 10.597864156897607,
+          "symbols_total_entropy": 10.547625070040972
+        }
+      ],
+      "forward": 7.835884874464177,
+      "total_entropy": 8.729908006399457,
+      "total_bitmap": 8.758484920250357,
+      "fixed": 10.994444444444447,
+      "seconds": 388.39307403564453
+    },
+    "beam1_start2_reopen": {
+      "beam": 1,
+      "start_m": 6,
+      "reopen": true,
+      "points": [
+        {
+          "threshold": 0.7,
+          "symbols": 8.2106552357624,
+          "tok_acc": 0.9497856705450092,
+          "rounds": 3.03125,
+          "feedback_bits": 3.0042865890998165,
+          "feedback_entropy_bits": 2.2880241549362705,
+          "symbols_total": 9.947522397936996,
+          "symbols_total_entropy": 9.533429845677972
+        },
+        {
+          "threshold": 0.85,
+          "symbols": 8.60257195345989,
+          "tok_acc": 0.966319657072872,
+          "rounds": 3.156249985098839,
+          "feedback_bits": 3.0379669320269445,
+          "feedback_entropy_bits": 2.4074142909104386,
+          "symbols_total": 10.3589107205916,
+          "symbols_total_entropy": 9.994369541214343
+        },
+        {
+          "threshold": 0.95,
+          "symbols": 8.998162890385792,
+          "tok_acc": 0.9742804654011022,
+          "rounds": 3.197916656732559,
+          "feedback_bits": 3.0189834660134722,
+          "feedback_entropy_bits": 2.458958391646456,
+          "symbols_total": 10.74352675290531,
+          "symbols_total_entropy": 10.419759651194184
+        },
+        {
+          "threshold": 0.99,
+          "symbols": 9.561543172075934,
+          "tok_acc": 0.9761175750153093,
+          "rounds": 3.2812499701976776,
+          "feedback_bits": 3.024494794856093,
+          "feedback_entropy_bits": 2.550283967823148,
+          "symbols_total": 11.3100932972248,
+          "symbols_total_entropy": 11.035937956516118
+        }
+      ],
+      "forward": 8.2106552357624,
+      "total_entropy": 9.533429845677972,
+      "total_bitmap": 9.947522397936996,
+      "fixed": 10.994444444444447,
+      "seconds": 455.15337014198303
+    },
+    "beam2_start2_closed": {
+      "beam": 2,
+      "start_m": 6,
+      "reopen": false,
+      "points": [
+        {
+          "threshold": 0.7,
+          "symbols": 7.627679118187385,
+          "tok_acc": 0.9252908756889161,
+          "rounds": 2.625000014901161,
+          "feedback_bits": 1.5456215554194734,
+          "feedback_entropy_bits": 1.467019602142284,
+          "symbols_total": 8.521248771128413,
+          "symbols_total_entropy": 8.475806651183778
+        },
+        {
+          "threshold": 0.85,
+          "symbols": 8.17636252296387,
+          "tok_acc": 0.9503980404164115,
+          "rounds": 2.8854166716337204,
+          "feedback_bits": 1.693202694427434,
+          "feedback_entropy_bits": 1.6565042133393015,
+          "symbols_total": 9.155253208535163,
+          "symbols_total_entropy": 9.13403672841142
+        },
+        {
+          "threshold": 0.95,
+          "symbols": 8.723821187997551,
+          "tok_acc": 0.9650949173300674,
+          "rounds": 3.010416656732559,
+          "feedback_bits": 1.8322106552357624,
+          "feedback_entropy_bits": 1.7993774662970343,
+          "symbols_total": 9.783076497664569,
+          "symbols_total_entropy": 9.764094657548497
+        },
+        {
+          "threshold": 0.99,
+          "symbols": 9.371708511941213,
+          "tok_acc": 0.9742804654011022,
+          "rounds": 3.15625,
+          "feedback_bits": 1.9969381506429884,
+          "feedback_entropy_bits": 1.916657509823086,
+          "symbols_total": 10.526197671307573,
+          "symbols_total_entropy": 10.479785052316984
+        }
+      ],
+      "forward": 7.627679118187385,
+      "total_entropy": 8.475806651183778,
+      "total_bitmap": 8.521248771128413,
+      "fixed": 10.711961722488038,
+      "seconds": 859.0946016311646
+    },
+    "beam4_start2_closed": {
+      "beam": 4,
+      "start_m": 6,
+      "reopen": false,
+      "points": [
+        {
+          "threshold": 0.7,
+          "symbols": 7.4464176362522965,
+          "tok_acc": 0.9173300673606859,
+          "rounds": 2.593750014901161,
+          "feedback_bits": 1.4874464176362523,
+          "feedback_entropy_bits": 1.3862454064120497,
+          "symbols_total": 8.306354516994672,
+          "symbols_total_entropy": 8.247847211529235
+        },
+        {
+          "threshold": 0.85,
+          "symbols": 7.985303123086344,
+          "tok_acc": 0.939987752602572,
+          "rounds": 2.875000014901161,
+          "feedback_bits": 1.6417636252296388,
+          "feedback_entropy_bits": 1.5947580394066998,
+          "symbols_total": 8.934455357450407,
+          "symbols_total_entropy": 8.90728003444665
+        },
+        {
+          "threshold": 0.95,
+          "symbols": 8.603796693202694,
+          "tok_acc": 0.9650949173300674,
+          "rounds": 2.999999985098839,
+          "feedback_bits": 1.8046540110226577,
+          "feedback_entropy_bits": 1.7716620477417122,
+          "symbols_total": 9.647120689722982,
+          "symbols_total_entropy": 9.628047057451598
+        },
+        {
+          "threshold": 0.99,
+          "symbols": 9.282302510716473,
+          "tok_acc": 0.9791794243723209,
+          "rounds": 3.15625,
+          "feedback_bits": 1.9730557256582977,
+          "feedback_entropy_bits": 1.900372913087471,
+          "symbols_total": 10.422984532022333,
+          "symbols_total_entropy": 10.38096444283817
+        }
+      ],
+      "forward": 7.4464176362522965,
+      "total_entropy": 8.247847211529235,
+      "total_bitmap": 8.306354516994672,
+      "fixed": 10.540782122905028,
+      "seconds": 1036.9094121456146
+    }
+  },
+  "fixed": {
+    "beam1": [
+      {
+        "m": 2,
+        "tok_acc": 0.12553582363747703
+      },
+      {
+        "m": 4,
+        "tok_acc": 0.3490508266993264
+      },
+      {
+        "m": 6,
+        "tok_acc": 0.6417636252296387
+      },
+      {
+        "m": 8,
+        "tok_acc": 0.8009797917942437
+      },
+      {
+        "m": 12,
+        "tok_acc": 0.9332516840171463
+      },
+      {
+        "m": 16,
+        "tok_acc": 0.9767299448867116
+      }
+    ],
+    "beam2": [
+      {
+        "m": 2,
+        "tok_acc": 0.1341090018371096
+      },
+      {
+        "m": 4,
+        "tok_acc": 0.39191671769748926
+      },
+      {
+        "m": 6,
+        "tok_acc": 0.6613594611145132
+      },
+      {
+        "m": 8,
+        "tok_acc": 0.8132271892222903
+      },
+      {
+        "m": 12,
+        "tok_acc": 0.9412124923453766
+      },
+      {
+        "m": 16,
+        "tok_acc": 0.9791794243723209
+      }
+    ],
+    "beam4": [
+      {
+        "m": 2,
+        "tok_acc": 0.15676668707899571
+      },
+      {
+        "m": 4,
+        "tok_acc": 0.4353949785670545
+      },
+      {
+        "m": 6,
+        "tok_acc": 0.677893447642376
+      },
+      {
+        "m": 8,
+        "tok_acc": 0.8303735456215554
+      },
+      {
+        "m": 12,
+        "tok_acc": 0.939987752602572
+      },
+      {
+        "m": 16,
+        "tok_acc": 0.9804041641151255
+      }
+    ]
+  },
+  "decision": {
+    "stage1_winner": "beam1_start2_closed",
+    "chosen": "beam4_start2_closed",
+    "beam": 4,
+    "start_m": 6,
+    "reopen": false,
+    "criterion": 8.247847211529235,
+    "fixed_same_beam": 10.540782122905028,
+    "fixed_greedy": 10.994444444444447,
+    "baseline_v03": 8.970677864049767
+  },
+  "n_messages": 96,
+  "n_tokens": 1633,
+  "snr_mean": 9.764044299917328,
+  "snr_sd": 4.016828138232337,
+  "thresholds": [
+    0.7,
+    0.85,
+    0.95,
+    0.99
+  ],
+  "target_acc": 0.9,
+  "capacity": 1.7297158093186487,
+  "config": {
+    "name": "gpt2",
+    "seed": 0,
+    "device": "cpu",
+    "threads": 2,
+    "out_dir": "runs/gpt2_verify",
+    "backbone": {
+      "name": "models/gpt2",
+      "tiny": {
+        "hidden": 96,
+        "layers": 2,
+        "heads": 4,
+        "vocab": 600,
+        "lm_steps": 0,
+        "lm_lr": 0.003,
+        "lm_focus": "",
+        "lm_other_share": 1.0,
+        "corpora": []
+      }
+    },
+    "codec": {
+      "granularities": [
+        2,
+        4,
+        6,
+        8,
+        12,
+        16
+      ],
+      "max_tokens": 48,
+      "codebook_hidden": 256,
+      "peak_ratio": 4.0,
+      "lora": {
+        "r": 8,
+        "alpha": 16,
+        "dropout": 0.0,
+        "targets": [
+          "c_attn"
+        ],
+        "last_n": 6,
+        "slots": 2
+      }
+    },
+    "context": {
+      "enabled": true,
+      "max_tokens": 48
+    },
+    "cache": {
+      "enabled": false,
+      "decay": 0.98,
+      "weight": 0.05,
+      "min_mass": 50.0
+    },
+    "channel": {
+      "type": "awgn",
+      "snr_train": [
+        0.0,
+        20.0
+      ]
+    },
+    "data": {
+      "cache_dir": "data",
+      "base": [
+        "europarl_nltk"
+      ],
+      "min_words": 4,
+      "max_words": 30,
+      "max_sentences": 40000
+    },
+    "pretrain": {
+      "steps": 2000,
+      "batch_tokens": 256,
+      "grans_per_step": 3,
+      "uniform_share": 0.25,
+      "lr": 0.002,
+      "warmup": 100,
+      "weight_decay": 0.0,
+      "grad_clip": 1.0,
+      "eval_every": 500,
+      "eval_tokens": 2000,
+      "log_every": 50
+    },
+    "stream": {
+      "kind": "hier",
+      "domains": [
+        "ag_news",
+        "teleqna"
+      ],
+      "cycles": 2,
+      "tau_slow": 150,
+      "tau_med": 30,
+      "kappa": 0.9,
+      "temporal_corpus": "huffpost_gh",
+      "temporal_steps": 600,
+      "temporal_eras": 4,
+      "batch_size": 6,
+      "snr": {
+        "mean": 10.0,
+        "rho": 0.95,
+        "sigma": 4.0,
+        "min": 0.0,
+        "max": 20.0
+      },
+      "m_op": 6,
+      "extra_grans": 1,
+      "thresholds": [
+        0.5,
+        0.7,
+        0.9,
+        0.95,
+        0.99
+      ],
+      "threshold": 0.9,
+      "target_acc": 0.9,
+      "probe_size": 48,
+      "gen_every": 0,
+      "gen_sentences": 4,
+      "live_every": 47,
+      "live_thresholds": [
+        0.5,
+        0.7,
+        0.9
+      ]
+    },
+    "nested": {
+      "periods": {
+        "medium": 10,
+        "slow": 50
+      },
+      "lrs": {
+        "medium": 0.001,
+        "slow": 0.0005
+      },
+      "rule": "local",
+      "select_every": 10,
+      "select_margin": 0.05,
+      "ema": {
+        "enabled": false,
+        "decay": 0.99,
+        "beta": 0.9
+      },
+      "sync": {
+        "bits": 8,
+        "topk": 1.0
+      },
+      "grad_clip": 1.0,
+      "adapt_codebook": false,
+      "codebook_lr": 0.0001,
+      "single_period": "auto",
+      "ewc_lambda": 10.0,
+      "ewc_batches": 20
+    },
+    "decoder": {
+      "beam": 1,
+      "start_m": null,
+      "reopen": false
+    },
+    "link": {
+      "traffic_per_step": 1000
+    },
+    "stats": {
+      "equiv_margin_bits": 0.05,
+      "equiv_margin_symbols": 0.05,
+      "min_seeds_for_test": 6
+    },
+    "eval": {
+      "snrs": [
+        0.0,
+        10.0,
+        20.0
+      ],
+      "channels": [
+        "awgn",
+        "rayleigh"
+      ],
+      "priors": [
+        "llm_ctx",
+        "llm",
+        "unigram",
+        "none"
+      ],
+      "n_test": 200,
+      "batch_size": 16,
+      "sim_model": null
+    },
+    "refine": {
+      "n_val": 150,
+      "n_test": 200,
+      "n_live": 64,
+      "live_thresholds": [
+        0.5,
+        0.7,
+        0.9
+      ]
+    }
+  },
+  "env": {
+    "python": "3.13.16",
+    "platform": "Linux-6.18.44-fc-v114-x86_64-with-glibc2.39",
+    "machine": "x86_64",
+    "torch": "2.14.1+cu130",
+    "threads": 2,
+    "transformers": "5.19.0",
+    "gpu": "",
+    "git": "9f66973+dirty",
+    "time": "2026-10-15 11:01:44"
+  }
+}
