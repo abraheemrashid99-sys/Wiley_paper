@@ -20,7 +20,8 @@ paper      core plus the sensitivity studies a reviewer asks for (one seed
            adapter rank, and - when the temporal corpus is not already a
            stream domain - three domains against two and three adapter slots.
 
-Steps, in order: data, speed benchmark, codebook, the stream runs, the
+Steps, in order: data, speed benchmark, codebook, (core and paper: the
+decoder selection repeated on validation text, as a check), the stream runs, the
 diagnostics and evaluations on the base corpus, the fixed-rate codebook check;
 then tables, figures, the exported folder with its report, and finally the
 comparison with the reference folder (``COMPARISON.md`` in the export folder).
@@ -118,6 +119,10 @@ def plan(args) -> list[tuple[str, list[str], list[str]]]:
         ("corpora", ["prepare_data.py"], out),
         ("speed benchmark (measured cost)", ["benchmark_speed.py"], out),
         ("codebook", ["pretrain.py"], out),
+    ]
+    if confirmatory:  # the selection of the decoder, repeated on validation text as a check of the configured one
+        steps.append(("decoder selection on validation text (check)", ["tune_decoder.py"], out))
+    steps += [
         (f"hierarchical stream, main methods, seeds {seeds}", stream(MAIN, seeds), hier),
     ]
     if confirmatory:
@@ -162,6 +167,9 @@ def finished(label: str, command: list[str], overrides: list[str], args) -> bool
         return any(eval_dir.glob("rate_*.json"))
     if command[0] == "benchmark_speed.py":
         return (eval_dir / "speed.json").exists()
+    if command[0] == "tune_decoder.py":
+        path = eval_dir / "decoder_selection.json"
+        return path.exists() and "decision" in path.read_text(encoding="utf-8")
     return False
 
 

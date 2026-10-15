@@ -22,6 +22,7 @@ from dnsc.utils import load_json
 ORDER = ["frozen", "context_only", "single_rate", "ewc", "nested_no_context", "nested_no_slots", "nested_two_level", "nested", "full_online"]
 SECTIONS = [
     ("Rate and fidelity on the base corpus", ["rate_*_bleu4", "rate_*_sim", "rate_*_chrf", "rate_*_wer", "rate_*_gen_tok_acc", "rate_*_tok_acc", "rate_*_separation", "rate_*_power"]),
+    ("Decoder of selective refinement (validation text)", ["decoder_selection"]),
     ("Selective refinement on the base corpus", ["refine_*"]),
     ("What each memory could buy (diagnostic with oracle inputs)", ["headroom"]),
     ("Hierarchical drift stream", ["stream_hier", "realdecode_hier", "refine_cost_hier", "refine_start_hier", "targets_hier", "equivalence_hier", "regimes_hier", "curves_hier", "netrate_hier"]),

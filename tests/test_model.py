@@ -681,6 +681,10 @@ def test_decoder_selection_script_runs_and_decides(tmp_path):
     assert all(len(c["points"]) == 4 for c in result["candidates"].values())
     again = subprocess.run([base[0], str(ROOT / "scripts" / "tune_decoder.py"), *base[1:]], capture_output=True, text=True, cwd=ROOT, timeout=300)
     assert again.returncode == 0 and "fixed prefix, beam 1" not in again.stdout  # finished stages are kept, not recomputed
+    tables = subprocess.run([base[0], str(ROOT / "scripts" / "aggregate.py"), *base[1:]], capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=ROOT, timeout=300)
+    assert tables.returncode == 0, tables.stderr[-2000:]
+    table = (tmp_path / "run" / "tables" / "decoder_selection.md").read_text(encoding="utf-8")
+    assert table.count("(chosen)") == 1 and table.count("\n| beam") == 8
 
 
 def test_a_checkpoint_serves_more_slots_and_another_adapter_rank(cfg, checkpoint, tmp_path, capsys):

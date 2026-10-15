@@ -567,6 +567,41 @@ def headroom_table(out_dir: Path, tables: Path) -> None:
         write_table(pd.DataFrame(rows), tables / "headroom", f"Diagnostic: what each memory could buy with oracle inputs, at m={result['m_op']} symbols/token and {result['snr_db']:g} dB ({result['steps']} adaptation steps; negative Δ bits = better)")
 
 
+def decoder_table(out_dir: Path, tables: Path) -> None:
+    """The selection of the refinement decoder on validation text (scripts/tune_decoder.py)."""
+    path = out_dir / "eval" / "decoder_selection.json"
+    if not path.exists():
+        return
+    result = load_json(path)
+    decision = result.get("decision")
+    if not decision:
+        return
+    show = lambda v: "not reached" if v is None else f"{v:.3f}"  # noqa: E731
+    rows = []
+    for name, c in sorted(result["candidates"].items(), key=lambda item: (item[1]["beam"], item[1]["start_m"], item[1]["reopen"])):
+        at = {p["threshold"]: p for p in c["points"]}
+        rows.append(
+            {
+                "candidate": name + (" (chosen)" if name == decision["chosen"] else ""),
+                "beam": c["beam"],
+                "first shell (symbols)": c["start_m"],
+                "reopening": "yes" if c["reopen"] else "no",
+                "forward only": show(c["forward"]),
+                "+ signalling (entropy)": show(c["total_entropy"]),
+                "+ signalling (bitmap)": show(c["total_bitmap"]),
+                "fixed prefix, same beam": show(c["fixed"]),
+                "vs fixed prefix (entropy)": "-" if c["total_entropy"] is None or c["fixed"] is None else f"{c['total_entropy'] / c['fixed'] - 1:+.1%}",
+                "rounds/message at 0.95": f"{at[0.95]['rounds']:.2f}" if 0.95 in at else "-",
+                "tok-acc at 0.95": f"{at[0.95]['tok_acc']:.3f}" if 0.95 in at else "-",
+            }
+        )
+    write_table(
+        pd.DataFrame(rows),
+        tables / "decoder_selection",
+        f"Decoder of selective refinement, chosen on validation text only ({result.get('n_messages', '?')} messages, {result.get('n_tokens', '?')} tokens; SNR mean {result.get('snr_mean', float('nan')):.1f} dB): real symbols per token for {result.get('target_acc', 0.9):.0%} token accuracy, decoded free-running, the signalling of the requests charged at its entropy (criterion) or as a bitmap; the fixed prefix is decoded with the same beam. Rule fixed in docs/METHOD.md, section 2.5: lowest criterion among the greedy candidates (ties within 1% go to fewer rounds), then a beam only if it lowers the criterion by more than 2%",
+    )
+
+
 def main() -> None:
     parser = make_parser(__doc__)
     parser.add_argument("--ref", default="nested", help="reference method for paired tests")
@@ -579,6 +614,7 @@ def main() -> None:
     stream_tables(cfg, out_dir, tables, args.ref, int_list(args.seeds) or None)
     refine_tables(out_dir, tables)
     headroom_table(out_dir, tables)
+    decoder_table(out_dir, tables)
     cost_table(out_dir, tables)
     print(f"\n[aggregate] tables written to {tables}")
 

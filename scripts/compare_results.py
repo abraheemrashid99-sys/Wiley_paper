@@ -140,6 +140,17 @@ def provenance(runs: dict[str, dict]) -> dict[tuple, int]:
     return dict(out)
 
 
+def decoder_of(run: dict) -> str:
+    """The decoder of selective refinement a run used (runs before version 0.4
+    record none: they used greedy decoding from the shortest prefix, without
+    reopening)."""
+    d = run.get("summary", {}).get("decoder")
+    if d is None:
+        grans = run.get("config", {}).get("codec", {}).get("granularities") or ["shortest"]
+        d = {"beam": 1, "start_m": grans[0], "reopen": False}
+    return f"beam {d['beam']}, first shell {d['start_m']}, reopening {'on' if d['reopen'] else 'off'}"
+
+
 def new_measurements(runs: dict[str, dict]) -> list[str]:
     """Table of what only runs of version 0.3 and later record: the cost of
     refinement with its return-link signalling, and the free-running audit."""
@@ -270,6 +281,12 @@ def main() -> None:
         for (revision, torch_version, transformers_version, device, threads), count in sorted(provenance(runs).items(), key=lambda kv: -kv[1]):
             lines.append(f"| {label} | {revision} | {torch_version} | {transformers_version} | {device} | {threads} | {count} |")
     lines.append("")
+    decoders = {label: sorted({decoder_of(r) for r in runs.values()}) for label, runs in (("reference", ref_runs), ("reproduction", new_runs))}
+    lines += [f"Decoder of selective refinement — reference: {'; '.join(decoders['reference']) or 'none'} · reproduction: {'; '.join(decoders['reproduction']) or 'none'}.", ""]
+    first_shell = lambda runs: {decoder_of(r).split(", ")[1] for r in runs.values()}  # noqa: E731
+    if ref_runs and new_runs and first_shell(ref_runs) != first_shell(new_runs):
+        lines += ["The two folders start refinement at a different shell. The first shell decides which tokens the receiver writes into its memories, so the headline numbers below are not expected to agree: this is a comparison of two protocols, not a reproduction.", ""]
+        problems.append("the reproduction starts refinement at another shell than the reference (a different protocol)")
     for label, runs in (("reference", ref_runs), ("reproduction", new_runs)):
         revisions = sorted({key[0] for key in provenance(runs)})
         if len(revisions) > 1:
