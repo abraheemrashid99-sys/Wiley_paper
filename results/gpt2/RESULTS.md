@@ -522,6 +522,21 @@ What they show:
   against `nested` at a fixed prefix on the temporal stream (10.302 against
   10.343). `nested` and `full_online` stay within 0.5 % of each other.
 
+**Uncertainty** (re-analysis of the same runs with the scripts of version
+0.4: [`../gpt2_v0.3_colab_t4/reanalysis_v0.4`](../gpt2_v0.3_colab_t4/reanalysis_v0.4),
+`tables/realdecode_*.md`; 95 % paired bootstrap intervals over the audited
+steps within each seed). Hierarchical stream: `nested` saves 25.7 %
+[19.6 %, 32.1 %] against the frozen fixed prefix with the signalling at its
+entropy and 22.1 % [15.3 %, 29.1 %] with a bitmap; its memories alone, at a
+fixed prefix, 9.9 % [4.5 %, 18.9 %]; refinement adds 17.5 % [7.4 %, 22.0 %]
+to `nested`. For the frozen receiver and `context_only` the interval is
+unbounded on the costly side: in about 8 % of the draws their selective
+curve does not reach 90 % within the audited thresholds. Temporal stream:
+`nested` saves 21.1 % [14.8 %, 24.9 %]. These intervals describe the
+variability of the audited steps, not of the seeds; with three (two) seeds
+the seed-level test cannot go below p = 0.25 (0.5), and every comparison
+reads at that floor or above.
+
 Limits of these figures. They rest on 216 (144) audited messages per
 receiver; seeds differ a lot (seed 0's audited steps need about 8 symbols
 per token at a fixed prefix, seeds 1 and 2 about 12), so per-seed figures
