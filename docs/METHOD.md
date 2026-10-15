@@ -195,6 +195,14 @@ realisation per message, AWGN, SNR drawn from the stream's SNR process
 (mean 10 dB). All candidates decode exactly the same received symbols.
 Thresholds 0.7, 0.85, 0.95 and 0.99.
 
+*Correction, before any candidate was evaluated.* The first launch drew one
+SNR per batch of six messages as 16 consecutive steps of the AR(1) process;
+with ρ = 0.95 such a short stretch does not represent the process (it
+averaged 5.2 dB). This was noticed from the first output, the fixed-prefix
+reference curve, and corrected to one SNR per message drawn independently
+from the stationary law of the process (normal, mean 10 dB, SD 4 dB, clipped
+to 0–20 dB). Nothing else was changed.
+
 *Selection rule.* The criterion is real symbols per token at 90 % token
 accuracy, decoded free-running, with the request signalling charged at its
 entropy (Section 2.5). Stage 1 compares the six greedy candidates (first

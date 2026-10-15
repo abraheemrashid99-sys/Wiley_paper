@@ -121,6 +121,13 @@ DEFAULTS: dict[str, Any] = {
         "ewc_lambda": 10.0,
         "ewc_batches": 20,
     },
+    # The receiver's real (free-running) decoder, used wherever symbols are
+    # decoded for real on the streams (the audit) - for selective refinement and
+    # for the fixed-prefix reference alike. beam: width of the beam search (1:
+    # greedy); start_m: the shell sent in the first round of refinement (null:
+    # the shortest); reopen: closed tokens may be requested again. Chosen on
+    # validation data by scripts/tune_decoder.py (docs/METHOD.md, section 2.5).
+    "decoder": {"beam": 1, "start_m": None, "reopen": False},
     "link": {"traffic_per_step": 1000},
     # Margins of the equivalence tests ("no meaningful difference"), fixed here
     # before the confirmatory runs: two methods are called equivalent when the
@@ -220,6 +227,11 @@ def validate(cfg: dict) -> None:
         raise ValueError("stream.m_op must be one of codec.granularities")
     if cfg["stream"]["threshold"] not in cfg["stream"]["thresholds"]:
         raise ValueError("stream.threshold must be one of stream.thresholds")
+    start = cfg["decoder"]["start_m"]
+    if start is not None and start not in grans:
+        raise ValueError("decoder.start_m must be one of codec.granularities (or null)")
+    if int(cfg["decoder"]["beam"]) < 1:
+        raise ValueError("decoder.beam must be at least 1")
     audited = cfg["stream"]["live_thresholds"]
     if audited is not None and (not set(audited) <= set(cfg["stream"]["thresholds"]) or cfg["stream"]["threshold"] not in audited):
         raise ValueError("stream.live_thresholds must be a subset of stream.thresholds that contains stream.threshold")

@@ -568,6 +568,111 @@ def test_progressive_decode_is_the_emulated_policy_decoded_for_real(cfg, checkpo
             assert [row[0] for row in out["token_ids"]] == stats["decided"].gather(1, stop.unsqueeze(1)).squeeze(1).tolist()
 
 
+def test_beam_search_is_greedy_at_width_one_scores_its_path_and_is_exact_at_full_width(cfg, checkpoint):
+    """Width 1 is exactly the greedy decoder; the per-token posteriors a beam
+    reports are those of a full forward pass along its path; and a beam as
+    wide as the vocabulary finds the exact best two-token sentence (checked
+    by brute force). Beam search is *not* guaranteed to beat greedy on every
+    sentence - the greedy path can leave the beam early - so that is not tested."""
+    import torch.nn.functional as F
+
+    codec = load_codec(cfg, checkpoint, CPU)
+    batch = codec.tokenize(get_corpus("toy_b", cfg["data"]).texts("test")[:8])
+    contexts = [[], [5, 6, 7], [], [9, 10], [], [], [11], []]
+    with torch.no_grad():
+        y, prec = codec.transmit(codec.encode(batch), batch.lens, 2.0, Channel("awgn", 5))
+    for m in (1, 2):
+        greedy = codec.decode(y, m, prec, batch.lens, contexts=contexts)
+        one = codec.decode_beam(codec.loglik(y, m, prec), batch.lens, 1, contexts=contexts)
+        assert one.token_ids == greedy.token_ids and torch.allclose(one.token_logprob, greedy.token_logprob, atol=1e-5)
+    loglik = codec.lik_weight * codec.loglik(y, 1, prec)
+    wide = codec.decode(y, 1, prec, batch.lens, contexts=contexts, beam=4)
+    for row in (0, 1, 3, 6):  # with and without context
+        tokens, length = wide.token_ids[row], int(batch.lens[row])
+        ids = torch.tensor([[codec.start_token] + contexts[row] + tokens[:-1]])
+        with torch.no_grad():
+            prior = codec._adjust_prior(codec._head(codec.lm.base_model(input_ids=ids).last_hidden_state[0, len(contexts[row]) :]), None)
+        post = F.log_softmax(prior + loglik[row, :length], dim=-1).gather(1, torch.tensor(tokens).unsqueeze(1)).squeeze(1)
+        assert torch.allclose(wide.token_logprob[row, :length], post, atol=1e-4)
+    assert codec.decode(y, 2, prec, batch.lens, prior="none", beam=4).token_ids == codec.decode(y, 2, prec, batch.lens, prior="none").token_ids
+
+    two = TokenBatch(batch.ids[:3, :2].contiguous(), torch.full((3,), 2, dtype=torch.long))
+    with torch.no_grad():
+        y2, prec2 = codec.transmit(codec.encode(two), two.lens, 0.0, Channel("awgn", 8))
+    ll2 = codec.lik_weight * codec.loglik(y2, 1, prec2)
+    exact = codec.decode(y2, 1, prec2, two.lens, beam=codec.vocab)
+    with torch.no_grad():
+        first = F.log_softmax(codec._adjust_prior(codec._head(codec.lm.base_model(input_ids=torch.tensor([[codec.start_token]])).last_hidden_state[0, -1:]), None)[0], dim=-1)
+        seconds = codec._adjust_prior(codec._head(codec.lm.base_model(input_ids=torch.stack([torch.full((codec.vocab,), codec.start_token), torch.arange(codec.vocab)], dim=1)).last_hidden_state[:, -1]), None)
+    for row in range(3):
+        p1 = F.log_softmax(first + ll2[row, 0], dim=-1)
+        p2 = F.log_softmax(seconds + ll2[row, 1].unsqueeze(0), dim=-1)
+        total = p1.unsqueeze(1) + p2  # (first token, second token)
+        best = int(total.argmax())
+        assert exact.token_ids[row] == [best // codec.vocab, best % codec.vocab]
+        assert float(exact.token_logprob[row].sum()) == pytest.approx(float(total.max()), abs=1e-4)
+
+
+def test_reopening_and_beam_in_progressive_decoding(cfg, checkpoint):
+    codec = load_codec(cfg, checkpoint, CPU)
+    grans = codec.grans
+    batch = codec.tokenize(get_corpus("toy_a", cfg["data"]).texts("test")[:10])
+    with torch.no_grad():
+        y, prec = codec.transmit(codec.encode(batch), batch.lens, 4.0, Channel("awgn", 6))
+    for reopen in (False, True):
+        for beam in (1, 2):
+            always = progressive_decode(codec, y, prec, batch.lens, 2.0, beam=beam, reopen=reopen)
+            assert always["symbols"] == pytest.approx(grans[-1]) and always["feedback_bits"] == pytest.approx(len(grans) - 1)
+            never = progressive_decode(codec, y, prec, batch.lens, 0.0, beam=beam, reopen=reopen)
+            assert never["symbols"] == pytest.approx(grans[0]) and never["feedback_bits"] == pytest.approx(1.0)
+            middle = progressive_decode(codec, y, prec, batch.lens, 0.8, beam=beam, reopen=reopen)
+            assert grans[0] <= middle["symbols"] <= grans[-1] and 0.0 <= middle["feedback_entropy_bits"] <= middle["feedback_bits"] + 1e-9
+            assert middle["token_ids"] == [r for r in middle["token_ids"]] and [len(r) for r in middle["token_ids"]] == batch.lens.tolist()
+    # one-token messages: re-decoding cannot change a closed token's context, so reopening changes nothing
+    first = TokenBatch(batch.ids[:, :1].contiguous(), torch.ones_like(batch.lens))
+    with torch.no_grad():
+        y1, prec1 = codec.transmit(codec.encode(first), first.lens, 4.0, Channel("awgn", 7))
+    closed = progressive_decode(codec, y1, prec1, first.lens, 0.8)
+    opened = progressive_decode(codec, y1, prec1, first.lens, 0.8, reopen=True)
+    assert closed["token_ids"] == opened["token_ids"] and closed["symbols"] == opened["symbols"] and closed["feedback_bits"] == opened["feedback_bits"]
+
+
+def test_stream_audit_uses_the_configured_decoder_for_both_sides(cfg, checkpoint, tmp_path):
+    cfg["stream"]["live_every"] = 3
+    plain = run_stream(cfg, "context_only", 0, checkpoint, tmp_path / "a.json")
+    cfg["decoder"].update({"beam": 2, "start_m": cfg["codec"]["granularities"][1], "reopen": True})
+    tuned = run_stream(cfg, "context_only", 0, checkpoint, tmp_path / "b.json")
+    assert tuned["log"] == plain["log"] and tuned["probes"] == plain["probes"]  # the decoder only changes what is decoded for real
+    assert tuned["summary"]["decoder"] == {"beam": 2, "start_m": cfg["codec"]["granularities"][1], "reopen": True}
+    assert tuned["summary"]["symbols_at_target_decoder_start_fb_entropy"] == tuned["refine_grid"][1]["symbols_at_target_fb_entropy"]
+    assert plain["summary"]["decoder"] == {"beam": 1, "start_m": cfg["codec"]["granularities"][0], "reopen": False}
+    for point in tuned["live_curve"]:
+        assert point["symbols"] >= cfg["codec"]["granularities"][1] - 1e-9  # nothing below the first shell is ever sent
+    for a, b in zip(plain["live_fixed_curve"], tuned["live_fixed_curve"]):
+        assert a["emulated_tok_acc"] == b["emulated_tok_acc"] and 0.0 <= b["tok_acc"] <= 1.0
+    cfg["decoder"]["start_m"] = 3
+    with pytest.raises(ValueError):
+        from dnsc.config import validate
+
+        validate(cfg)
+
+
+def test_decoder_selection_script_runs_and_decides(tmp_path):
+    overrides = [f"out_dir={tmp_path / 'run'}", f"data.cache_dir={tmp_path / 'data'}", "pretrain.steps=40", "pretrain.eval_every=20"]
+    base = [sys.executable, "--config", str(ROOT / "configs" / "smoke.yaml"), *overrides]
+    for script in ("prepare_data.py", "pretrain.py", "tune_decoder.py"):
+        cmd = [base[0], str(ROOT / "scripts" / script), *base[1:]]
+        done = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=ROOT, timeout=900)
+        assert done.returncode == 0, done.stderr[-2000:]
+    result = json.loads((tmp_path / "run" / "eval" / "decoder_selection.json").read_text())
+    assert len(result["candidates"]) == 8 and set(result["fixed"]) == {"beam1", "beam2", "beam4"}
+    decision = result["decision"]
+    assert decision["beam"] in (1, 2, 4) and decision["start_m"] in (1, 2, 4) and decision["chosen"] in result["candidates"]
+    assert all(len(c["points"]) == 4 for c in result["candidates"].values())
+    again = subprocess.run([base[0], str(ROOT / "scripts" / "tune_decoder.py"), *base[1:]], capture_output=True, text=True, cwd=ROOT, timeout=300)
+    assert again.returncode == 0 and "fixed prefix, beam 1" not in again.stdout  # finished stages are kept, not recomputed
+
+
 def test_a_checkpoint_serves_more_slots_and_another_adapter_rank(cfg, checkpoint, tmp_path, capsys):
     """Adapters are untrained at deployment, so a run may use more of them,
     or another rank, than the codebook checkpoint was saved with."""

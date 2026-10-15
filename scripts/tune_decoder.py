@@ -29,7 +29,6 @@ from dnsc.channel import Channel, capacity_real
 from dnsc.cli import make_parser, parse
 from dnsc.codec import load_codec
 from dnsc.data import get_corpus
-from dnsc.data.stream import snr_trace
 from dnsc.linkbudget import symbols_at_accuracy
 from dnsc.refine import FeedbackMeter, progressive_decode
 from dnsc.utils import environment, get_device, load_json, save_json, set_seed
@@ -79,20 +78,23 @@ def main() -> None:
     target = float(cfg["stream"]["target_acc"])
     rng = np.random.default_rng(20261015)
     messages = validation_messages(cfg, codec, rng)
-    snrs = snr_trace(math.ceil(len(messages) / BATCH), cfg["stream"]["snr"], np.random.default_rng(20261016))
+    # one SNR per message, drawn independently from the stationary law of the stream's SNR process
+    # (an AR(1) process with this mean and standard deviation, clipped to its range)
+    scfg = cfg["stream"]["snr"]
+    snrs = np.clip(np.random.default_rng(20261016).normal(float(scfg["mean"]), float(scfg["sigma"]), size=len(messages)), float(scfg["min"]), float(scfg["max"]))
     capacity = capacity_real(float(cfg["stream"]["snr"]["mean"]))
     out_path = Path(cfg["out_dir"]) / "eval" / "decoder_selection.json"
     state = load_json(out_path) if out_path.exists() else {"candidates": {}, "fixed": {}}
-    print(f"[tune] {len(messages)} validation messages, {len(snrs)} batches, thresholds {THRESHOLDS}, target {target:.0%}")
+    print(f"[tune] {len(messages)} validation messages, SNR mean {snrs.mean():.2f} dB (sd {snrs.std():.2f}), thresholds {THRESHOLDS}, target {target:.0%}")
 
     # transmit every message once; every candidate decodes these same symbols
     channel = Channel("awgn", seed=20261017)
     batches = []
-    for b, i in enumerate(range(0, len(messages), BATCH)):
+    for i in range(0, len(messages), BATCH):
         chunk = messages[i : i + BATCH]
         batch = codec.tokenize([m["text"] for m in chunk], [m["continued"] for m in chunk])
         with torch.no_grad():
-            y, prec = codec.transmit(codec.encode(batch), batch.lens, float(snrs[b]), channel)
+            y, prec = codec.transmit(codec.encode(batch), batch.lens, torch.tensor(snrs[i : i + BATCH], dtype=torch.float32), channel)
         batches.append((batch, y, prec, [m["context"] for m in chunk]))
     n_tokens = sum(int(b.lens.sum()) for b, _, _, _ in batches)
 
@@ -176,7 +178,7 @@ def main() -> None:
         "criterion": criterion(chosen), "fixed_same_beam": chosen["fixed"], "fixed_greedy": finite(symbols_at_accuracy([float(p["m"]) for p in state["fixed"]["beam1"]], [p["tok_acc"] for p in state["fixed"]["beam1"]], target)),
         "baseline_v03": criterion(state["candidates"][key(1, 0, False)]),
     }
-    state.update({"n_messages": len(messages), "n_tokens": n_tokens, "thresholds": THRESHOLDS, "target_acc": target, "capacity": capacity, "config": cfg.to_dict(), "env": environment()})
+    state.update({"n_messages": len(messages), "n_tokens": n_tokens, "snr_mean": float(snrs.mean()), "snr_sd": float(snrs.std()), "thresholds": THRESHOLDS, "target_acc": target, "capacity": capacity, "config": cfg.to_dict(), "env": environment()})
     save_json(out_path, state)
     d = state["decision"]
     print(f"\n[tune] decision: {d['chosen']}  ->  {d['criterion']:.3f} symbols/token at {target:.0%} with signalling (version 0.3 decoder: {d['baseline_v03']:.3f}); fixed prefix with the same beam {d['fixed_same_beam']}, greedy {d['fixed_greedy']}")

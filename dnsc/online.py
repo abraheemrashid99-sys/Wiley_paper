@@ -320,6 +320,9 @@ def run_stream(cfg, method: str, seed: int, ckpt_dir: str | Path, out_path: str 
     n_levels = len(codec.grans)
     grid_sum = np.zeros((n_levels, len(thresholds), 4))
     grid_meter = [[FeedbackMeter(n_levels) for _ in thresholds] for _ in range(n_levels)]
+    dcfg = cfg["decoder"]  # the real decoder of the audit (refinement and fixed-prefix reference alike)
+    beam, reopen = int(dcfg["beam"]), bool(dcfg["reopen"])
+    first_shell = codec.grans.index(dcfg["start_m"]) if dcfg["start_m"] is not None else 0
     live_every = int(scfg["live_every"])
     live_thresholds = [float(t) for t in (scfg["live_thresholds"] or thresholds)]  # the thresholds that are also decoded for real
     live_log: list[dict] = []
@@ -375,12 +378,12 @@ def run_stream(cfg, method: str, seed: int, ckpt_dir: str | Path, out_path: str 
                     hit_rate = lambda rows: sum(int(a == b) for (row, length), got in zip(truth, rows) for a, b in zip(row[:length], got)) / max(n_now, 1)  # noqa: E731
                     n_now = int(batch.lens.sum())
                     for index, tau in enumerate(live_thresholds):
-                        out = progressive_decode(codec, y, prec, batch.lens, tau, rx_contexts, cache, first_pass=first_pass)
+                        out = progressive_decode(codec, y, prec, batch.lens, tau, rx_contexts, cache, start=first_shell, first_pass=first_pass, beam=beam, reopen=reopen)
                         first_pass = out["first_pass"]  # the first round is the same for every threshold
                         live_meter[index].merge(out["meter"])
                         live_now.append({"symbols": out["symbols"], "tok_acc": hit_rate(out["token_ids"]), "feedback_bits": out["feedback_bits"], "rounds": out["rounds"]})
                     # the fixed-prefix receiver decoded for real as well: the reference must be audited like the proposal
-                    live_fixed_now = [hit_rate(first_pass.token_ids)] + [hit_rate(codec.decode(y, m, prec, batch.lens, "llm", cache, rx_contexts).token_ids) for m in codec.grans[1:]]
+                    live_fixed_now = [hit_rate(first_pass.token_ids) if k == first_shell else hit_rate(codec.decode(y, m, prec, batch.lens, "llm", cache, rx_contexts, beam=beam).token_ids) for k, m in enumerate(codec.grans)]
         # selective refinement, emulated teacher-forced: every token stops at the
         # first shell at which the receiver's own confidence reaches the threshold
         selective = {}
@@ -533,6 +536,9 @@ def run_stream(cfg, method: str, seed: int, ckpt_dir: str | Path, out_path: str 
         # the same with the return-link signalling of refinement charged (bitmap / entropy of the requests)
         "symbols_at_target_selective_fb": refine_grid[0]["symbols_at_target_fb"],
         "symbols_at_target_selective_fb_entropy": refine_grid[0]["symbols_at_target_fb_entropy"],
+        # the same policy started at the decoder's first shell (emulated); with the default decoder it is the line above
+        "decoder": {"beam": beam, "start_m": codec.grans[first_shell], "reopen": reopen},
+        "symbols_at_target_decoder_start_fb_entropy": refine_grid[first_shell]["symbols_at_target_fb_entropy"],
         "sel_feedback_bits": operating["feedback_bits"],
         "sel_feedback_entropy_bits": operating["feedback_entropy_bits"],
         "sel_rounds": operating["rounds"],
