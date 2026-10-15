@@ -170,6 +170,41 @@ mean SNR — the assumption under which synchronisation bits are charged — and
 added to the forward symbols. Every refinement result is reported forward
 only and with signalling; the fixed-prefix receiver needs none.
 
+*Decoder of the refinement (version 0.4; fixed before any validation result
+was seen).* The audits of version 0.3 showed that real decoding needs about a
+third more symbols than the emulation, because at short prefixes the
+receiver's own wrong decisions mislead the language prior. Three remedies are
+compared, on validation data only (`scripts/tune_decoder.py`):
+
+- the shell sent in the first round: 2, 4 or 6 symbols per token;
+- reopening: a token closed in an earlier round may be requested again when
+  re-decoding with a corrected context lowers its confidence; every token
+  with shells left then takes part in, and is charged for, every round's
+  decisions;
+- beam search instead of greedy decoding in every decoding pass (width 2 or
+  4). Beam search changes the receiver, so the fixed-prefix reference is
+  decoded with the same beam.
+
+*Validation set.* 32 documents from the validation split of each of AG News,
+TeleQnA and the HuffPost mirror (the corpora of the streams; the streams use
+the training split and the probes the test split, so none of these sentences
+is ever scored elsewhere). From each document one sentence at a random
+position is sent, with the true preceding sentences of its document as
+context; the frozen GPT-2 prior and the published codebook; one channel
+realisation per message, AWGN, SNR drawn from the stream's SNR process
+(mean 10 dB). All candidates decode exactly the same received symbols.
+Thresholds 0.7, 0.85, 0.95 and 0.99.
+
+*Selection rule.* The criterion is real symbols per token at 90 % token
+accuracy, decoded free-running, with the request signalling charged at its
+entropy (Section 2.5). Stage 1 compares the six greedy candidates (first
+shell × reopening). Stage 2 adds beam widths 2 and 4 to the winner of stage
+1; a beam is adopted only if it lowers the criterion by more than 2 %
+(it costs computation). Candidates within 1 % of each other count as tied,
+and the tie goes to the one with fewer rounds per message. The selected
+decoder is then fixed for every stream run; its result on the validation set
+is reported, but the claims of the paper rest on the streams.
+
 *First shell.* Starting at the shortest prefix maximises the number of rounds.
 The same policy is therefore also scored with every later shell as the first
 one (fewer rounds and less signalling for more forward symbols). The paper's

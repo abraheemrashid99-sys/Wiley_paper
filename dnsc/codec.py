@@ -450,10 +450,93 @@ class SemanticCodec(nn.Module):
         return self.score_tf(self.posterior(log_prior, self.loglik(y, m, prec)), batch)
 
     @torch.no_grad()
-    def decode(self, y: torch.Tensor, m, prec: torch.Tensor, lens: torch.Tensor, prior: str = "llm", cache: TokenCache | None = None, contexts: list[list[int]] | None = None) -> Decoded:
-        """Free-running greedy MAP decoding of (B, T, M) received symbols at
-        prefix length(s) ``m``."""
-        return self.decode_loglik(self.loglik(y, m, prec), lens, prior, cache, contexts)
+    def decode(self, y: torch.Tensor, m, prec: torch.Tensor, lens: torch.Tensor, prior: str = "llm", cache: TokenCache | None = None, contexts: list[list[int]] | None = None, beam: int = 1) -> Decoded:
+        """Free-running MAP decoding of (B, T, M) received symbols at prefix
+        length(s) ``m``: greedy (``beam=1``) or beam search."""
+        loglik = self.loglik(y, m, prec)
+        if beam > 1 and prior == "llm":
+            return self.decode_beam(loglik, lens, beam, cache, contexts)
+        return self.decode_loglik(loglik, lens, prior, cache, contexts)
+
+    @torch.no_grad()
+    def decode_beam(self, loglik: torch.Tensor, lens: torch.Tensor, beam: int, cache: TokenCache | None = None, contexts: list[list[int]] | None = None) -> Decoded:
+        """Beam-search MAP decoding with the LLM prior from a precomputed
+        (B, T, V) log-likelihood: the ``beam`` most probable partial sentences
+        under prior x likelihood are kept at every position, so an early error
+        no longer commits the rest of the sentence to a misleading context.
+
+        The returned per-token ``token_logprob`` / ``token_entropy`` are those
+        of the posterior at each position *on the selected path* (the
+        receiver's confidence in each of its final decisions), as in the
+        greedy decoder; with ``beam=1`` the result is exactly the greedy one."""
+        bsz, width, vocab = loglik.shape
+        device = loglik.device
+        k = int(beam)
+        loglik = self.lik_weight * loglik
+        lens = lens.to(device)
+        self._activate()
+        feed, mask = self._prefix(contexts, bsz, device)
+        padded = feed.shape[1] > 1
+        position = (mask.cumsum(dim=1) - 1).clamp_min(0)
+        extra = {"position_ids": position} if padded else {}
+        out = self.lm.base_model(input_ids=feed, attention_mask=mask, use_cache=True, **extra)
+        past = out.past_key_values
+        prior = self._adjust_prior(self._head(out.last_hidden_state[:, -1]), cache)  # (B, V)
+        rows = torch.arange(bsz, device=device)
+        pad = int(self.tok.pad_token_id)
+
+        def scored(log_prior: torch.Tensor, index: int, n: int) -> tuple[torch.Tensor, torch.Tensor]:
+            """Posterior (rows, V) at position ``index`` and its entropy; for a
+            message that has ended the only continuation is the pad token at no
+            cost, so finished messages keep their beams unchanged."""
+            post = F.log_softmax(log_prior + loglik[:, index].repeat_interleave(n, dim=0), dim=-1)
+            ent = -(post.exp() * post).sum(-1)
+            done = (index >= lens).repeat_interleave(n)
+            if bool(done.any()):
+                post = post.clone()
+                post[done] = float("-inf")
+                post[done, pad] = 0.0
+                ent = ent.masked_fill(done, 0.0)
+            return post, ent
+
+        # position 0: the k best first tokens of every message
+        post, ent = scored(prior, 0, 1)
+        k0 = min(k, vocab)
+        scores, first = post.topk(k0, dim=-1)  # (B, k)
+        if bool((0 >= lens).any()):  # an empty message: one beam only
+            scores[0 >= lens, 1:] = float("-inf")
+        tokens = first.unsqueeze(-1)  # (B, k, 1)
+        logp = scores.unsqueeze(-1).clone()
+        entropy = ent.unsqueeze(1).expand(-1, k0).unsqueeze(-1).clone()
+        past.batch_repeat_interleave(k0)
+        mask = mask.repeat_interleave(k0, dim=0)
+        position = position[:, -1:].repeat_interleave(k0, dim=0)
+        for index in range(1, width):
+            mask = torch.cat([mask, mask.new_ones(mask.shape[0], 1)], dim=1)
+            position = position + 1
+            extra = {"position_ids": position} if padded else {}
+            out = self.lm.base_model(input_ids=tokens[:, :, -1].reshape(-1, 1), attention_mask=mask, past_key_values=past, use_cache=True, **extra)
+            past = out.past_key_values
+            post, ent = scored(self._adjust_prior(self._head(out.last_hidden_state[:, -1]), cache), index, k0)
+            total = scores.unsqueeze(-1) + post.view(bsz, k0, vocab)
+            scores, flat = total.view(bsz, -1).topk(k0, dim=-1)
+            origin, chosen = flat // vocab, flat % vocab
+            step_logp = post.view(bsz, k0, vocab)[rows.unsqueeze(1), origin, chosen]
+            step_ent = ent.view(bsz, k0)[rows.unsqueeze(1), origin]
+            tokens = torch.cat([tokens[rows.unsqueeze(1), origin], chosen.unsqueeze(-1)], dim=-1)
+            logp = torch.cat([logp[rows.unsqueeze(1), origin], step_logp.unsqueeze(-1)], dim=-1)
+            entropy = torch.cat([entropy[rows.unsqueeze(1), origin], step_ent.unsqueeze(-1)], dim=-1)
+            past.reorder_cache((rows.unsqueeze(1) * k0 + origin).reshape(-1))
+
+        best = scores.argmax(dim=1)
+        tokens, logp, entropy = tokens[rows, best], logp[rows, best], entropy[rows, best]
+        valid = (torch.arange(width, device=device).unsqueeze(0) < lens.unsqueeze(1)).float()
+        logp, entropy = logp * valid, entropy * valid
+        counts = lens.float().clamp_min(1.0)
+        rows_out = [tokens[i, : int(lens[i])].tolist() for i in range(bsz)]
+        texts = [self.tok.decode(row, skip_special_tokens=True).strip() for row in rows_out]
+        min_logp = logp.masked_fill(valid == 0, float("inf")).min(dim=1).values
+        return Decoded(texts, rows_out, (logp.sum(1) / counts).cpu(), (entropy.sum(1) / counts).cpu(), min_logp.exp().cpu(), logp.cpu(), entropy.cpu())
 
     @torch.no_grad()
     def decode_loglik(self, loglik: torch.Tensor, lens: torch.Tensor, prior: str = "llm", cache: TokenCache | None = None, contexts: list[list[int]] | None = None) -> Decoded:

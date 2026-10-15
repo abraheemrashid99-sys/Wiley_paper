@@ -117,9 +117,14 @@ class FeedbackMeter:
         self.tokens = 0.0
 
     def add_round(self, round_index: int, n_open: int, n_continue: int) -> None:
-        if round_index < self.n_levels - 1:
-            self.open[round_index] += n_open
-            self.cont[round_index] += n_continue
+        """Decisions taken after round ``round_index``. With reopening a
+        decoder can take more rounds than there are shells; the account grows."""
+        if round_index >= len(self.open):
+            grow = round_index + 1 - len(self.open)
+            self.open = np.concatenate([self.open, np.zeros(grow)])
+            self.cont = np.concatenate([self.cont, np.zeros(grow)])
+        self.open[round_index] += n_open
+        self.cont[round_index] += n_continue
 
     def add_tokens(self, n: int) -> None:
         self.tokens += n
@@ -143,8 +148,9 @@ class FeedbackMeter:
         return float(total / self.tokens)
 
     def merge(self, other: "FeedbackMeter") -> None:
-        self.open += other.open
-        self.cont += other.cont
+        size = max(len(self.open), len(other.open))
+        pad = lambda a: np.concatenate([a, np.zeros(size - len(a))])  # noqa: E731
+        self.open, self.cont = pad(self.open) + pad(other.open), pad(self.cont) + pad(other.cont)
         self.tokens += other.tokens
 
     def summary(self) -> dict[str, float]:
@@ -167,7 +173,7 @@ def rounds_per_message(stop: torch.Tensor, lengths: list[int], start: int = 0) -
 
 
 @torch.no_grad()
-def progressive_decode(codec: SemanticCodec, y: torch.Tensor, prec: torch.Tensor, lens: torch.Tensor, threshold: float, contexts: list[list[int]] | None = None, cache=None, start: int = 0, first_pass=None) -> dict:
+def progressive_decode(codec: SemanticCodec, y: torch.Tensor, prec: torch.Tensor, lens: torch.Tensor, threshold: float, contexts: list[list[int]] | None = None, cache=None, start: int = 0, first_pass=None, beam: int = 1, reopen: bool = False) -> dict:
     """Selective refinement decoded for real (free-running) on symbols that
     were transmitted once with :meth:`SemanticCodec.transmit`.
 
@@ -183,6 +189,14 @@ def progressive_decode(codec: SemanticCodec, y: torch.Tensor, prec: torch.Tensor
     A message without open tokens is finished and is not decoded again. The
     first round does not depend on the threshold: its result is returned as
     ``first_pass`` and may be handed to further calls on the same symbols.
+
+    Options (the decoder of the paper is fixed in ``docs/METHOD.md``):
+    ``beam``    width of the beam search of every decoding pass (1: greedy);
+    ``reopen``  a token closed in an earlier round may be requested again
+                when re-decoding with a corrected context lowers its
+                confidence below the threshold. Every token that still has
+                shells left then takes part in every round's decisions, and
+                the signalling is charged for all of them.
 
     Returns the final decisions (``token_ids``), the shell reached by every
     token (``level``), the mean number of symbols per token, the feedback
@@ -201,19 +215,23 @@ def progressive_decode(codec: SemanticCodec, y: torch.Tensor, prec: torch.Tensor
     meter.add_tokens(int(mask.sum()))
     token_ids: list[list[int]] = [[] for _ in range(bsz)]
     active = torch.arange(bsz, device=device)  # messages that are still being refined
-    for round_index in range(start, n_levels):
+    round_index = start
+    limit = start + (n_levels - start) * max(width, 1)  # with reopening every round still raises at least one token
+    while True:
         if round_index == start and first_pass is not None:
             decoded = first_pass
         else:
             span = int(lens[active].max())
             picked = active.tolist()
-            decoded = codec.decode(y[active, :span], sizes[level[active, :span]], prec[active], lens[active], "llm", cache, [contexts[i] for i in picked] if contexts else None)
+            decoded = codec.decode(y[active, :span], sizes[level[active, :span]], prec[active], lens[active], "llm", cache, [contexts[i] for i in picked] if contexts else None, beam=beam)
         if round_index == start:
             first_pass = decoded
         span = decoded.token_logprob.shape[1]
         for row, got in zip(active.tolist(), decoded.token_ids):
             token_ids[row] = got
-        if round_index == n_levels - 1:
+        can = mask[active, :span] & (level[active, :span] < n_levels - 1)  # tokens that still have shells left
+        is_open[active, :span] = can if reopen else (is_open[active, :span] & can)
+        if not bool(is_open[active].any()) or round_index >= limit:
             break
         conf = decoded.token_logprob.exp().to(device)
         request = is_open[active, :span] & (conf < threshold)
@@ -225,6 +243,7 @@ def progressive_decode(codec: SemanticCodec, y: torch.Tensor, prec: torch.Tensor
         level[active, :span] += request.long()
         active = active[again]
         rounds[active] += 1
+        round_index += 1
     n_tokens = max(int(mask.sum()), 1)
     return {
         "token_ids": token_ids,
