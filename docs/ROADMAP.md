@@ -47,8 +47,9 @@ policy loses about half of its emulated gain when it is decoded for real and
 its signalling is charged (`results/gpt2/RESULTS.md`, sections 11 and 12).
 Version 0.4 chose a better decoder on validation text only, by the rule
 written into `docs/METHOD.md`, section 2.5, before it was run: beam search
-of width 4 and a first round of 6 symbols per token (8.1 % fewer symbols
-with signalling than the version 0.3 decoder on the validation set). It is
+of width 4 and a first round of 6 symbols per token (7.4 % fewer symbols
+with signalling than the version 0.3 decoder on the validation set; the
+fixed prefix gains 17.7 % from the beam). It is
 in the configurations; `--profile core` uses it, and `--profile published`
 keeps the decoder of the published runs.
 

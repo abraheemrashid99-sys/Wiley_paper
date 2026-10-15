@@ -223,9 +223,9 @@ real, with the signalling charged at its entropy:
 | 2 symbols | yes | 9.937 | | |
 | 4 symbols | no | **8.652** | | |
 | 4 symbols | yes | 9.640 | | |
-| 6 symbols | no | 8.730 (tied, fewer rounds: stage-1 winner) | 8.476 | **8.248 (selected)** |
+| 6 symbols | no | 8.730 (tied, fewer rounds: stage-1 winner) | 8.603 | **8.306 (selected)** |
 | 6 symbols | yes | 9.533 | | |
-| Fixed prefix, same beam | — | 10.994 | 10.712 | 10.541 |
+| Fixed prefix, same beam | — | 10.994 | 10.044 | 9.049 |
 
 Stage 1: the first shell of 4 symbols is lowest (8.652); 6 symbols (8.730)
 is within 1 % and needs fewer rounds (3.0 against 4.0 per message at
@@ -234,26 +234,51 @@ it decodes more accurately for the same forward symbols, but every token
 with shells left takes part in every round's decisions, and that signalling
 costs more than it saves (at its entropy, 3.5–4.2 bits per token against
 2.4–2.5 without reopening for a first shell of 2 symbols, 3.2–3.4 against
-2.1–2.3 for 4, and 2.3–2.6 against 1.6–1.9 for 6). Stage 2: beam 4 lowers the criterion by 5.5 % (beam 2 by
-2.9 %), above the 2 % bar. **The decoder of every stream run from version
-0.4 on is therefore: beam search of width 4, a first round of 6 symbols per
-token, no reopening** (`decoder` in the configurations). On the validation
-set it needs 8.1 % fewer symbols than the version 0.3 decoder, and 21.8 %
-fewer than the fixed prefix decoded with the same beam (25.0 % fewer than
-the greedy fixed prefix).
+2.1–2.3 for 4, and 2.3–2.6 against 1.6–1.9 for 6). Stage 2: beam 4 lowers
+the criterion by 4.9 %, above the 2 % bar (beam 2: 1.5 %, below it).
+**The decoder of every stream run from version 0.4 on is therefore: beam
+search of width 4, a first round of 6 symbols per token, no reopening**
+(`decoder` in the configurations). On the validation set it needs 7.4 %
+fewer symbols than the version 0.3 decoder and 24.5 % fewer than the greedy
+fixed prefix.
 
-Two limits of the selection, stated as they fell. (i) With a first shell of 6
-symbols, and with reopening, the operating curve already exceeds 90 % at the
-lowest threshold of the grid (0.7), so the criterion of those candidates is
-read at that point and is an upper bound; a lower threshold could only have
-favoured them, and the selected candidate is one of them. The stream audits
-therefore include the threshold 0.5. (ii) The selection was made with GPT-2
-and the published codebook; the other configurations use the same decoder,
-and every confirmatory run repeats the selection on its own codebook as a
-check (`scripts/reproduce.py --profile core`). The file records the
-revision at which it was written (`9f66973+dirty`); the selection was
-launched at revision `5305d3f`, and the code it uses did not change in
-between (`results/decoder_selection/README.md`).
+What the selection also shows: **beam search helps the fixed prefix far more
+than selective refinement.** With beam 4 the fixed prefix needs 17.7 % fewer
+symbols than with greedy decoding (9.049 against 10.994), because beam
+search removes much of the error propagation at short prefixes that
+refinement had been compensating for. Against the fixed prefix decoded with
+the same beam, refinement with its signalling saves 8.2 % on the validation
+set — the comparison the streams make, since both sides of the headline use
+the configured decoder.
+
+*Correction after the selection, before any stream result.* Reviewing the
+code after the selection had finished, we found that the beam search ranked
+partial sentences by the sum of the per-position posteriors instead of their
+joint posterior (prior times likelihood), which the method states and
+"beam search" implies; the sum subtracts log p(y_t | x_<t) at every position
+and so penalises the prefixes that explain the next observation well. It was
+corrected (revision `5f055e3`, with a test that tells the two rankings
+apart), and stage 2 was run again with the corrected beam and the unchanged
+rule; stage 1 is greedy and unaffected. The decision did not change (with
+the locally normalised beam: beam 4, 8.248 against 10.541 for the fixed
+prefix with the same beam; kept in
+`results/decoder_selection/superseded_local_beam`). Two stream runs
+(seed 0, `frozen` and `nested`) had been started with the flawed beam; they
+were stopped after 250 and 150 of their 600 steps and wrote no result file.
+Only their progress lines were seen, which show teacher-forced figures that
+the beam does not affect.
+
+Limits of the selection. (i) With a first shell of 6 symbols, and with
+reopening, the operating curve already exceeds 90 % at the lowest threshold
+of the grid (0.7): the selected decoder reaches 94.5 % there. The criterion
+of those candidates is read at that point and is an upper bound; a lower
+threshold could only have favoured them, and the selected candidate is one
+of them. The stream audits therefore include the threshold 0.5. (ii) The
+selection was made with GPT-2 and the published codebook; the other
+configurations use the same decoder, and every confirmatory run repeats the
+selection on its own codebook as a check (`scripts/reproduce.py --profile
+core`). Provenance of the file is described in
+`results/decoder_selection/README.md`.
 
 *First shell.* Starting at the shortest prefix maximises the number of rounds.
 The same policy is therefore also scored with every later shell as the first

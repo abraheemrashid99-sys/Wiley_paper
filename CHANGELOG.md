@@ -13,13 +13,19 @@ Method
 - Decoder of selective refinement chosen on validation text only, by a rule
   written down before it ran (`docs/METHOD.md`, section 2.5;
   `scripts/tune_decoder.py`; `results/decoder_selection`): **beam search of
-  width 4, a first round of 6 symbols per token, no reopening** — 8.248
+  width 4, a first round of 6 symbols per token, no reopening** — 8.306
   symbols per token at 90 % token accuracy with signalling, against 8.971
-  for the version 0.3 decoder and 10.541 for the fixed prefix with the same
-  beam. Beam search (with the language model's cache reordered per beam) and
+  for the version 0.3 decoder. Beam search (ranking sentences by their joint
+  posterior, with the language model's cache reordered per beam) and
   reopening of closed tokens are implemented and tested; the configured
   decoder is used for selective refinement and the fixed-prefix reference
   alike.
+- Beam search helps the fixed prefix far more than refinement: with beam 4
+  the fixed prefix needs 9.049 symbols per token on the validation set
+  instead of 10.994, and refinement with signalling saves 8.2 % against it.
+- The first selection ranked beams by summed per-position posteriors; found
+  on review before any stream result, corrected, the beam stage repeated
+  (decision unchanged; disclosed in `docs/METHOD.md`, section 2.5).
 - The emulated policy, and the decisions that feed the receiver's memories,
   start at the decoder's first shell.
 
