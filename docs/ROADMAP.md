@@ -62,8 +62,11 @@ python scripts/reproduce.py --config configs/gpt2.yaml --out runs/gpt2_core \
 
 88 stream runs and the decoder selection repeated as a check; on two CPU
 cores several days with the version 0.4 audit (beam search on every audited
-step), on a Colab T4 roughly 10–15 hours, resumable from Google Drive. It contains the published runs, so its `COMPARISON.md`
-also checks the pilot. Afterwards:
+step), on a Colab T4 roughly 8–10 hours (estimated), resumable from Google
+Drive. Its runs carry the names of the published ones, but with the decoder
+of version 0.4 they follow another protocol, and its `COMPARISON.md` says so
+(the published profile is the check of the pilot, done in
+`results/gpt2_v0.3_colab_t4`). Afterwards:
 
 ```
 python scripts/aggregate.py --config configs/gpt2.yaml out_dir=runs/gpt2_core --seeds 3,4,5 --to tables_unseen

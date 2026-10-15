@@ -960,7 +960,7 @@ def test_command_line_pipeline(tmp_path):
     report = (exported / "TABLES.md").read_text(encoding="utf-8")
     assert "Headline, hier stream" in report and "frozen, fixed prefix length" in report
     # version 0.3: what refinement costs, the free-running audit, honest statistics, measured cost
-    for name in ["tables/realdecode_hier.md", "tables/refine_cost_hier.md", "tables/refine_start_hier.md", "tables/targets_hier.md", "tables/equivalence_hier.md", "tables/cost.md", "tables/rate_toy_a_chrf.md", "tables/rate_toy_a_wer.md", "eval/rate_toy_a.texts.json.gz"]:
+    for name in ["tables/realdecode_hier.md", "tables/emulation_check_hier.md", "tables/refine_cost_hier.md", "tables/refine_start_hier.md", "tables/targets_hier.md", "tables/equivalence_hier.md", "tables/cost.md", "tables/rate_toy_a_chrf.md", "tables/rate_toy_a_wer.md", "eval/rate_toy_a.texts.json.gz"]:
         assert (exported / name).exists(), name
     captions = [line for line in report.splitlines() if line.startswith("**")]
     assert len(captions) == len(set(captions)), "a table is printed twice in TABLES.md"

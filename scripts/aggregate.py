@@ -400,6 +400,23 @@ def refinement_tables(cfg, kind: str, methods: dict, tables: Path, ref: str) -> 
         if tested:
             for (index, _), adjusted in zip(tested, holm([p for _, p in tested])):
                 rows[index]["p (Holm)"] = f"{adjusted:.4f}"
+        # the emulation check of docs/METHOD.md, section 9: may the teacher-forced curves stand?
+        checks = []
+        for method, runs in sorted(methods.items()):
+            pooled = pooled_live(list(runs.values()), target_default)
+            if pooled is None:
+                continue
+            real, emulated = pooled["forward"], pooled["emulated_forward"]
+            gap = None if real is None or emulated is None else real / emulated - 1
+            checks.append({"method": method, "seeds": len(runs), "free-running, forward": _show(real), "emulated on the same steps": _show(emulated), "gap": "not reached" if gap is None else f"{gap:+.1%}", "within 5%": "-" if gap is None else ("yes" if abs(gap) <= 0.05 else "NO")})
+        if checks:
+            accepted = all(c["within 5%"] == "yes" for c in checks)
+            write_table(
+                pd.DataFrame(checks),
+                tables / f"emulation_check_{kind}",
+                f"Emulation check on the '{kind}' stream (docs/METHOD.md, section 9): free-running against teacher-forced forward symbols per token for {target_default:.0%} token accuracy on exactly the audited steps, curves pooled over the seeds. Verdict: "
+                + ("every method within 5% - the teacher-forced curves stand as the measurement, the free-running ones are reported next to them" if accepted else "not every method within 5% - the free-running figures are the measurement, on both sides of the comparison"),
+            )
         if rows:
             write_table(
                 pd.DataFrame(rows),
