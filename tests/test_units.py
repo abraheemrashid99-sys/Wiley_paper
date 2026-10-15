@@ -15,7 +15,7 @@ from dnsc.data import get_corpus
 from dnsc.data.corpora import assign_split, process
 from dnsc.data.stream import HierStream, TemporalStream, build_probes, snr_trace
 from dnsc.data.text import clean, keep_sentence, split_sentences, strip_bracket_tag
-from dnsc.linkbudget import crossover_traffic, net_semantic_rate, overhead_fraction, symbols_at_accuracy, sync_symbols
+from dnsc.linkbudget import crossover_traffic, net_semantic_rate, overhead_fraction, pooled_live, symbols_at_accuracy, sync_symbols
 from dnsc.metrics import bleu_scores, expected_calibration_error, exact_match, sentence_bleu
 from dnsc.nested import Level, NestedOptimizer, quantize_delta
 from dnsc.refine import Calibrator, features, interpolate_fixed, random_matched, reference_policies, stop_levels, stopping_curve
@@ -429,6 +429,25 @@ def test_symbols_needed_for_a_target_accuracy():
     assert symbols_at_accuracy(symbols, accuracy, 0.95) == math.inf  # never reached
     assert symbols_at_accuracy([8.0, 2.0, 4.0], [0.9, 0.5, 0.7], 0.8) == pytest.approx(6.0)  # order does not matter
     assert symbols_at_accuracy([], [], 0.5) == math.inf
+
+
+def test_real_decoding_is_pooled_over_seeds_before_the_target_is_read():
+    def run(acc_fixed, acc_sel, steps=3):
+        fixed = [{"m": m, "tok_acc": a} for m, a in zip([2, 4, 8], acc_fixed)]
+        live = [{"threshold": t, "symbols": s, "symbols_total": s + 1.0, "symbols_total_entropy": s + 0.5, "tok_acc": a} for t, s, a in zip([0.5, 0.9], [3.0, 5.0], acc_sel)]
+        return {"live_fixed_curve": fixed, "live_curve": live, "summary": {"live_steps": steps}}
+
+    a, b = run([0.5, 0.7, 0.9], [0.7, 0.9]), run([0.5, 0.7, 0.85], [0.7, 0.86])
+    pooled = pooled_live([a, b], 0.88)
+    # pooled fixed curve 0.5 / 0.7 / 0.875 never reaches 0.88 although run a alone does
+    assert pooled["fixed"] is None and pooled_live([a], 0.88)["fixed"] == pytest.approx(7.6)
+    assert pooled["forward"] == pytest.approx(5.0)  # pooled selective curve 0.7 / 0.88 reaches it at its last point
+    assert pooled_live([a, b], 0.8)["fixed"] == pytest.approx(4 + 4 * (0.8 - 0.7) / (0.875 - 0.7))
+    sel = pooled_live([a, b], 0.75)
+    assert sel["forward"] == pytest.approx(3 + 2 * (0.75 - 0.7) / (0.88 - 0.7))
+    assert sel["total_entropy"] == pytest.approx(sel["forward"] + 0.5) and sel["total_bitmap"] == pytest.approx(sel["forward"] + 1.0)
+    assert sel["audited_steps"] == 6
+    assert pooled_live([a, {"summary": {}}], 0.8) is None  # a run without an audit
 
 
 def test_stop_levels_pick_the_first_confident_shell():

@@ -16,6 +16,7 @@ from pathlib import Path
 import numpy as np
 
 from dnsc.cli import make_parser, parse
+from dnsc.linkbudget import pooled_live
 from dnsc.utils import load_json
 
 ORDER = ["frozen", "context_only", "single_rate", "ewc", "nested_no_context", "nested_no_slots", "nested_two_level", "nested", "full_online"]
@@ -43,8 +44,11 @@ def headline(stream_dir: Path, kind: str) -> list[str]:
     if "frozen" not in runs:
         return []
 
-    def need(method: str, key: str) -> tuple[float, int]:
-        values = [r["summary"].get(key) for r in runs[method].values()]
+    def need(method: str, key: str, seeds: list[int] | None = None) -> tuple[float, int]:
+        chosen = runs[method] if seeds is None else {s: runs[method][s] for s in seeds if s in runs[method]}
+        values = [r["summary"].get(key) for r in chosen.values()]
+        if seeds is not None and len(values) < len(seeds):
+            return float("nan"), len(values)  # the reference lacks some of these seeds
         return (float("nan") if any(v is None for v in values) else float(np.mean(values))), len(values)
 
     def show(value: float, pattern: str = "{:.3f}") -> str:
@@ -52,23 +56,50 @@ def headline(stream_dir: Path, kind: str) -> list[str]:
 
     target = next(iter(runs["frozen"].values()))["target_acc"]
     fixed, n_fixed = need("frozen", "symbols_at_target_fixed")
-    base, _ = need("frozen", "symbols_at_target_selective")
     lines = [
-        f"Real symbols per token needed for {target:.0%} token accuracy on the '{kind}' stream (mean over seeds; read off each method's measured operating curve).",
+        f"Real symbols per token needed for {target:.0%} token accuracy on the '{kind}' stream (mean over seeds; read off each method's measured operating curve). Every receiver is compared with the frozen receiver on the same seeds.",
         "",
         "| Receiver | Seeds | Prior bits/token | Symbols/token | vs. frozen at a fixed rate | vs. frozen with refinement | Sync kbit/step | Symbols/token incl. feedback (entropy) | vs. frozen at a fixed rate, feedback charged |",
         "| --- | --- | --- | --- | --- | --- | --- | --- | --- |",
         f"| frozen, fixed prefix length | {n_fixed} | {need('frozen', 'mean_prior_bits')[0]:.3f} | {show(fixed)} | — | — | 0 | {show(fixed)} | — |",
     ]
     for method in [m for m in ORDER if m in runs] + sorted(m for m in runs if m not in ORDER):
+        seeds = sorted(runs[method])
         value, n = need(method, "symbols_at_target_selective")
         prior, _ = need(method, "mean_prior_bits")
         sync, _ = need(method, "sync_bits_per_step")
+        ref_fixed, _ = need("frozen", "symbols_at_target_fixed", seeds)
+        ref_sel, _ = need("frozen", "symbols_at_target_selective", seeds)
         label = "frozen, selective refinement" if method == "frozen" else f"{method}, selective refinement"
-        versus = "—" if method == "frozen" else show(value / base - 1, "{:+.1%}")
+        versus = "—" if method == "frozen" else show(value / ref_sel - 1, "{:+.1%}")
         total, _ = need(method, "symbols_at_target_selective_fb_entropy")
-        lines.append(f"| {label} | {n} | {prior:.3f} | {show(value)} | {show(value / fixed - 1, '{:+.1%}')} | {versus} | {sync / 1e3:.2f} | {show(total)} | {show(total / fixed - 1, '{:+.1%}')} |")
+        lines.append(f"| {label} | {n} | {prior:.3f} | {show(value)} | {show(value / ref_fixed - 1, '{:+.1%}')} | {versus} | {sync / 1e3:.2f} | {show(total)} | {show(total / ref_fixed - 1, '{:+.1%}')} |")
     lines += ["", "\"Incl. feedback\": forward symbols plus the return-link signalling of the refinement requests, charged at its entropy and at the capacity of the mean SNR (derived; see the refinement-cost table for the bitmap variant and the free-running audit). n/a: not recorded by the code version that produced the run, or the target is not reached."]
+
+    # the same comparison decoded for real (free-running audit), both sides with the same decoder;
+    # every receiver is compared with the frozen receiver on the same seeds (the same audited messages)
+    if "frozen" in runs and all(r.get("live_fixed_curve") for r in runs["frozen"].values()):
+        first = next(iter(runs["frozen"].values()))
+        decoder = first["summary"].get("decoder", {"beam": 1, "start_m": None, "reopen": False})
+        shell = "the smallest" if decoder["start_m"] is None else f"{decoder['start_m']} symbols"
+        lines += [
+            "",
+            f"**Decoded for real.** The same symbols decoded free-running on the audited steps (every {first.get('live_every', '?')}th step of every run, pooled over the seeds of a method) with the decoder of the run (beam {decoder['beam']}, first shell {shell}, reopening {'on' if decoder['reopen'] else 'off'}), for selective refinement and the fixed-prefix reference alike; selective refinement is charged its signalling. Every receiver is compared with the frozen receiver's fixed prefix on the same seeds.",
+            "",
+            "| Receiver | Seeds | Audited steps | Fixed prefix | vs. frozen fixed prefix | Selective + signalling (entropy) | vs. frozen fixed prefix | Selective + signalling (bitmap) | vs. frozen fixed prefix |",
+            "| --- | --- | --- | --- | --- | --- | --- | --- | --- |",
+        ]
+        num = lambda v: "not reached" if v is None else f"{v:.3f}"  # noqa: E731
+        for method in [m for m in ORDER if m in runs] + sorted(m for m in runs if m not in ORDER):
+            seeds = sorted(runs[method])
+            mine = pooled_live([runs[method][seed] for seed in seeds], target)
+            frozen = [runs["frozen"][seed] for seed in seeds if seed in runs["frozen"]]
+            reference = pooled_live(frozen, target) if len(frozen) == len(seeds) else None
+            if mine is None:
+                continue
+            ref = None if reference is None else reference["fixed"]
+            rel = lambda v: "n/a" if v is None or ref is None else f"{v / ref - 1:+.1%}"  # noqa: E731,B023
+            lines.append(f"| {method} | {len(seeds)} | {mine['audited_steps']} | {num(mine['fixed'])} | {'—' if method == 'frozen' else rel(mine['fixed'])} | {num(mine['total_entropy'])} | {rel(mine['total_entropy'])} | {num(mine['total_bitmap'])} | {rel(mine['total_bitmap'])} |")
     return lines + [""]
 
 

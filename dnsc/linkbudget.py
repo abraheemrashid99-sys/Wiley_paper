@@ -73,3 +73,37 @@ def symbols_at_accuracy(symbols: list[float], accuracy: list[float], target: flo
         if a1 >= target > a0:
             return float(s0 + (target - a0) / (a1 - a0) * (s1 - s0))
     return math.inf
+
+
+def pooled_live(runs: list[dict], target: float) -> dict | None:
+    """Symbols per token at ``target`` accuracy from the free-running audits
+    of several runs (seeds) of one method, read off the operating curves
+    averaged over the runs - every run audits the same number of steps, so
+    this pools the audited messages. Reading the target off the pooled curve
+    is more stable than averaging per-run readings, which are undefined
+    whenever one run's few audited steps never reach the target.
+
+    Returns ``None`` when a run has no audit; otherwise the fixed-prefix
+    reference and the selective policy forward only and with its signalling
+    (entropy and bitmap), each ``None`` if the pooled curve never reaches the
+    target, and the number of audited steps."""
+    curves = [r.get("live_curve") for r in runs]
+    fixed = [r.get("live_fixed_curve") for r in runs]
+    if not runs or not all(curves) or not all(fixed):
+        return None
+
+    def mean_curve(curves: list[list[dict]], key: str) -> list[float]:
+        return [sum(c[i][key] for c in curves) / len(curves) for i in range(len(curves[0]))]
+
+    def read(symbols: list[float], accuracy: list[float]) -> float | None:
+        value = symbols_at_accuracy(symbols, accuracy, target)
+        return value if math.isfinite(value) else None
+
+    accuracy = mean_curve(curves, "tok_acc")
+    return {
+        "fixed": read([float(p["m"]) for p in fixed[0]], mean_curve(fixed, "tok_acc")),
+        "forward": read(mean_curve(curves, "symbols"), accuracy),
+        "total_entropy": read(mean_curve(curves, "symbols_total_entropy"), accuracy),
+        "total_bitmap": read(mean_curve(curves, "symbols_total"), accuracy),
+        "audited_steps": sum(int(r["summary"].get("live_steps", 0)) for r in runs),
+    }

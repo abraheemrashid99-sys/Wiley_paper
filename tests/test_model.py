@@ -929,6 +929,7 @@ def test_command_line_pipeline(tmp_path):
     captions = [line for line in report.splitlines() if line.startswith("**")]
     assert len(captions) == len(set(captions)), "a table is printed twice in TABLES.md"
     assert "Symbols/token incl. feedback (entropy)" in report and "smallest attainable p" in report and "Measured computational cost" in report
+    assert "**Decoded for real.**" in report and "Selective + signalling (entropy)" in report
     cost = (exported / "tables" / "refine_cost_hier.md").read_text(encoding="utf-8")
     frozen_row = next(line for line in cost.splitlines() if line.startswith("| frozen |"))
     assert "free-running fixed prefix" in cost and "n/a" not in frozen_row  # everything is recorded by this version ("not reached" is a measurement)

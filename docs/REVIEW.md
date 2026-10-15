@@ -59,6 +59,7 @@ done; what it takes is stated.
 | C5 | Synchronisation is charged at capacity and assumed error-free; the sentence length is assumed known; perfect channel state. | Stated as limitations; the same assumptions now apply to the refinement requests and are stated there too. | Stated |
 | C6 | The temporal corpus is a third-party mirror lacking nine months of 2012, and the base corpus is a 14 006-sentence sample of Europarl. | Stated; `configs/laptop.yaml` uses the official sources. | Open (with A6) |
 | C7 | The free-running BLEU of the probes rests on 16 sentences per domain. | Stated; the audit of A2 is now the free-running check of the streams (about 1200 tokens per run). | Stated |
+| C8 | The headline of `TABLES.md` compared runs with one seed (`ewc`, `nested_no_context`, `nested_two_level`; `full_online` on the temporal stream) with the mean of the frozen receiver over all its seeds. Seed 0 is an easier stream than seeds 1 and 2, so these rows looked better than they are: `nested_two_level` read −49.3 % and seemed to beat `nested` (−47.7 %); against the frozen receiver on its own seed it reads −46.7 %, `ewc` −45.8 % instead of −48.4 %, `nested_no_context` −37.1 % instead of −40.1 %, temporal `full_online` −37.5 % instead of −39.6 %. No sentence of `RESULTS.md` used these rows (its ablation figures are paired per step). | Every receiver is now compared with the frozen receiver on the same seeds; a reference that lacks a seed gives "n/a". The published `TABLES.md` is kept as it was produced. | Fixed |
 
 ## D. Outside the experiments
 
