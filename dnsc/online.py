@@ -536,8 +536,8 @@ def run_stream(cfg, method: str, seed: int, ckpt_dir: str | Path, out_path: str 
         "symbols_at_target_selective": _finite(symbols_at_accuracy([p["symbols"] for p in selective_curve], [p["tok_acc"] for p in selective_curve], target)),
         "symbols_at_target_fixed": _finite(symbols_at_accuracy([float(p["m"]) for p in fixed_curve], [p["tok_acc"] for p in fixed_curve], target)),
         # the same with the return-link signalling of refinement charged (bitmap / entropy of the requests)
-        "symbols_at_target_selective_fb": refine_grid[0]["symbols_at_target_fb"],
-        "symbols_at_target_selective_fb_entropy": refine_grid[0]["symbols_at_target_fb_entropy"],
+        "symbols_at_target_selective_fb": refine_grid[first_shell]["symbols_at_target_fb"],  # the policy, from the decoder's first shell
+        "symbols_at_target_selective_fb_entropy": refine_grid[first_shell]["symbols_at_target_fb_entropy"],
         # the same policy started at the decoder's first shell (emulated); with the default decoder it is the line above
         "decoder": {"beam": beam, "start_m": codec.grans[first_shell], "reopen": reopen},
         "symbols_at_target_decoder_start_fb_entropy": refine_grid[first_shell]["symbols_at_target_fb_entropy"],

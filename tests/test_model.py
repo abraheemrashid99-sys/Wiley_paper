@@ -673,6 +673,10 @@ def test_stream_audit_uses_the_configured_decoder_for_both_sides(cfg, checkpoint
     later = run_stream(cfg, "context_only", 0, checkpoint, tmp_path / "c.json")
     assert later["summary"]["decoder"] == {"beam": 2, "start_m": grans[1], "reopen": True}
     assert later["summary"]["symbols_at_target_decoder_start_fb_entropy"] == later["refine_grid"][1]["symbols_at_target_fb_entropy"]
+    # every figure of the policy, forward and with signalling, belongs to the same first shell
+    assert later["summary"]["symbols_at_target_selective_fb_entropy"] == later["refine_grid"][1]["symbols_at_target_fb_entropy"]
+    assert later["summary"]["symbols_at_target_selective_fb"] == later["refine_grid"][1]["symbols_at_target_fb"]
+    assert later["summary"]["symbols_at_target_selective"] == pytest.approx(later["refine_grid"][1]["symbols_at_target"])
     for point, grid in zip(later["selective_curve"], later["refine_grid"][1]["points"]):
         assert point["symbols"] >= grans[1] - 1e-9 and point["symbols"] == pytest.approx(grid["symbols"]) and point["feedback_bits"] == pytest.approx(grid["feedback_bits"])
     for point in later["live_curve"]:
