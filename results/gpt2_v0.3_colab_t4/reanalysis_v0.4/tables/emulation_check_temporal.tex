@@ -1,0 +1,12 @@
+% Emulation check on the 'temporal' stream (docs/METHOD.md, section 9): free-running against teacher-forced forward symbols per token for 90% token accuracy on exactly the audited steps, curves pooled over the seeds. Verdict: not every method within 5% - the free-running figures are the measurement, on both sides of the comparison
+\begin{tabular}{llllll}
+\hline
+method & seeds & free-running, forward & emulated on the same steps & gap & within 5\% \\
+\hline
+context\_only & 2 & 7.608 & 5.441 & +39.8\% & NO \\
+frozen & 2 & 7.914 & 5.830 & +35.7\% & NO \\
+full\_online & 1 & 6.088 & 4.564 & +33.4\% & NO \\
+nested & 2 & 7.240 & 5.266 & +37.5\% & NO \\
+single\_rate & 2 & 7.316 & 5.279 & +38.6\% & NO \\
+\hline
+\end{tabular}

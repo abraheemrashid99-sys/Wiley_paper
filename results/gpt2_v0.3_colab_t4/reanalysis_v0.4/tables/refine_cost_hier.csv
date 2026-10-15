@@ -1,0 +1,10 @@
+method,seeds,fixed prefix,"selective, forward only",feedback bits/token (bitmap),feedback bits/token (entropy),rounds/message,selective + feedback (bitmap),selective + feedback (entropy),"saving vs fixed, feedback charged (entropy)",free-running: steps audited,free-running fixed prefix,"emulated fixed prefix, same steps","free-running, forward only",emulated on the same steps,free-running + feedback (entropy),free-running + feedback (bitmap),"free-running saving vs free-running fixed, feedback charged (entropy)",free-running tok-acc at the threshold,emulated tok-acc at the threshold
+context_only,3,8.162,5.286,2.905,2.487,5.00,6.705,6.608,-19.0%,36,10.957,8.942,7.610,5.727,9.023,9.544,-17.7%,0.9168,0.9561
+ewc,1,7.642,4.874,2.770,2.442,4.85,6.200,6.138,-19.7%,12,7.577,6.990,5.995,4.700,7.302,7.658,-3.6%,0.9526,0.9660
+frozen,3,9.490,6.276,3.224,2.535,5.19,7.921,7.690,-19.0%,36,11.452,9.803,8.352,6.361,9.734,10.447,-15.0%,0.9159,0.9558
+full_online,3,7.771,4.950,2.796,2.453,4.92,6.292,6.226,-19.9%,36,10.334,8.009,7.062,5.290,8.471,8.883,-18.0%,0.9304,0.9616
+nested,3,7.774,4.956,2.794,2.452,4.92,6.299,6.232,-19.8%,36,10.318,8.081,7.097,5.307,8.513,8.922,-17.5%,0.9257,0.9622
+nested_no_context,1,8.506,5.723,3.100,2.504,5.04,7.258,7.095,-16.6%,12,7.811,7.257,6.546,5.063,7.819,8.354,+0.1%,0.9547,0.9755
+nested_no_slots,3,7.851,5.026,2.820,2.461,4.94,6.385,6.312,-19.6%,36,10.570,8.373,7.255,5.419,8.677,9.111,-17.9%,0.9174,0.9586
+nested_two_level,1,7.559,4.794,2.732,2.427,4.82,6.102,6.046,-20.0%,12,7.566,6.827,5.977,4.530,7.288,7.636,-3.7%,0.9420,0.9679
+single_rate,3,7.859,5.033,2.821,2.462,4.94,6.393,6.320,-19.6%,36,10.648,8.419,7.264,5.470,8.682,9.126,-18.5%,0.9243,0.9571

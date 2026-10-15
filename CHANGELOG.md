@@ -7,7 +7,11 @@ runs is REPRODUCED (largest headline difference 1.84 %). Its new
 measurements on every seed: decoded for real and with the signalling
 charged, the full system saves 25.7 % (hierarchical stream) and 21.1 %
 (temporal) of the symbols of the frozen fixed-prefix receiver, against 47.7 %
-and 38 % emulated without signalling (`results/gpt2/RESULTS.md`, section 12).
+and 38 % emulated without signalling (`results/gpt2/RESULTS.md`, section 12). With
+the decoder chosen in this release, a first look on one test seed gives
+27.9 % decoded for real (17.9 % with the old decoder on that seed), and the
+teacher-forced emulation agrees with real decoding within 3–4 % instead of
+about 30 % (`results/gpt2_v0.4_check`, RESULTS section 13).
 
 Method
 - Decoder of selective refinement chosen on validation text only, by a rule
@@ -46,6 +50,10 @@ Measurement and statistics
   `ewc`, `nested_no_context` and temporal `full_online` by 2–3 points
   (`docs/REVIEW.md`, C8).
 - Result files record the code revision at which their process started.
+- The signalling-charged teacher-forced figures of a run follow the
+  configured first shell (they were read from the shortest one).
+- Emulation check table with the verdict of the decision rule
+  (`tables/emulation_check_*.md`).
 
 Reproduction
 - `--profile published` pins the decoder of the published runs; `core` and
