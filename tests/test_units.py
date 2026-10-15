@@ -594,3 +594,11 @@ def test_code_revision_is_read_from_the_release_file_outside_git(tmp_path, monke
     assert utils.git_revision() == "abc1234"
     (tmp_path / "REVISION").unlink()
     assert utils.git_revision() == "unknown"
+
+
+def test_result_files_record_the_revision_the_process_started_with(monkeypatch):
+    import dnsc.utils as utils
+
+    started = utils.launch_revision()
+    monkeypatch.setattr(utils, "git_revision", lambda: "changed-meanwhile")
+    assert utils.environment()["git"] == started != "changed-meanwhile"

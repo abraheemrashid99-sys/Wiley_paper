@@ -51,7 +51,11 @@ stream:
   gen_every: 0            # free-running decoding is checked on the probes
   gen_sentences: 4
   live_every: 23          # free-running audit of refinement every 23rd step (a prime: not in phase with any shipping period)
-  live_thresholds: [0.7, 0.9, 0.95, 0.99]   # the operating threshold and enough above it for real decoding to reach the target
+  live_thresholds: [0.5, 0.7, 0.9, 0.95, 0.99]   # every threshold of the curve: the target accuracy must be bracketed when decoding for real
+decoder:                  # decoder of selective refinement, chosen on validation text only (docs/METHOD.md, section 2.5;
+  beam: 4                 # results/decoder_selection): beam search of width 4 in every decoding pass,
+  start_m: 6              # a first round of 6 symbols per token,
+  reopen: false           # and a closed token is never requested again
 nested:
   periods: {medium: 10, slow: 50}
   lrs: {medium: 1.0e-3, slow: 5.0e-4}

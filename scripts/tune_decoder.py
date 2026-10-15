@@ -69,6 +69,7 @@ def main() -> None:
     parser.add_argument("--ckpt", default="", help="checkpoint directory (default: <out_dir>/base)")
     cfg, args = parse(parser)
     set_seed(int(cfg["seed"]))
+    env = environment()  # recorded at launch: the code that runs, even if the working copy changes meanwhile
     device = get_device(cfg["device"])
     ckpt = Path(args.ckpt) if args.ckpt else Path(cfg["out_dir"]) / "base"
     codec = load_codec(cfg, ckpt, device)
@@ -85,6 +86,7 @@ def main() -> None:
     capacity = capacity_real(float(cfg["stream"]["snr"]["mean"]))
     out_path = Path(cfg["out_dir"]) / "eval" / "decoder_selection.json"
     state = load_json(out_path) if out_path.exists() else {"candidates": {}, "fixed": {}}
+    state.setdefault("env", env)  # an interrupted selection keeps the revision it was started with
     print(f"[tune] {len(messages)} validation messages, SNR mean {snrs.mean():.2f} dB (sd {snrs.std():.2f}), thresholds {THRESHOLDS}, target {target:.0%}")
 
     # transmit every message once; every candidate decodes these same symbols
@@ -178,7 +180,7 @@ def main() -> None:
         "criterion": criterion(chosen), "fixed_same_beam": chosen["fixed"], "fixed_greedy": finite(symbols_at_accuracy([float(p["m"]) for p in state["fixed"]["beam1"]], [p["tok_acc"] for p in state["fixed"]["beam1"]], target)),
         "baseline_v03": criterion(state["candidates"][key(1, 0, False)]),
     }
-    state.update({"n_messages": len(messages), "n_tokens": n_tokens, "snr_mean": float(snrs.mean()), "snr_sd": float(snrs.std()), "thresholds": THRESHOLDS, "target_acc": target, "capacity": capacity, "config": cfg.to_dict(), "env": environment()})
+    state.update({"n_messages": len(messages), "n_tokens": n_tokens, "snr_mean": float(snrs.mean()), "snr_sd": float(snrs.std()), "thresholds": THRESHOLDS, "target_acc": target, "capacity": capacity, "config": cfg.to_dict(), "env": state.get("env", env)})
     save_json(out_path, state)
     d = state["decision"]
     print(f"\n[tune] decision: {d['chosen']}  ->  {d['criterion']:.3f} symbols/token at {target:.0%} with signalling (version 0.3 decoder: {d['baseline_v03']:.3f}); fixed prefix with the same beam {d['fixed_same_beam']}, greedy {d['fixed_greedy']}")

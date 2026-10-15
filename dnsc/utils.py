@@ -114,6 +114,20 @@ def git_revision() -> str:
         return "unknown"
 
 
+_LAUNCH: dict[str, str] = {}
+
+
+def launch_revision() -> str:
+    """The code revision when this process first asked for it (every result
+    file records it). Experiments run for hours; reading git again when the
+    result is written would record whatever the working copy holds by then,
+    not the code that ran. It is therefore read when this module is first
+    imported, i.e. when a script starts."""
+    if "git" not in _LAUNCH:
+        _LAUNCH["git"] = git_revision()
+    return _LAUNCH["git"]
+
+
 def gpu_name() -> str:
     try:
         return torch.cuda.get_device_name(0) if torch.cuda.is_available() else ""
@@ -133,7 +147,7 @@ def environment() -> dict[str, Any]:
         "threads": torch.get_num_threads(),
         "transformers": transformers.__version__,
         "gpu": gpu_name(),
-        "git": git_revision(),
+        "git": launch_revision(),
         "time": time.strftime("%Y-%m-%d %H:%M:%S"),
     }
 
@@ -148,3 +162,6 @@ class Timer:
 
     def elapsed(self) -> float:
         return time.perf_counter() - self.start
+
+
+launch_revision()  # when a script starts (see launch_revision)

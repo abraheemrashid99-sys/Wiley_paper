@@ -1,0 +1,9 @@
+candidate,beam,first shell (symbols),reopening,forward only,+ signalling (entropy),+ signalling (bitmap),"fixed prefix, same beam",vs fixed prefix (entropy),rounds/message at 0.95,tok-acc at 0.95
+beam1_start0_closed,1,2,no,7.527,8.971,9.442,10.994,-18.4%,5.00,0.930
+beam1_start0_reopen,1,2,yes,7.486,9.937,10.541,10.994,-9.6%,5.34,0.972
+beam1_start1_closed,1,4,no,7.395,8.652,8.740,10.994,-21.3%,4.01,0.957
+beam1_start1_reopen,1,4,yes,7.682,9.640,10.060,10.994,-12.3%,4.22,0.973
+beam1_start2_closed,1,6,no,7.836,8.730,8.758,10.994,-20.6%,3.01,0.966
+beam1_start2_reopen,1,6,yes,8.211,9.533,9.948,10.994,-13.3%,3.20,0.974
+beam2_start2_closed,2,6,no,7.628,8.476,8.521,10.712,-20.9%,3.01,0.965
+beam4_start2_closed (chosen),4,6,no,7.446,8.248,8.306,10.541,-21.8%,3.00,0.965
