@@ -86,7 +86,9 @@ def main() -> None:
     capacity = capacity_real(float(cfg["stream"]["snr"]["mean"]))
     out_path = Path(cfg["out_dir"]) / "eval" / "decoder_selection.json"
     state = load_json(out_path) if out_path.exists() else {"candidates": {}, "fixed": {}}
-    state.setdefault("env", env)  # an interrupted selection keeps the revision it was started with
+    state.setdefault("env", env)  # the revision the selection was started with
+    if state["env"].get("git") != env["git"]:  # continued with other code: record that too
+        state.setdefault("resumed", []).append(env)
     print(f"[tune] {len(messages)} validation messages, SNR mean {snrs.mean():.2f} dB (sd {snrs.std():.2f}), thresholds {THRESHOLDS}, target {target:.0%}")
 
     # transmit every message once; every candidate decodes these same symbols

@@ -599,18 +599,36 @@ def test_beam_search_is_greedy_at_width_one_scores_its_path_and_is_exact_at_full
     two = TokenBatch(batch.ids[:3, :2].contiguous(), torch.full((3,), 2, dtype=torch.long))
     with torch.no_grad():
         y2, prec2 = codec.transmit(codec.encode(two), two.lens, 0.0, Channel("awgn", 8))
-    ll2 = codec.lik_weight * codec.loglik(y2, 1, prec2)
+    ll2 = (codec.lik_weight * codec.loglik(y2, 1, prec2)).detach()
     exact = codec.decode(y2, 1, prec2, two.lens, beam=codec.vocab)
     with torch.no_grad():
         first = F.log_softmax(codec._adjust_prior(codec._head(codec.lm.base_model(input_ids=torch.tensor([[codec.start_token]])).last_hidden_state[0, -1:]), None)[0], dim=-1)
         seconds = codec._adjust_prior(codec._head(codec.lm.base_model(input_ids=torch.stack([torch.full((codec.vocab,), codec.start_token), torch.arange(codec.vocab)], dim=1)).last_hidden_state[:, -1]), None)
     for row in range(3):
-        p1 = F.log_softmax(first + ll2[row, 0], dim=-1)
-        p2 = F.log_softmax(seconds + ll2[row, 1].unsqueeze(0), dim=-1)
-        total = p1.unsqueeze(1) + p2  # (first token, second token)
-        best = int(total.argmax())
-        assert exact.token_ids[row] == [best // codec.vocab, best % codec.vocab]
-        assert float(exact.token_logprob[row].sum()) == pytest.approx(float(total.max()), abs=1e-4)
+        # the sentence posterior up to a constant: log prior + log likelihood at both positions
+        joint = (first + ll2[row, 0]).unsqueeze(1) + F.log_softmax(seconds, dim=-1) + ll2[row, 1].unsqueeze(0)  # (first token, second token)
+        best = int(joint.argmax())
+        a, b = best // codec.vocab, best % codec.vocab
+        assert exact.token_ids[row] == [a, b]
+        # the confidences it reports are the posteriors at each position on that path
+        p1 = F.log_softmax(first + ll2[row, 0], dim=-1)[a]
+        p2 = F.log_softmax(seconds[a] + ll2[row, 1], dim=-1)[b]
+        assert exact.token_logprob[row].tolist() == pytest.approx([float(p1), float(p2)], abs=1e-4)
+    # random observations: wherever ranking by summed per-position posteriors would choose another
+    # sentence than the joint posterior, the beam must choose the joint one (and such rows must exist,
+    # or this check would not tell the two apart)
+    generator = torch.Generator().manual_seed(3)
+    raw = 3.0 * torch.randn(40, 2, codec.vocab, generator=generator)
+    picked = codec.decode_beam(raw, torch.full((40,), 2, dtype=torch.long), codec.vocab).token_ids
+    weighted = codec.lik_weight.detach() * raw if torch.is_tensor(codec.lik_weight) else codec.lik_weight * raw
+    differ = 0
+    for row in range(40):
+        joint = (first + weighted[row, 0]).unsqueeze(1) + F.log_softmax(seconds, dim=-1) + weighted[row, 1].unsqueeze(0)
+        local = F.log_softmax(first + weighted[row, 0], dim=-1).unsqueeze(1) + F.log_softmax(seconds + weighted[row, 1].unsqueeze(0), dim=-1)
+        best, other = int(joint.argmax()), int(local.argmax())
+        assert picked[row] == [best // codec.vocab, best % codec.vocab]
+        differ += best != other
+    assert differ > 0
 
 
 def test_reopening_and_beam_in_progressive_decoding(cfg, checkpoint):

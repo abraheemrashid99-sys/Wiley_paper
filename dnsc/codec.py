@@ -462,8 +462,15 @@ class SemanticCodec(nn.Module):
     def decode_beam(self, loglik: torch.Tensor, lens: torch.Tensor, beam: int, cache: TokenCache | None = None, contexts: list[list[int]] | None = None) -> Decoded:
         """Beam-search MAP decoding with the LLM prior from a precomputed
         (B, T, V) log-likelihood: the ``beam`` most probable partial sentences
-        under prior x likelihood are kept at every position, so an early error
-        no longer commits the rest of the sentence to a misleading context.
+        are kept at every position, so an early error no longer commits the
+        rest of the sentence to a misleading context.
+
+        Partial sentences are ranked by their joint log-probability with the
+        received symbols, sum over positions of log prior(x_t | x_<t) +
+        log p(y_t | x_t) - the sentence posterior up to a constant. (Summing
+        the per-position posteriors instead would subtract log p(y_t | x_<t),
+        which penalises exactly the prefixes that explain the next
+        observation well.)
 
         The returned per-token ``token_logprob`` / ``token_entropy`` are those
         of the posterior at each position *on the selected path* (the
@@ -485,28 +492,32 @@ class SemanticCodec(nn.Module):
         rows = torch.arange(bsz, device=device)
         pad = int(self.tok.pad_token_id)
 
-        def scored(log_prior: torch.Tensor, index: int, n: int) -> tuple[torch.Tensor, torch.Tensor]:
-            """Posterior (rows, V) at position ``index`` and its entropy; for a
-            message that has ended the only continuation is the pad token at no
-            cost, so finished messages keep their beams unchanged."""
-            post = F.log_softmax(log_prior + loglik[:, index].repeat_interleave(n, dim=0), dim=-1)
+        def scored(log_prior: torch.Tensor, index: int, n: int) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+            """At position ``index``: the joint score of every continuation
+            (rows, V), log prior + log likelihood, which ranks the paths; the
+            posterior and its entropy, which are the receiver's confidence.
+            For a message that has ended the only continuation is the pad
+            token at no cost, so finished messages keep their beams unchanged."""
+            lik = loglik[:, index].repeat_interleave(n, dim=0)
+            joint = F.log_softmax(log_prior, dim=-1) + lik
+            post = F.log_softmax(log_prior + lik, dim=-1)
             ent = -(post.exp() * post).sum(-1)
             done = (index >= lens).repeat_interleave(n)
             if bool(done.any()):
-                post = post.clone()
-                post[done] = float("-inf")
-                post[done, pad] = 0.0
+                joint, post = joint.clone(), post.clone()
+                joint[done], post[done] = float("-inf"), float("-inf")
+                joint[done, pad], post[done, pad] = 0.0, 0.0
                 ent = ent.masked_fill(done, 0.0)
-            return post, ent
+            return joint, post, ent
 
         # position 0: the k best first tokens of every message
-        post, ent = scored(prior, 0, 1)
+        joint, post, ent = scored(prior, 0, 1)
         k0 = min(k, vocab)
-        scores, first = post.topk(k0, dim=-1)  # (B, k)
+        scores, first = joint.topk(k0, dim=-1)  # (B, k)
         if bool((0 >= lens).any()):  # an empty message: one beam only
             scores[0 >= lens, 1:] = float("-inf")
         tokens = first.unsqueeze(-1)  # (B, k, 1)
-        logp = scores.unsqueeze(-1).clone()
+        logp = post.gather(1, first).unsqueeze(-1)
         entropy = ent.unsqueeze(1).expand(-1, k0).unsqueeze(-1).clone()
         past.batch_repeat_interleave(k0)
         mask = mask.repeat_interleave(k0, dim=0)
@@ -517,8 +528,8 @@ class SemanticCodec(nn.Module):
             extra = {"position_ids": position} if padded else {}
             out = self.lm.base_model(input_ids=tokens[:, :, -1].reshape(-1, 1), attention_mask=mask, past_key_values=past, use_cache=True, **extra)
             past = out.past_key_values
-            post, ent = scored(self._adjust_prior(self._head(out.last_hidden_state[:, -1]), cache), index, k0)
-            total = scores.unsqueeze(-1) + post.view(bsz, k0, vocab)
+            joint, post, ent = scored(self._adjust_prior(self._head(out.last_hidden_state[:, -1]), cache), index, k0)
+            total = scores.unsqueeze(-1) + joint.view(bsz, k0, vocab)
             scores, flat = total.view(bsz, -1).topk(k0, dim=-1)
             origin, chosen = flat // vocab, flat % vocab
             step_logp = post.view(bsz, k0, vocab)[rows.unsqueeze(1), origin, chosen]
