@@ -7,7 +7,9 @@ Profiles (each contains the one before it, with the same file names, so a
 larger profile can always be compared with a smaller reference):
 
 published  exactly the runs behind ``results/gpt2`` (version 0.2): the main
-           methods on three seeds, the ablations and variants on one.
+           methods on three seeds, the ablations and variants on one, with
+           the decoder of those runs (greedy, shortest first shell, no
+           reopening) whatever the configuration selects.
 core       the confirmatory protocol of docs/METHOD.md, section 9: the main
            methods and the time-nesting ablation on six seeds on both
            streams, the other ablations and the Rayleigh stream on three.
@@ -47,6 +49,10 @@ PROFILES = ("published", "core", "paper")
 MAIN = "frozen,context_only,single_rate,nested,full_online,nested_no_slots"
 TEMPORAL = "frozen,context_only,single_rate,nested"
 KEY = "context_only,single_rate,nested_no_slots,nested"  # the methods a changed stream is re-run with
+# The decoder of selective refinement in the published runs (version 0.3 and earlier): greedy, first shell
+# the shortest prefix, closed tokens never reopened. The first shell decides which tokens the emulated
+# receiver writes into its memories, so the published numbers are reproduced with this decoder only.
+LEGACY_DECODER = ["decoder.beam=1", "decoder.start_m=null", "decoder.reopen=false"]
 # (tag, methods, overrides): variants of the hierarchical stream, one seed each in the published study
 VARIANTS = [
     ("bits4", "nested", ["nested.sync.bits=4"]),
@@ -96,9 +102,10 @@ def sweeps(cfg) -> list[tuple[str, str, list[str]]]:
 
 def plan(args) -> list[tuple[str, list[str], list[str]]]:
     """(label, script and options, overrides) for every step."""
-    out = [f"out_dir={args.out}"]
-    fixed = [f"out_dir={args.out}_fixed", f"codec.granularities=[{args.fixed_m}]", f"stream.m_op={args.fixed_m}"]
     confirmatory = args.profile in ("core", "paper")
+    # the published runs used the version 0.3 decoder; the confirmatory runs use the configured one
+    out = [f"out_dir={args.out}"] + ([] if confirmatory else LEGACY_DECODER)
+    fixed = [f"out_dir={args.out}_fixed", f"codec.granularities=[{args.fixed_m}]", f"stream.m_op={args.fixed_m}"]
     seeds = args.seeds or ("0,1,2,3,4,5" if confirmatory else "0,1,2")
     temporal_seeds = args.seeds or ("0,1,2,3,4,5" if confirmatory else "0,1")
     few = "0,1,2" if confirmatory else "0"

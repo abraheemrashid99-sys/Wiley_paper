@@ -381,16 +381,18 @@ def run_stream(cfg, method: str, seed: int, ckpt_dir: str | Path, out_path: str 
                         out = progressive_decode(codec, y, prec, batch.lens, tau, rx_contexts, cache, start=first_shell, first_pass=first_pass, beam=beam, reopen=reopen)
                         first_pass = out["first_pass"]  # the first round is the same for every threshold
                         live_meter[index].merge(out["meter"])
-                        live_now.append({"symbols": out["symbols"], "tok_acc": hit_rate(out["token_ids"]), "feedback_bits": out["feedback_bits"], "rounds": out["rounds"]})
+                        meter = out["meter"]  # the decisions of this step, so that intervals over audited steps can recompute the entropy of the requests
+                        live_now.append({"symbols": out["symbols"], "tok_acc": hit_rate(out["token_ids"]), "feedback_bits": out["feedback_bits"], "rounds": out["rounds"], "meter": {"open": meter.open.tolist(), "cont": meter.cont.tolist(), "tokens": meter.tokens}})
                     # the fixed-prefix receiver decoded for real as well: the reference must be audited like the proposal
                     live_fixed_now = [hit_rate(first_pass.token_ids) if k == first_shell else hit_rate(codec.decode(y, m, prec, batch.lens, "llm", cache, rx_contexts, beam=beam).token_ids) for k, m in enumerate(codec.grans)]
         # selective refinement, emulated teacher-forced: every token stops at the
-        # first shell at which the receiver's own confidence reaches the threshold
+        # first shell (from the decoder's first one) at which the receiver's own
+        # confidence reaches the threshold
         selective = {}
         for tau in thresholds:
-            stop = stop_levels(stats["conf"], tau)
+            stop = stop_levels(stats["conf"], tau, first_shell)
             selective[tau] = (sizes[stop].mean().item(), stats["correct"].gather(1, stop.unsqueeze(1)).mean().item())
-        decided = stats["decided"].gather(1, stop_levels(stats["conf"], tau_op).unsqueeze(1)).squeeze(1)
+        decided = stats["decided"].gather(1, stop_levels(stats["conf"], tau_op, first_shell).unsqueeze(1)).squeeze(1)
         # the same policy for every choice of the first shell, with the return-link signalling it needs
         lengths = batch.lens.tolist()
         for first in range(n_levels):
@@ -403,8 +405,8 @@ def run_stream(cfg, method: str, seed: int, ckpt_dir: str | Path, out_path: str 
                     rounds_per_message(stop, lengths, first),
                 )
                 grid_meter[first][index].add_stops(stop, first)
-                if first == 0:
-                    selective[tau] = selective[tau] + (feedback_bits_per_token(stop, n_levels).mean().item(), rounds_per_message(stop, lengths))
+                if first == first_shell:
+                    selective[tau] = selective[tau] + (feedback_bits_per_token(stop, n_levels, first).mean().item(), rounds_per_message(stop, lengths, first))
         if live_now is not None:
             live_log.append({"step": item.t, "live": live_now, "emulated": [{"symbols": selective[tau][0], "tok_acc": selective[tau][1]} for tau in live_thresholds], "live_fixed": live_fixed_now, "emulated_fixed": stats["correct"].mean(0).tolist()})
 
@@ -505,7 +507,7 @@ def run_stream(cfg, method: str, seed: int, ckpt_dir: str | Path, out_path: str 
             symbols, accuracy, bitmap, rounds = (grid_sum[first, index] / max(n_steps, 1)).tolist()
             points.append(with_totals({"threshold": tau, "symbols": symbols, "tok_acc": accuracy, "feedback_bits": bitmap, "feedback_entropy_bits": grid_meter[first][index].entropy_bits(), "rounds": rounds}))
         refine_grid.append({"first_m": codec.grans[first], "points": points, **curve_cost(points)})
-    for point, full in zip(selective_curve, refine_grid[0]["points"]):  # the policy of the paper: first shell = shortest prefix
+    for point, full in zip(selective_curve, refine_grid[first_shell]["points"]):  # the policy of the paper, from the decoder's first shell
         point.update({key: full[key] for key in ("feedback_bits", "feedback_entropy_bits", "rounds", "symbols_total", "symbols_total_entropy")})
     operating = selective_curve[thresholds.index(tau_op)]
 

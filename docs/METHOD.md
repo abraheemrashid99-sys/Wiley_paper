@@ -220,15 +220,21 @@ policy is the shortest first shell; the other rows are exploratory.
 
 *Emulation and audit.* On the streams the policy is emulated teacher-forced
 on every message (each token is judged given the true tokens before it; one
-LLM pass per step). Every `stream.live_every` steps (47 in the study: a
-prime, so that the audit is not in phase with any shipping period) the same
-received symbols are in addition decoded for real — free-running, round by
-round, with the receiver's own decisions as the language-model input — at
-the thresholds around the target accuracy (`stream.live_thresholds`), and so
-is every fixed prefix, because the reference must be audited like the
-proposal. The emulated and the real operating curves on exactly those steps
-are reported side by side; the audit draws no random number and changes no
-other result (tested).
+LLM pass per step), starting at the decoder's first shell; the tokens it
+decides are also what the receiver writes into its memories. Every
+`stream.live_every` steps (a prime, so that the audit is not in phase with
+any shipping period: 23 from version 0.4, 47 in the runs of versions 0.2 and
+0.3) the same received symbols are in addition decoded for real —
+free-running, round by round, with the receiver's own decisions as the
+language-model input and with the configured decoder — at the thresholds
+`stream.live_thresholds` (0.7, 0.9, 0.95 and 0.99 from version 0.4; 0.5, 0.7
+and 0.9 before, which too often stopped short of the target accuracy when
+decoding for real), and so is every fixed prefix, with the same decoder,
+because the reference must be audited like the proposal. The emulated and
+the real operating curves on exactly those steps are reported side by side;
+the audit draws no random number and changes no other result (tested). Each
+audited step keeps its own request decisions, so that the entropy of the
+signalling can be recomputed for any subset of the audited steps.
 
 ## 3. Baselines
 
@@ -376,9 +382,21 @@ the target differ from the emulated ones by at most 5 % for every method of
 the headline table. Otherwise the free-running figures replace the emulated
 ones in the headline — on both sides of the comparison, selective refinement
 and fixed prefix — and the emulated ones are reported as such. The audit
-covers 12 of 600 steps per run (72 messages); the free-running headline is
-therefore read from the audited steps pooled over the six seeds, and
-`stream.live_every` can be lowered where more precision is needed.
+covers 26 of 600 steps per run (156 messages; version 0.3: 13 steps); the
+free-running headline is therefore read from the operating curves of the
+audited steps pooled over the six seeds, every receiver against the frozen
+receiver on the same seeds and steps. Its uncertainty is a 95 % percentile
+interval from 2000 paired bootstrap draws of the audited steps within each
+seed (a draw in which a curve misses the target counts as an infinite cost),
+and the seed-level test (ii) below is applied to the per-seed readings
+(`tables/realdecode_*.md`).
+
+*Changes in version 0.4, before any confirmatory run.* The audit was made
+denser and its thresholds extended (above), its readings are pooled over the
+seeds with paired bootstrap intervals, and the decoder of the refinement is
+chosen on validation text (Section 2.5). The three-seed figures that
+motivated these changes (`results/gpt2/RESULTS.md`, section 12) come from
+seeds 0–2 only; seeds 3–5 remain unseen.
 
 *Disclosure.* While the audit was being implemented, one run (frozen
 receiver, seed 0, hierarchical stream) was inspected. It showed a gap far

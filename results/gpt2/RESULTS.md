@@ -25,7 +25,11 @@ material, and results that go against the method are listed in Section 9.
 >
 > Version 0.3 of the code measures items 2 and 3 and fixes the protocol for
 > items 1 and 4 (`docs/METHOD.md`, section 9). Section 11 reports what was
-> re-run to check this folder.
+> re-run to check this folder, and Section 12 an independent reproduction of
+> all of it on a GPU with the new measurements on every seed: **decoded for
+> real and with the signalling charged, the full system saves about 26 %
+> (hierarchical stream) and 21 % (temporal stream) of the symbols of a frozen
+> fixed-rate receiver, not 47.7 % and 38 %.**
 
 ## 1. Setup in brief
 
@@ -438,3 +442,107 @@ gain of Section 2 was mostly an artefact of emulation and uncharged
 signalling. What the paper can claim has to come from the confirmatory runs,
 after the decoder has been improved on validation text (`docs/REVIEW.md`,
 section F).
+
+## 12. Independent reproduction on a GPU, and the new measurements on every seed
+
+All 37 stream runs, the evaluations on the base corpus and the codebook
+(trained again from scratch) were repeated with the code of version 0.3.1
+(revision `ed2e023`) on a Google Colab Tesla T4, with
+`notebooks/reproduce_gpt2_colab.ipynb` and `--profile published`. The files
+are in [`../gpt2_v0.3_colab_t4`](../gpt2_v0.3_colab_t4).
+
+**Reproduction: REPRODUCED.** Every headline number lies within 3 % of the
+published value (largest relative difference 1.84 %) and all twelve
+conclusions checked by `scripts/compare_results.py` hold. Language-model
+quantities agree to three decimals; symbols per token are about 1 % lower
+on the GPU, the expected size of floating-point differences between a CPU and
+a GPU carried through online adaptation. The version 0.2 numbers of this
+folder therefore stand as measurements.
+
+**The new measurements on every seed.** Version 0.3 also measured, in the
+same runs, what version 0.2 did not: the return-link signalling of the
+refinement requests and the free-running audit (every 47th step decoded for
+real, at confidence thresholds 0.5, 0.7 and 0.9). Below, "teacher-forced"
+is the measurement of Section 2 on all 600 steps, now with the signalling
+charged at its entropy; "real" decodes the same received symbols
+free-running on the audited steps, read off the operating curves pooled over
+the seeds (36 audited steps or 216 messages per receiver on the hierarchical
+stream, 24 or 144 on the temporal one). Every receiver is compared with the
+frozen fixed-prefix receiver decoded the same way on the same seeds.
+Symbols per token for 90 % token accuracy:
+
+**Hierarchical stream, three seeds.**
+
+| Receiver | Teacher-forced: fixed prefix | Teacher-forced: selective + signalling (entropy) | Real: fixed prefix | vs. frozen | Real: selective + signalling (entropy) | vs. frozen | Real: selective + signalling (bitmap) | vs. frozen |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `frozen` | 9.490 | 7.690 | 11.452 | — | 9.734 | −15.0 % | 10.447 | −8.8 % |
+| `context_only` | 8.162 | 6.608 | 10.957 | −4.3 % | 9.023 | −21.2 % | 9.544 | −16.7 % |
+| `single_rate` | 7.859 | 6.320 | 10.648 | −7.0 % | 8.682 | −24.2 % | 9.126 | −20.3 % |
+| `nested_no_slots` | 7.851 | 6.312 | 10.570 | −7.7 % | 8.677 | −24.2 % | 9.111 | −20.4 % |
+| **`nested`** | 7.774 | 6.232 | 10.318 | −9.9 % | **8.513** | **−25.7 %** | 8.922 | −22.1 % |
+| `full_online` | 7.771 | 6.226 | 10.334 | −9.8 % | 8.471 | −26.0 % | 8.883 | −22.4 % |
+
+**Temporal stream, two seeds.**
+
+| Receiver | Teacher-forced: fixed prefix | Teacher-forced: selective + signalling (entropy) | Real: fixed prefix | vs. frozen | Real: selective + signalling (entropy) | vs. frozen | Real: selective + signalling (bitmap) | vs. frozen |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `frozen` | 9.004 | 7.355 | 10.906 | — | 9.275 | −15.0 % | 9.945 | −8.8 % |
+| `context_only` | 8.543 | 7.095 | 10.538 | −3.4 % | 8.977 | −17.7 % | 9.568 | −12.3 % |
+| `single_rate` | 8.246 | 6.942 | 10.302 | −5.5 % | 8.676 | −20.5 % | 9.216 | −15.5 % |
+| **`nested`** | 8.246 | 6.932 | 10.343 | −5.2 % | **8.603** | **−21.1 %** | 9.122 | −16.4 % |
+
+(The two −15.0 % / −8.8 % rows of `frozen` agree by coincidence; both were
+recomputed from the per-step logs.)
+
+What they show:
+
+- **The emulation is optimistic on every seed.** On exactly the audited
+  steps, decoding for real needs 17 % (`frozen`) to 29 % (`full_online`) more
+  symbols than the teacher-forced figure at a fixed prefix, and 31–34 % more
+  for selective refinement (hierarchical stream; 28–35 % and 36–40 % on the
+  temporal one). The free-running figures are the ones to report (decision rule of
+  `docs/METHOD.md`, section 9).
+- **Like for like, the full system saves 25.7 % (entropy) or 22.1 %
+  (bitmap) on the hierarchical stream and 21.1 % or 16.4 % on the temporal
+  one** against the frozen fixed-prefix receiver — about half of the
+  teacher-forced, signalling-free 47.7 % and 38 %.
+- **Refinement pays when decoded for real, on these seeds.** It lowers the
+  cost of each receiver below its own fixed prefix by 15–19 % (entropy) or
+  9–14 % (bitmap) on both streams. The first look of Section 11 (seed 0
+  only, −1.2 % for `frozen`) was not representative: per seed, refinement
+  changes the cost of the frozen receiver by −0.6 % (seed 0) and −19 %
+  (seed 1), and on seed 2 it does not reach the target within the audited
+  thresholds; `nested` with refinement saves 14 %, 27 % and 30 % against the
+  frozen fixed prefix of the same seed.
+- **The memories keep their order and their size.** At a fixed prefix,
+  decoded for real, they save 4.3 % (context alone) to 9.9 % (`nested`) on
+  the hierarchical stream and 3.4–5.5 % on the temporal one, with no
+  signalling; the ordering `frozen` > `context_only` > `single_rate` >
+  `nested` of Section 2 holds in every real column except `single_rate`
+  against `nested` at a fixed prefix on the temporal stream (10.302 against
+  10.343). `nested` and `full_online` stay within 0.5 % of each other.
+
+Limits of these figures. They rest on 216 (144) audited messages per
+receiver; seeds differ a lot (seed 0's audited steps need about 8 symbols
+per token at a fixed prefix, seeds 1 and 2 about 12), so per-seed figures
+scatter widely and a pooled figure is not the mean of the per-seed ones. With
+thresholds stopping at 0.9, 5 of the 26 single-seed curves of selective
+refinement in these tables never reach the
+target, which is why the curves are pooled before reading (the pooled
+curve reaches 90 % for every receiver). Version 0.4 therefore audits every
+23rd step at thresholds 0.7, 0.9, 0.95 and 0.99. None of this is
+significant at the seed level (three seeds). The decoder is the simplest
+one (greedy, first shell of 2 symbols, closed tokens never reopened);
+Section 13 reports the decoder chosen on validation text for the
+confirmatory runs.
+
+**A correction to the headline of `TABLES.md`** (`docs/REVIEW.md`, C8). The
+headline table compared runs with one seed with the mean of the frozen
+receiver over all its seeds. Against the frozen receiver of the same seed,
+the rows read: `ewc` −45.8 % (printed −48.4 %), `nested_no_context`
+−37.1 % (−40.1 %), `nested_two_level` −46.7 % (−49.3 %), and on the temporal
+stream `full_online` −37.5 % (−39.6 %). In particular `nested_two_level` does
+not beat `nested` (−47.7 %); the paired per-step comparison of Section 5
+already showed it slightly worse. The published `TABLES.md` is left as it
+was produced; the corrected script prints the matched figures.
+

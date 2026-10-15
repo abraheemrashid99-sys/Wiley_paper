@@ -639,17 +639,27 @@ def test_reopening_and_beam_in_progressive_decoding(cfg, checkpoint):
 
 def test_stream_audit_uses_the_configured_decoder_for_both_sides(cfg, checkpoint, tmp_path):
     cfg["stream"]["live_every"] = 3
+    grans = cfg["codec"]["granularities"]
     plain = run_stream(cfg, "context_only", 0, checkpoint, tmp_path / "a.json")
-    cfg["decoder"].update({"beam": 2, "start_m": cfg["codec"]["granularities"][1], "reopen": True})
-    tuned = run_stream(cfg, "context_only", 0, checkpoint, tmp_path / "b.json")
-    assert tuned["log"] == plain["log"] and tuned["probes"] == plain["probes"]  # the decoder only changes what is decoded for real
-    assert tuned["summary"]["decoder"] == {"beam": 2, "start_m": cfg["codec"]["granularities"][1], "reopen": True}
-    assert tuned["summary"]["symbols_at_target_decoder_start_fb_entropy"] == tuned["refine_grid"][1]["symbols_at_target_fb_entropy"]
-    assert plain["summary"]["decoder"] == {"beam": 1, "start_m": cfg["codec"]["granularities"][0], "reopen": False}
-    for point in tuned["live_curve"]:
-        assert point["symbols"] >= cfg["codec"]["granularities"][1] - 1e-9  # nothing below the first shell is ever sent
-    for a, b in zip(plain["live_fixed_curve"], tuned["live_fixed_curve"]):
+    cfg["decoder"].update({"beam": 2, "reopen": True})
+    beamed = run_stream(cfg, "context_only", 0, checkpoint, tmp_path / "b.json")
+    # beam search and reopening only change what is decoded for real
+    assert beamed["log"] == plain["log"] and beamed["probes"] == plain["probes"] and beamed["selective_curve"] == plain["selective_curve"]
+    assert beamed["summary"]["decoder"] == {"beam": 2, "start_m": grans[0], "reopen": True}
+    assert plain["summary"]["decoder"] == {"beam": 1, "start_m": grans[0], "reopen": False}
+    for a, b in zip(plain["live_fixed_curve"], beamed["live_fixed_curve"]):
         assert a["emulated_tok_acc"] == b["emulated_tok_acc"] and 0.0 <= b["tok_acc"] <= 1.0
+    # a later first shell is the policy itself: the emulated policy, the decisions that feed the
+    # receiver's memories and the real decoding all start there
+    cfg["decoder"]["start_m"] = grans[1]
+    later = run_stream(cfg, "context_only", 0, checkpoint, tmp_path / "c.json")
+    assert later["summary"]["decoder"] == {"beam": 2, "start_m": grans[1], "reopen": True}
+    assert later["summary"]["symbols_at_target_decoder_start_fb_entropy"] == later["refine_grid"][1]["symbols_at_target_fb_entropy"]
+    for point, grid in zip(later["selective_curve"], later["refine_grid"][1]["points"]):
+        assert point["symbols"] >= grans[1] - 1e-9 and point["symbols"] == pytest.approx(grid["symbols"]) and point["feedback_bits"] == pytest.approx(grid["feedback_bits"])
+    for point in later["live_curve"]:
+        assert point["symbols"] >= grans[1] - 1e-9  # nothing below the first shell is ever sent
+    assert all("meter" in p for step in later["live"] for p in step["live"])  # every audited step keeps its request decisions
     cfg["decoder"]["start_m"] = 3
     with pytest.raises(ValueError):
         from dnsc.config import validate
@@ -924,7 +934,7 @@ def test_command_line_pipeline(tmp_path):
     report = (exported / "TABLES.md").read_text(encoding="utf-8")
     assert "Headline, hier stream" in report and "frozen, fixed prefix length" in report
     # version 0.3: what refinement costs, the free-running audit, honest statistics, measured cost
-    for name in ["tables/refine_cost_hier.md", "tables/refine_start_hier.md", "tables/targets_hier.md", "tables/equivalence_hier.md", "tables/cost.md", "tables/rate_toy_a_chrf.md", "tables/rate_toy_a_wer.md", "eval/rate_toy_a.texts.json.gz"]:
+    for name in ["tables/realdecode_hier.md", "tables/refine_cost_hier.md", "tables/refine_start_hier.md", "tables/targets_hier.md", "tables/equivalence_hier.md", "tables/cost.md", "tables/rate_toy_a_chrf.md", "tables/rate_toy_a_wer.md", "eval/rate_toy_a.texts.json.gz"]:
         assert (exported / name).exists(), name
     captions = [line for line in report.splitlines() if line.startswith("**")]
     assert len(captions) == len(set(captions)), "a table is printed twice in TABLES.md"
@@ -994,10 +1004,11 @@ def _planned_runs(*extra: str) -> tuple[str, set[str]]:
 def test_reproduction_runner_plans_the_published_protocol():
     plan, planned = _planned_runs()
     assert plan.count("=====") == 21
-    assert "run_stream.py --config configs/gpt2.yaml --methods frozen,context_only,single_rate,nested,full_online,nested_no_slots --seeds 0,1,2 device=cuda out_dir=runs/x stream.kind=hier" in plan
-    assert "--tag rayleigh device=cuda out_dir=runs/x stream.kind=hier channel.type=rayleigh" in plan
+    legacy = "decoder.beam=1 decoder.start_m=null decoder.reopen=false"  # the decoder of the published runs
+    assert f"run_stream.py --config configs/gpt2.yaml --methods frozen,context_only,single_rate,nested,full_online,nested_no_slots --seeds 0,1,2 device=cuda out_dir=runs/x {legacy} stream.kind=hier" in plan
+    assert f"--tag rayleigh device=cuda out_dir=runs/x {legacy} stream.kind=hier channel.type=rayleigh" in plan
     assert "pretrain.py --config configs/gpt2.yaml device=cuda out_dir=runs/x_fixed codec.granularities=[8] stream.m_op=8" in plan
-    assert "benchmark_speed.py --config configs/gpt2.yaml device=cuda out_dir=runs/x" in plan
+    assert f"benchmark_speed.py --config configs/gpt2.yaml device=cuda out_dir=runs/x {legacy}" in plan
     # every published stream run is in the plan, and nothing else
     published = {path.stem for path in (ROOT / "results" / "gpt2" / "stream").glob("*.json")}
     assert planned == published
@@ -1010,6 +1021,7 @@ def test_reproduction_profiles_contain_each_other():
     core_plan, core = _planned_runs("--profile", "core")
     paper_plan, paper = _planned_runs("--profile", "paper")
     assert published < core < paper
+    assert "decoder.start_m=null" not in core_plan and "decoder.start_m=null" not in paper_plan  # the confirmatory runs use the configured decoder
     main = ["frozen", "context_only", "single_rate", "nested", "full_online", "nested_no_slots", "nested_two_level"]
     assert all(f"hier_{m}_s{s}" in core for m in main for s in range(6))  # six seeds: a seed-level test can reach p = 0.03
     assert all(f"temporal_{m}_s{s}" in core for m in ["frozen", "context_only", "single_rate", "nested"] for s in range(6))

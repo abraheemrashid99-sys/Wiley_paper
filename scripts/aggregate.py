@@ -23,7 +23,7 @@ import pandas as pd
 from dnsc.cli import int_list, make_parser, parse
 from dnsc.headroom import format_rows
 from dnsc.channel import capacity_real
-from dnsc.linkbudget import crossover_traffic, net_semantic_rate, symbols_at_accuracy
+from dnsc.linkbudget import audit_comparison, crossover_traffic, net_semantic_rate, pooled_live, symbols_at_accuracy
 from dnsc.stats import block_bootstrap, block_equivalence, holm, mean_sd, min_attainable_p, paired_permutation
 from dnsc.utils import ensure_dir, load_json
 
@@ -210,15 +210,18 @@ def stream_tables(cfg, out_dir: Path, tables: Path, ref: str, only_seeds: list[i
         # token accuracy under selective refinement, read off its measured curve.
         snr = float(cfg["stream"]["snr"]["mean"])
 
-        def needed(runs: dict) -> float:
-            values = [r["summary"]["symbols_at_target_selective"] for r in runs.values()]
+        def needed(runs: dict, seeds: list | None = None) -> float:
+            if seeds is not None and not set(seeds) <= set(runs):
+                return float("nan")  # a reference must cover the seeds it is compared on
+            values = [r["summary"]["symbols_at_target_selective"] for seed, r in runs.items() if seeds is None or seed in seeds]
             return float("nan") if any(v is None for v in values) else float(np.mean(values))
 
-        frozen_need = needed(methods["frozen"]) if "frozen" in methods else float("nan")
-        context_need = needed(methods["context_only"]) if "context_only" in methods else float("nan")
         sweep = []
         for method, runs in sorted(methods.items()):
             any_run = next(iter(runs.values()))
+            # references on the same seeds as this method
+            frozen_need = needed(methods["frozen"], list(runs)) if "frozen" in methods else float("nan")
+            context_need = needed(methods["context_only"], list(runs)) if "context_only" in methods else float("nan")
             bits = float(np.mean([r["summary"]["sync_bits"] for r in runs.values()]))
             tokens = float(np.mean([r["summary"]["tokens_per_message"] for r in runs.values()]))
             need = needed(runs)
@@ -313,10 +316,18 @@ def refinement_tables(cfg, kind: str, methods: dict, tables: Path, ref: str) -> 
         (a, why_a), (b, why_b) = value(summaries, key), value(summaries, reference)
         return (why_a or why_b) if a is None or b is None else f"{a / b - 1:+.1%}"
 
+    def pooled_cell(number: float | None, audit: dict | None) -> str:
+        return "n/a" if audit is None else ("not reached" if number is None else f"{number:.3f}")
+
+    def pooled_saving(a: float | None, b: float | None, audit: dict | None) -> str:
+        return "n/a" if audit is None else ("not reached" if a is None or b is None else f"{a / b - 1:+.1%}")
+
     rows = []
     for method, runs in sorted(methods.items()):
         summaries = [r["summary"] for r in runs.values()]
         audited = [s for s in summaries if s.get("live_steps")] if all(s.get("live_steps") for s in summaries) else []
+        pooled = pooled_live(list(runs.values()), target_default) if audited else None
+        get = lambda key: None if pooled is None else pooled[key]  # noqa: E731,B023
         row = {
             "method": method,
             "seeds": len(runs),
@@ -328,14 +339,14 @@ def refinement_tables(cfg, kind: str, methods: dict, tables: Path, ref: str) -> 
             "selective + feedback (bitmap)": cell(summaries, "symbols_at_target_selective_fb"),
             "selective + feedback (entropy)": cell(summaries, "symbols_at_target_selective_fb_entropy"),
             "saving vs fixed, feedback charged (entropy)": saving(summaries, "symbols_at_target_selective_fb_entropy", "symbols_at_target_fixed"),
-            "free-running: steps audited": f"{np.mean([s['live_steps'] for s in audited]):.0f}" if audited else "n/a",
-            "free-running fixed prefix": cell(audited, "live_symbols_at_target_fixed"),
-            "emulated fixed prefix, same steps": cell(audited, "live_emulated_symbols_at_target_fixed"),
-            "free-running, forward only": cell(audited, "live_symbols_at_target"),
-            "emulated on the same steps": cell(audited, "live_emulated_symbols_at_target"),
-            "free-running + feedback (entropy)": cell(audited, "live_symbols_at_target_fb_entropy"),
-            "free-running + feedback (bitmap)": cell(audited, "live_symbols_at_target_fb"),
-            "free-running saving vs free-running fixed, feedback charged (entropy)": saving(audited, "live_symbols_at_target_fb_entropy", "live_symbols_at_target_fixed"),
+            "free-running: steps audited": str(pooled["audited_steps"]) if pooled else "n/a",
+            "free-running fixed prefix": pooled_cell(get("fixed"), pooled),
+            "emulated fixed prefix, same steps": pooled_cell(get("emulated_fixed"), pooled),
+            "free-running, forward only": pooled_cell(get("forward"), pooled),
+            "emulated on the same steps": pooled_cell(get("emulated_forward"), pooled),
+            "free-running + feedback (entropy)": pooled_cell(get("total_entropy"), pooled),
+            "free-running + feedback (bitmap)": pooled_cell(get("total_bitmap"), pooled),
+            "free-running saving vs free-running fixed, feedback charged (entropy)": pooled_saving(get("total_entropy"), get("fixed"), pooled),
             "free-running tok-acc at the threshold": cell(audited, "live_sel_tok_acc", 4),
             "emulated tok-acc at the threshold": cell(audited, "live_emulated_sel_tok_acc", 4),
         }
@@ -343,8 +354,58 @@ def refinement_tables(cfg, kind: str, methods: dict, tables: Path, ref: str) -> 
     write_table(
         pd.DataFrame(rows),
         tables / f"refine_cost_{kind}",
-        f"What selective refinement costs on the '{kind}' stream: real symbols per token for {target_default:.0%} token accuracy (mean over seeds). 'Feedback' is the return-link signalling of the requests at the operating threshold, converted to symbols at the capacity of the mean SNR (derived, optimistic; bitmap = one bit per open token and round, entropy = ideal coding of those bits). 'Free-running' decodes the same received symbols for real on a subset of the steps - the selective policy and the fixed prefixes alike - and 'emulated' is the teacher-forced figure on exactly those steps; the free-running saving compares like with like. n/a: not recorded by the code version that produced the run; not reached: the measured curve never reaches the target accuracy",
+        f"What selective refinement costs on the '{kind}' stream: real symbols per token for {target_default:.0%} token accuracy. 'Feedback' is the return-link signalling of the requests at the operating threshold, converted to symbols at the capacity of the mean SNR (derived, optimistic; bitmap = one bit per open token and round, entropy = ideal coding of those bits). Teacher-forced columns: mean over seeds of each run's reading. 'Free-running' decodes the same received symbols for real on a subset of the steps - the selective policy and the fixed prefixes alike - and 'emulated' is the teacher-forced figure on exactly those steps; these columns are read off the operating curves pooled over the seeds (all audited steps), and the free-running saving compares like with like. n/a: not recorded by the code version that produced the run; not reached: the measured curve never reaches the target accuracy",
     )
+
+    # --- 1b. the primary endpoint decoded for real, with intervals and the seed-level test
+    if "frozen" in methods:
+        rows, tested = [], []
+        for method, runs in sorted(methods.items(), key=lambda item: (item[0] != "frozen", item[0])):
+            out = audit_comparison(runs, methods["frozen"], target_default, seed=20261015)
+            if out is None:
+                continue
+
+            def interval(entry: dict) -> str:
+                if entry["estimate"] is None:
+                    return "not reached"
+                high = "unbounded" if entry["ci_high"] is None else f"{entry['ci_high']:+.1%}"
+                return f"{entry['estimate']:+.1%} [{entry['ci_low']:+.1%}, {high}]"
+
+            mine, theirs = out["receiver"], out["reference"]
+            per_seed = [(v["receiver"]["total_entropy"], v["reference"]["fixed"]) for v in out["per_seed"].values()]
+            complete = all(a is not None and b is not None for a, b in per_seed)
+            p_raw = paired_permutation([a for a, _ in per_seed], [b for _, b in per_seed]) if complete and len(per_seed) > 1 else None
+            if p_raw is not None:
+                tested.append((len(rows), p_raw))
+            worst = max(out[key]["missed"] for key in ("vs_reference_entropy", "vs_reference_bitmap", "vs_own_fixed_entropy"))
+            rows.append(
+                {
+                    "method": method,
+                    "seeds": len(out["seeds"]),
+                    "audited steps": out["audited_steps"],
+                    "fixed prefix": _show(mine["fixed"]),
+                    "fixed prefix vs frozen fixed": "—" if method == "frozen" else interval(out["vs_reference_fixed"]),
+                    "selective + feedback (entropy)": _show(mine["total_entropy"]),
+                    "vs frozen fixed [95% CI]": interval(out["vs_reference_entropy"]),
+                    "vs own fixed (what refinement adds)": interval(out["vs_own_fixed_entropy"]),
+                    "selective + feedback (bitmap)": _show(mine["total_bitmap"]),
+                    "bitmap vs frozen fixed": interval(out["vs_reference_bitmap"]),
+                    "draws missing the target": f"{worst:.1%}",
+                    "per-seed saving vs frozen fixed (entropy)": " / ".join("not reached" if a is None or b is None else f"{a / b - 1:+.1%}" for a, b in per_seed),
+                    "p (seed-level)": "-" if p_raw is None else f"{p_raw:.4f}",
+                    "p (Holm)": "-",
+                    "smallest attainable p": f"{min_attainable_p(len(per_seed)):.4f}",
+                }
+            )
+        if tested:
+            for (index, _), adjusted in zip(tested, holm([p for _, p in tested])):
+                rows[index]["p (Holm)"] = f"{adjusted:.4f}"
+        if rows:
+            write_table(
+                pd.DataFrame(rows),
+                tables / f"realdecode_{kind}",
+                f"Primary endpoint decoded for real on the '{kind}' stream: real symbols per token for {target_default:.0%} token accuracy on the audited steps, every receiver and the frozen receiver decoded free-running from the same received symbols, operating curves pooled over the seeds, selective refinement charged its return-link signalling. Relative changes with a 95% percentile interval from 2000 paired bootstrap draws of the audited steps within each seed; a draw in which a receiver's curve misses the target counts as an infinite cost ('unbounded' if that happens in more than 2.5% of the draws). Seed-level test: exact sign-flip permutation test of the per-seed selective cost with signalling (entropy) against the frozen fixed prefix of the same seed, Holm-corrected over the receivers, possible only if every seed reaches the target",
+            )
 
     # --- 2. the first shell of the refinement (fewer rounds, less signalling, more forward symbols)
     rows = []

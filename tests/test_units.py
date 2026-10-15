@@ -15,7 +15,7 @@ from dnsc.data import get_corpus
 from dnsc.data.corpora import assign_split, process
 from dnsc.data.stream import HierStream, TemporalStream, build_probes, snr_trace
 from dnsc.data.text import clean, keep_sentence, split_sentences, strip_bracket_tag
-from dnsc.linkbudget import crossover_traffic, net_semantic_rate, overhead_fraction, pooled_live, symbols_at_accuracy, sync_symbols
+from dnsc.linkbudget import audit_comparison, crossover_traffic, net_semantic_rate, overhead_fraction, pooled_live, symbols_at_accuracy, sync_symbols
 from dnsc.metrics import bleu_scores, expected_calibration_error, exact_match, sentence_bleu
 from dnsc.nested import Level, NestedOptimizer, quantize_delta
 from dnsc.refine import Calibrator, features, interpolate_fixed, random_matched, reference_policies, stop_levels, stopping_curve
@@ -448,6 +448,52 @@ def test_real_decoding_is_pooled_over_seeds_before_the_target_is_read():
     assert sel["total_entropy"] == pytest.approx(sel["forward"] + 0.5) and sel["total_bitmap"] == pytest.approx(sel["forward"] + 1.0)
     assert sel["audited_steps"] == 6
     assert pooled_live([a, {"summary": {}}], 0.8) is None  # a run without an audit
+
+
+def test_real_decoding_saving_has_a_paired_interval_and_per_seed_readings():
+    rng = np.random.default_rng(0)
+    grans = [2, 4, 8, 16]
+
+    def run(shift: float, steps=(0, 23, 46, 69, 92)) -> dict:
+        live = []
+        for t in steps:
+            noise = float(rng.normal(0, 0.02))
+            fixed = [min(1.0, max(0.0, a + shift + noise)) for a in (0.2, 0.5, 0.85, 0.97)]
+            points = []
+            for j, (sym, acc) in enumerate(((4.0, 0.8), (6.0, 0.95))):
+                meter = {"open": [10.0, 6.0, 3.0], "cont": [6.0, 3.0, 1.0], "tokens": 10.0}
+                points.append({"symbols": sym - 2 * shift, "tok_acc": min(1.0, acc + shift + noise), "feedback_bits": 1.9, "rounds": 3.0, "meter": meter})
+            live.append({"step": t, "live": points, "live_fixed": fixed})
+        n = len(live)
+        curve = [{"threshold": tau, "symbols": sum(r["live"][j]["symbols"] for r in live) / n, "tok_acc": sum(r["live"][j]["tok_acc"] for r in live) / n, "feedback_bits": 1.9, "feedback_entropy_bits": 0.0} for j, tau in enumerate((0.7, 0.9))]
+        for point in curve:  # as the stream runner writes them (entropy deliberately wrong here: the per-step decisions must win)
+            point["symbols_total"], point["symbols_total_entropy"] = point["symbols"] + 1.9 / 2.0, point["symbols"]
+        fixed_curve = [{"m": m, "tok_acc": sum(r["live_fixed"][k] for r in live) / n} for k, m in enumerate(grans)]
+        return {"live": live, "live_curve": curve, "live_fixed_curve": fixed_curve, "summary": {"feedback_capacity": 2.0, "live_steps": n}}
+
+    frozen = {0: run(0.0), 1: run(0.0)}
+    better = {0: run(0.03), 1: run(0.03)}
+    out = audit_comparison(better, frozen, 0.9, n_boot=300)
+    entry = out["vs_reference_entropy"]
+    assert out["audited_steps"] == 10 and out["seeds"] == [0, 1]
+    assert entry["ci_low"] <= entry["estimate"] <= entry["ci_high"] < 0  # cheaper than the frozen fixed prefix
+    # the entropy of the requests comes from the merged decisions of the steps: H(0.6)+H(0.5)+H(1/3) per 10 tokens
+    from dnsc.refine import binary_entropy
+
+    rate = (10 * binary_entropy(0.6) + 6 * binary_entropy(0.5) + 3 * binary_entropy(1 / 3)) / 10
+    pooled = pooled_live(list(better.values()), 0.9)
+    assert out["receiver"]["fixed"] == pytest.approx(pooled["fixed"]) and out["receiver"]["forward"] == pytest.approx(pooled["forward"])
+    assert out["receiver"]["total_entropy"] - out["receiver"]["forward"] == pytest.approx(rate / 2.0)
+    assert out["receiver"]["total_bitmap"] - out["receiver"]["forward"] == pytest.approx(1.9 / 2.0)
+    assert set(out["per_seed"]) == {0, 1} and out["per_seed"][0]["reference"]["fixed"] is not None
+    assert out["vs_reference_fixed"]["estimate"] < 0 and audit_comparison(frozen, frozen, 0.9, n_boot=50)["vs_reference_fixed"]["estimate"] == 0
+    # a receiver that never reaches the target has an infinite cost: no estimate, every draw missed
+    hopeless = {s: run(-0.5) for s in (0, 1)}
+    miss = audit_comparison(hopeless, frozen, 0.9, n_boot=50)["vs_reference_entropy"]
+    assert miss["estimate"] is None and miss["missed"] == 1.0 and miss["ci_high"] is None
+    # receivers audited on different steps, or a missing seed, cannot be compared
+    assert audit_comparison({0: run(0.0, steps=(0, 47))}, {0: run(0.0)}, 0.9) is None
+    assert audit_comparison({2: run(0.0)}, frozen, 0.9) is None
 
 
 def test_stop_levels_pick_the_first_confident_shell():

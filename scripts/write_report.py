@@ -24,8 +24,8 @@ SECTIONS = [
     ("Rate and fidelity on the base corpus", ["rate_*_bleu4", "rate_*_sim", "rate_*_chrf", "rate_*_wer", "rate_*_gen_tok_acc", "rate_*_tok_acc", "rate_*_separation", "rate_*_power"]),
     ("Selective refinement on the base corpus", ["refine_*"]),
     ("What each memory could buy (diagnostic with oracle inputs)", ["headroom"]),
-    ("Hierarchical drift stream", ["stream_hier", "refine_cost_hier", "refine_start_hier", "targets_hier", "equivalence_hier", "regimes_hier", "curves_hier", "netrate_hier"]),
-    ("Temporal drift stream", ["stream_temporal", "refine_cost_temporal", "refine_start_temporal", "targets_temporal", "equivalence_temporal", "regimes_temporal", "curves_temporal", "netrate_temporal"]),
+    ("Hierarchical drift stream", ["stream_hier", "realdecode_hier", "refine_cost_hier", "refine_start_hier", "targets_hier", "equivalence_hier", "regimes_hier", "curves_hier", "netrate_hier"]),
+    ("Temporal drift stream", ["stream_temporal", "realdecode_temporal", "refine_cost_temporal", "refine_start_temporal", "targets_temporal", "equivalence_temporal", "regimes_temporal", "curves_temporal", "netrate_temporal"]),
     ("Variant runs", ["sensitivity"]),
     ("Measured computational cost", ["cost"]),
 ]
