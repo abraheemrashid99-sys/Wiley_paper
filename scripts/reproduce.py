@@ -36,6 +36,7 @@ main methods (e.g. ``--seeds 0,1,2,3,4,5,6,7,8,9``).
 from __future__ import annotations
 
 import argparse
+import os
 import shutil
 import subprocess
 import sys
@@ -45,6 +46,8 @@ from pathlib import Path
 from dnsc.cli import utf8_console
 
 ROOT = Path(__file__).resolve().parent
+# every script started from here imports the package next to it, even if another copy is installed
+CHILD_ENV = {**os.environ, "PYTHONPATH": os.pathsep.join([str(ROOT.parent), *([os.environ["PYTHONPATH"]] if os.environ.get("PYTHONPATH") else [])])}
 sys.path.insert(0, str(ROOT.parent))  # the 'paper' profile reads the configuration with dnsc.config
 PROFILES = ("published", "core", "paper")
 MAIN = "frozen,context_only,single_rate,nested,full_online,nested_no_slots"
@@ -212,7 +215,7 @@ def main() -> None:
         if finished(label, command, overrides, args):
             print("      already done - skipped", flush=True)
             continue
-        code = subprocess.run(cmd, cwd=ROOT.parent).returncode
+        code = subprocess.run(cmd, cwd=ROOT.parent, env=CHILD_ENV).returncode
         if code != 0:
             raise SystemExit(f"\nSTOPPED: step {index} ('{label}') failed with exit code {code}. Finished work is kept; fix the cause and run the same command again.")
     if args.dry_run:
@@ -226,7 +229,7 @@ def main() -> None:
     if args.reference:
         cmd = [sys.executable, str(ROOT / "compare_results.py"), "--reference", args.reference, "--new", args.export]
         print(f"\n===== comparison with {args.reference}", flush=True)
-        subprocess.run(cmd, cwd=ROOT.parent)
+        subprocess.run(cmd, cwd=ROOT.parent, env=CHILD_ENV)
     print(f"\nREPRODUCTION FINISHED in {(time.time() - started) / 60:.0f} min. Results: {args.export}")
 
 

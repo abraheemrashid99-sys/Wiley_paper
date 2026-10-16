@@ -41,6 +41,9 @@ sys.path.insert(0, str(ROOT))
 
 from dnsc.cli import utf8_console  # noqa: E402
 
+# every script started from here imports the package next to it, even if another copy is installed
+CHILD_ENV = {**os.environ, "PYTHONPATH": os.pathsep.join([str(ROOT), *([os.environ["PYTHONPATH"]] if os.environ.get("PYTHONPATH") else [])])}
+
 METHODS = ("frozen", "nested", "context_only")  # the reference and the proposal of a seed come first
 
 
@@ -71,10 +74,10 @@ def say(text: str) -> None:
 def run(args: list[str], log: Path | None = None) -> None:
     cmd = [sys.executable, *args]
     if log is None:
-        done = subprocess.run(cmd, cwd=ROOT)
+        done = subprocess.run(cmd, cwd=ROOT, env=CHILD_ENV)
     else:
         with open(log, "w", encoding="utf-8") as handle:
-            done = subprocess.run(cmd, cwd=ROOT, stdout=handle, stderr=subprocess.STDOUT)
+            done = subprocess.run(cmd, cwd=ROOT, env=CHILD_ENV, stdout=handle, stderr=subprocess.STDOUT)
     if done.returncode != 0:
         raise SystemExit(f"failed: {' '.join(args)}" + (f" (log: {log})" if log else ""))
 
@@ -194,7 +197,7 @@ def main() -> None:
 
     if not args.report_only and todo:
         # what every run needs: the language model and the two corpora of the stream
-        cfg_probe = json.loads(subprocess.run([sys.executable, "-c", "import json,sys; from dnsc.config import load_config; c=load_config(sys.argv[1], sys.argv[2:]); print(json.dumps({'backbone': c['backbone']['name'], 'domains': list(c['stream']['domains'])}))", args.config, *args.overrides], cwd=ROOT, capture_output=True, text=True, check=True).stdout)
+        cfg_probe = json.loads(subprocess.run([sys.executable, "-c", "import json,sys; from dnsc.config import load_config; c=load_config(sys.argv[1], sys.argv[2:]); print(json.dumps({'backbone': c['backbone']['name'], 'domains': list(c['stream']['domains'])}))", args.config, *args.overrides], cwd=ROOT, env=CHILD_ENV, capture_output=True, text=True, check=True).stdout)
         backbone = ROOT / cfg_probe["backbone"]
         if cfg_probe["backbone"] == "models/gpt2" and not (backbone / "model.safetensors").exists():
             say("fetching GPT-2 (once) ...")
@@ -216,7 +219,7 @@ def main() -> None:
                     handle = open(log, "w", encoding="utf-8")  # noqa: SIM115 (closed at the end)
                     handles.append(handle)
                     cmd = [sys.executable, "-u", "scripts/run_stream.py", "--methods", m, "--seeds", str(s), "--ckpt", args.ckpt, *cfg_args, f"threads={threads}"]  # key=value settings last
-                    running[(m, s)] = (subprocess.Popen(cmd, cwd=ROOT, stdout=handle, stderr=subprocess.STDOUT), time.time(), log)
+                    running[(m, s)] = (subprocess.Popen(cmd, cwd=ROOT, env=CHILD_ENV, stdout=handle, stderr=subprocess.STDOUT), time.time(), log)
                     say(f"started {m} seed {s} (log: {os.path.relpath(log, ROOT) if log.is_relative_to(ROOT) else log})")
                 time.sleep(5)
                 for key, (proc, t0, log) in list(running.items()):

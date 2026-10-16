@@ -24,6 +24,7 @@ skipped.
 from __future__ import annotations
 
 import argparse
+import os
 import subprocess
 import sys
 import time
@@ -32,6 +33,8 @@ from pathlib import Path
 from dnsc.cli import utf8_console
 
 ROOT = Path(__file__).resolve().parent
+# every script started from here imports the package next to it, even if another copy is installed
+CHILD_ENV = {**os.environ, "PYTHONPATH": os.pathsep.join([str(ROOT.parent), *([os.environ["PYTHONPATH"]] if os.environ.get("PYTHONPATH") else [])])}
 DEFAULT_METHODS = "frozen,context_only,single_rate,ewc,full_online,nested,nested_no_slots,nested_no_context,nested_two_level"
 PILOT_METHODS = "frozen,context_only,single_rate,nested,full_online"
 
@@ -88,7 +91,7 @@ def main() -> None:
         print(f"\n===== [{index}/{len(commands)}] {shown}", flush=True)
         if args.dry_run:
             continue
-        code = subprocess.run(cmd, cwd=ROOT.parent).returncode
+        code = subprocess.run(cmd, cwd=ROOT.parent, env=CHILD_ENV).returncode
         if code != 0:
             raise SystemExit(f"\nSTOPPED: step {index} failed with exit code {code}. Fix the cause and run the same command again; finished work is kept.")
     if not args.dry_run:
