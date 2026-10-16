@@ -20,9 +20,11 @@ top; each opens its own terminal panel and says when it is finished.
 | --- | --- | --- |
 | `DN-SC 0: create environment and install` | A private Python environment in `.venv` with all dependencies | a few minutes, once |
 | `DN-SC 1: verify the package (checksums)` | Confirms every file is exactly as released | seconds |
-| `DN-SC 2: run the tests` | 86 unit and integration tests on a tiny offline model | 5–15 min |
+| `DN-SC 2: run the tests` | 94 unit and integration tests on a tiny offline model | 10–30 min |
 | `DN-SC 3: smoke run of the whole pipeline` | Every script end to end on a tiny model (its numbers mean nothing) | a few minutes |
 | `DN-SC 4: fetch GPT-2` | Builds pretrained GPT-2 from files on GitHub, checksum verified | once, about 650 MB |
+| `DN-SC Q: quick study on this laptop` | The primary comparison (frozen, nested, context_only) on three seeds, in parallel, then the tables (`RUN_ON_LAPTOP.md`) | hours |
+| `DN-SC Q2: quick study - tables so far` | The tables from the runs finished so far | minutes |
 | `DN-SC 5: reproduce the published results and compare` | Re-runs the 37 published stream runs and all evaluations, then compares | long (see below) |
 | `DN-SC 6: confirmatory study (six seeds) and compare` | The protocol of `docs/METHOD.md`, section 9; contains task 5 | longer |
 | `DN-SC 7: full paper study` | Task 6 plus every sensitivity study | longest |
@@ -30,13 +32,11 @@ top; each opens its own terminal panel and says when it is finished.
 After task 0, VS Code may ask whether to use the new environment for this
 folder: answer **Yes**.
 
-**Which task to run now.** Tasks 0–5 verify this release and the published
-numbers. Tasks 6 and 7 are the studies for the paper; hold them back until
-the refinement decoder has been improved (`docs/ROADMAP.md`, step 0): the
-first runs with the corrected code show that the present decoder loses most
-of its gain when it is decoded for real (`results/gpt2/RESULTS.md`,
-section 11), and six seeds of a decoder that will be replaced are wasted
-machine time.
+**Which task to run now.** For the paper's primary comparison on a laptop,
+in hours: task `DN-SC Q` (see `RUN_ON_LAPTOP.md`). Task 6 is the full
+confirmatory study (88 runs; on a CPU it takes days, on a GPU about a working
+day); task 5 checks the published pilot; task 7 adds the sensitivity
+studies.
 
 Tasks 5–7 can be stopped (click in the terminal, press `Ctrl+C`) and started
 again at any time: finished runs are skipped. Keep the laptop on mains power

@@ -6,7 +6,7 @@
       "type": "shell",
       "command": "python3 -m venv .venv && .venv/bin/python -m pip install --upgrade pip && .venv/bin/python -m pip install -e \".[dev,gpt2]\"",
       "windows": {
-        "command": "python -m venv .venv; if ($?) { .\\.venv\\Scripts\\python.exe -m pip install --upgrade pip }; if ($?) { .\\.venv\\Scripts\\python.exe -m pip install -e \".[dev,gpt2]\" }"
+        "command": "if (Get-Command py -ErrorAction SilentlyContinue) { py -m venv .venv } else { python -m venv .venv }; if ($?) { .\\.venv\\Scripts\\python.exe -m pip install --upgrade pip }; if ($?) { .\\.venv\\Scripts\\python.exe -m pip install -e \".[dev,gpt2]\" }"
       },
       "options": {
         "cwd": "${workspaceFolder}"
@@ -111,6 +111,57 @@
         "reveal": "always",
         "panel": "dedicated",
         "clear": false
+      }
+    },
+    {
+      "label": "DN-SC Q: quick study on this laptop (primary comparison, seeds 3-5)",
+      "type": "process",
+      "command": "${workspaceFolder}/.venv/bin/python",
+      "windows": {
+        "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe"
+      },
+      "args": [
+        "scripts/run_quick.py"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "detail": "The primary comparison of the paper (frozen, nested, context_only on the hierarchical stream) on three seeds, several runs in parallel, then the tables and quick_results.zip. Hours, not days; stop and restart at will. See RUN_ON_LAPTOP.md.",
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": false
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "DN-SC Q2: quick study - tables from the runs finished so far",
+      "type": "process",
+      "command": "${workspaceFolder}/.venv/bin/python",
+      "windows": {
+        "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe"
+      },
+      "args": [
+        "scripts/run_quick.py",
+        "--report-only"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "detail": "Writes the tables, the report and quick_results.zip from whatever runs have finished (minutes).",
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": false
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": true
       }
     },
     {

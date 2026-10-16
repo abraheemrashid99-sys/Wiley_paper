@@ -103,6 +103,14 @@ Face is reachable, `backbone.name=openai-community/gpt2` at the end of the
 command replaces the second line. The stages of the study can also be run
 one by one with `scripts/run_pipeline.py --stage base|pilot|streams|report`.
 
+### The primary comparison on a laptop, in hours
+
+`python scripts/run_quick.py` runs the receivers of the paper's primary
+endpoint (frozen, `nested`, `context_only`) on the hierarchical stream with
+the version 0.4 decoder and the published codebook, several runs in
+parallel, and writes the tables: see [`RUN_ON_LAPTOP.md`](RUN_ON_LAPTOP.md)
+(VS Code task `DN-SC Q`).
+
 ### Checking the reproduction on a GPU (Google Colab)
 
 [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/abraheemrashid99-sys/Wiley_paper/blob/main/notebooks/reproduce_gpt2_colab.ipynb)

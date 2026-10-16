@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.4.1
+
+- `scripts/run_quick.py` (`RUN_ON_LAPTOP.md`, VS Code tasks `DN-SC Q` and
+  `Q2`): the runs of the primary endpoint (frozen, `nested`,
+  `context_only`, hierarchical stream) on a laptop CPU, in parallel within
+  the machine's cores and memory, reference and proposal first, resumable;
+  the tables at any time; a package to send; pooling with runs made
+  elsewhere. Same method, decoder, measurement and codebook as
+  `--profile core`. Tested end to end.
+- The environment task on Windows uses the `py` launcher when present.
+
 ## 0.4.0 — the refinement decoder, and the real-decoding endpoint
 
 **Finding.** The independent GPU reproduction (Colab T4) of all 37 published

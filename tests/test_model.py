@@ -8,6 +8,7 @@ import os
 import shutil
 import subprocess
 import sys
+import zipfile
 from pathlib import Path
 
 import numpy as np
@@ -707,6 +708,38 @@ def test_decoder_selection_script_runs_and_decides(tmp_path):
     assert tables.returncode == 0, tables.stderr[-2000:]
     table = (tmp_path / "run" / "tables" / "decoder_selection.md").read_text(encoding="utf-8")
     assert table.count("(chosen)") == 1 and table.count("\n| beam") == 8
+
+
+def test_quick_laptop_runner_runs_resumes_and_pools(tmp_path):
+    """scripts/run_quick.py: the primary-endpoint runs in parallel, the report,
+    the package to send, a restart that skips finished runs, and pooling with
+    runs made elsewhere."""
+    overrides = [f"data.cache_dir={tmp_path / 'data'}", "pretrain.steps=40", "pretrain.eval_every=20", "stream.tau_slow=8", "stream.cycles=1"]
+    config = ["--config", str(ROOT / "configs" / "smoke.yaml")]
+    for script in ("prepare_data.py", "pretrain.py"):
+        done = subprocess.run([sys.executable, str(ROOT / "scripts" / script), *config, f"out_dir={tmp_path / 'base_run'}", *overrides], capture_output=True, text=True, cwd=ROOT, timeout=900)
+        assert done.returncode == 0, done.stderr[-2000:]
+
+    def quick(out: str, *extra: str) -> str:
+        cmd = [sys.executable, str(ROOT / "scripts" / "run_quick.py"), *config, "--out", str(tmp_path / out), "--export", str(tmp_path / f"{out}_export"), "--ckpt", str(tmp_path / "base_run" / "base"), "--workers", "2", "--threads", "1", *extra, *overrides]
+        done = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=ROOT, timeout=900)
+        assert done.returncode == 0, done.stdout[-2000:] + done.stderr[-2000:]
+        return done.stdout
+
+    first = quick("a", "--seeds", "0", "--methods", "frozen,nested")
+    assert first.index("started frozen seed 0") < first.index("tables, figures and report")
+    assert (tmp_path / "a" / "tables" / "realdecode_hier.md").exists() and (tmp_path / "a_export" / "TABLES.md").exists()
+    package = ROOT / "quick_results.zip"
+    with zipfile.ZipFile(package) as archive:
+        assert {"stream/hier_frozen_s0.json", "stream/hier_nested_s0.json", "report/TABLES.md"} <= set(archive.namelist())
+    shutil.copy(package, tmp_path / "from_elsewhere.zip")
+    assert "2 already done" in quick("a", "--seeds", "0", "--methods", "frozen,nested", "--dry-run")  # a restart skips finished runs
+    # pooling: seed 1 here, seed 0 from the package
+    pooled = quick("b", "--seeds", "1", "--methods", "frozen,nested", "--add-runs", str(tmp_path / "from_elsewhere.zip"))
+    assert "added 2 runs" in pooled
+    endpoint = (tmp_path / "b" / "tables" / "realdecode_hier.md").read_text(encoding="utf-8")
+    assert "| nested | 2 |" in endpoint  # both seeds in the endpoint
+    package.unlink()
 
 
 def test_a_checkpoint_serves_more_slots_and_another_adapter_rank(cfg, checkpoint, tmp_path, capsys):

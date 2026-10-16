@@ -15,3 +15,5 @@ venv/
 /models/
 /results_repro/
 /dist/
+/quick_results.zip
+/results_quick/
