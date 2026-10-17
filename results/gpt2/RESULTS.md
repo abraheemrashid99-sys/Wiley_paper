@@ -622,3 +622,40 @@ What it shows, on this one seed:
 One seed, and one that had been seen before: the confirmatory runs
 (`--profile core`, six seeds, both streams) decide what the paper may claim.
 
+## 14. Six seeds with the decoder of version 0.4 (the primary comparison)
+
+Files: [`../gpt2_v0.4_six_seeds`](../gpt2_v0.4_six_seeds) (provenance in its
+README; the paper's results section is `paper/results_section.tex`).
+Hierarchical stream; `frozen` and `nested` on seeds 0–5, `context_only` on
+seeds 0, 3, 4, 5; every receiver decoded with beam 4 from a first round of 6
+symbols. Real channel symbols per token for 90 % token accuracy, signalling
+charged at its entropy:
+
+| Receiver | Seeds | Teacher-forced (600 steps) | vs. frozen fixed | Decoded for real (156 audited steps per seed) | vs. frozen fixed [95 % CI] |
+| --- | --- | --- | --- | --- | --- |
+| frozen, fixed rate | 6 | 9.227 | — | 10.366 | — |
+| frozen + refinement | 6 | 7.805 | −15.4 % | 8.363 | −19.3 % [−21.4, −15.6] |
+| `context_only`, fixed rate | 4 | 8.044 | −10.1 % | 9.052 | −10.6 % [−16.1, −5.3] |
+| `context_only` + refinement | 4 | 7.178 | −19.8 % | 7.547 | −25.4 % [−29.0, −15.6] |
+| `nested`, fixed rate | 6 | 7.797 | −15.5 % | 8.168 | −21.2 % [−23.9, −14.9] |
+| **`nested` + refinement** | 6 | **7.075** | **−23.3 %** | **7.478** | **−27.9 % [−31.7, −21.6]** |
+
+- **The emulation check passes** (real against teacher-forced forward symbols
+  on the audited steps: +3.4 %, +3.6 %, +5.0 %), so by the rule of
+  `docs/METHOD.md`, section 9, the teacher-forced figures are the
+  measurement: **DN-SC saves 23.3 % with signalling**, lower on every seed
+  (−10.5 % to −28.5 %; p = 0.031, the floor for six seeds), and 20.6 % on the
+  three seeds never run before. Decoded for real it saves 27.9 %.
+- The memories alone save 15.5 % at a fixed rate with no signalling (prior
+  6.79 → 5.23 bits per token); refinement alone saves the frozen receiver
+  15.4 %; on top of the memories it adds 9.3 % (8.4 % real, [3.9, 18.3]).
+  Requests cost 1.39 bits per token over 2.84 rounds per message.
+- Shipped adaptation over the context memory: −0.37 bits per token of prior
+  and −0.12 symbols per token at the operating threshold (per-step intervals
+  exclude zero; four seeds, p = 0.125). Its synchronisation (24.2 kbit per
+  adaptation step) pays only above about 1,100 messages per step against the
+  frozen receiver and 6,100 against the context memory.
+- Limits: Holm over the three receivers gives 0.094; `context_only` has four
+  seeds; the frozen receiver's gap sits at the 5 % limit; the temporal stream
+  was not repeated with this decoder; two machines (same code and codebook).
+

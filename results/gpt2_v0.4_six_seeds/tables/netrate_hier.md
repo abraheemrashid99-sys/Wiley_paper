@@ -1,0 +1,7 @@
+**Derived net semantic rate (real symbols per message, payload at equal fidelity plus amortised synchronisation) on the 'hier' stream as a function of messages carried per adaptation step N, at 10 dB**
+
+| method | sym/token for 90% tok-acc | saving vs frozen | payload (sym/msg) | N=1 | N=10 | N=100 | N=1000 | N=10000 | N=100000 | N* (vs frozen) |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| context_only | 6.696 | +4.7% | 120.2 | 120.2 | 120.2 | 120.2 | 120.2 | 120.2 | 120.2 | - |
+| frozen | 7.143 | +0.0% | 128.5 | 128.5 | 128.5 | 128.5 | 128.5 | 128.5 | 128.5 | - |
+| nested | 6.618 | +7.4% | 118.7 | 14124.8 | 1519.3 | 258.8 | 132.7 | 120.1 | 118.8 | 1487 |

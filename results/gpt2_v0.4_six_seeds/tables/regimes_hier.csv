@@ -1,0 +1,7 @@
+method,regime,seeds,prior bits/token,tok-acc @m_op,selective sym/token,selective tok-acc,held-out prior bits (end),held-out tok-acc (end),receiver staleness at the probe (steps)
+context_only,ag_news,4,6.2226 ± 0.0382,0.7830 ± 0.0444,8.1324 ± 0.6196,0.9666 ± 0.0172,6.3420,0.8316,-
+context_only,teleqna,4,4.9957 ± 0.0741,0.8696 ± 0.0395,7.2769 ± 0.4264,0.9806 ± 0.0063,4.8965,0.8782,-
+frozen,ag_news,6,6.6048 ± 0.0366,0.7659 ± 0.0368,8.2075 ± 0.5216,0.9703 ± 0.0156,6.6539,0.8081,-
+frozen,teleqna,6,6.9834 ± 0.1033,0.7692 ± 0.0697,8.2407 ± 0.7952,0.9695 ± 0.0110,7.2270,0.7915,-
+nested,ag_news,6,5.9628 ± 0.0418,0.7991 ± 0.0340,7.9595 ± 0.5023,0.9737 ± 0.0137,5.8398,0.8389,150
+nested,teleqna,6,4.5006 ± 0.0630,0.8677 ± 0.0421,7.3582 ± 0.4874,0.9783 ± 0.0080,4.1403,0.9098,150

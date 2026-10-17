@@ -1,0 +1,7 @@
+**Operating curves on the 'hier' stream: token accuracy at every fixed prefix length, and (symbols per token / token accuracy) under selective refinement at every confidence threshold**
+
+| method | acc m=2 | acc m=4 | acc m=6 | acc m=8 | acc m=12 | acc m=16 | τ=0.5 | τ=0.7 | τ=0.9 | τ=0.95 | τ=0.99 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| context_only | 0.5184 | 0.6920 | 0.8263 | 0.9046 | 0.9670 | 0.9854 | 6.67 sym / 0.9055 | 7.10 sym / 0.9456 | 7.70 sym / 0.9736 | 8.01 sym / 0.9794 | 8.68 sym / 0.9839 |
+| frozen | 0.4088 | 0.5995 | 0.7676 | 0.8733 | 0.9592 | 0.9836 | 6.91 sym / 0.8803 | 7.48 sym / 0.9340 | 8.22 sym / 0.9699 | 8.60 sym / 0.9770 | 9.36 sym / 0.9823 |
+| nested | 0.5440 | 0.7055 | 0.8334 | 0.9097 | 0.9707 | 0.9880 | 6.61 sym / 0.9084 | 7.04 sym / 0.9489 | 7.66 sym / 0.9760 | 7.98 sym / 0.9817 | 8.68 sym / 0.9862 |

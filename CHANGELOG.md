@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.4.2 — the six-seed result
+
+- `results/gpt2_v0.4_six_seeds`: the primary comparison on six seeds with the
+  decoder of version 0.4 (seeds 3–5 on a laptop with `run_quick.py`); RESULTS
+  section 14; the paper's results section and its figure
+  (`paper/results_section.tex`, `scripts/paper_figure_endpoint.py`).
+- Scripts started by `reproduce.py`, `run_pipeline.py` and `run_quick.py`
+  import the package next to them.
+
 ## 0.4.1
 
 - `scripts/run_quick.py` (`RUN_ON_LAPTOP.md`, VS Code tasks `DN-SC Q` and

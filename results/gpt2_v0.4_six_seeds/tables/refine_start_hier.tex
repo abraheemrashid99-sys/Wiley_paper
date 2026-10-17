@@ -1,0 +1,25 @@
+% Selective refinement on the 'hier' stream by the shell sent in the first round: symbols per token for 90% token accuracy (n/a = the target is not reached on that curve). The paper's policy is the first row of every method; the other rows are a post-hoc exploration, not a tuned result
+\begin{tabular}{llllll}
+\hline
+method & seeds & first shell (symbols) & forward only & + feedback (bitmap) & + feedback (entropy) \\
+\hline
+context\_only & 4 & 2 & 5.099 & 6.464 & 6.391 \\
+context\_only & 4 & 4 & 5.660 & 6.625 & 6.570 \\
+context\_only & 4 & 6 & 6.696 & 7.410 & 7.178 \\
+context\_only & 4 & 8 & 8.404 & 9.029 & 8.664 \\
+context\_only & 4 & 12 & 12.100 & 12.678 & 12.191 \\
+context\_only & 4 & 16 & 16.000 & 16.000 & 16.000 \\
+frozen & 6 & 2 & 6.112 & 7.716 & 7.511 \\
+frozen & 6 & 4 & 6.386 & 7.515 & 7.482 \\
+frozen & 6 & 6 & 7.143 & 7.941 & 7.805 \\
+frozen & 6 & 8 & 8.537 & 9.177 & 8.861 \\
+frozen & 6 & 12 & 12.123 & 12.701 & 12.232 \\
+frozen & 6 & 16 & 16.000 & 16.000 & 16.000 \\
+nested & 6 & 2 & 4.897 & 6.217 & 6.160 \\
+nested & 6 & 4 & 5.527 & 6.467 & 6.405 \\
+nested & 6 & 6 & 6.618 & 7.320 & 7.075 \\
+nested & 6 & 8 & 8.363 & 8.983 & 8.606 \\
+nested & 6 & 12 & 12.084 & 12.662 & 12.164 \\
+nested & 6 & 16 & 16.000 & 16.000 & 16.000 \\
+\hline
+\end{tabular}
