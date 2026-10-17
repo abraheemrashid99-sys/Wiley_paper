@@ -35,7 +35,7 @@
 % explanation
 \node[anchor=north west, align=left, text width=62mm, font=\scriptsize, execute at begin node={\hyphenpenalty=10000 \exhyphenpenalty=10000 }] at (-0.2,{-3*\ch-2mm}) {Numbers: symbols received for the token after the round. A red bar marks a request: the token's confidence $q_t$ was below $\tau$ after decoding, so its next shell is sent. Every open token costs one request decision per round on the return link. Here: \mbox{$(5\cdot 6+2\cdot 8+12)/8=7.25$} symbols per token, 3 rounds. Illustrative.};
 
-% ================= (b) synchronisation schedule of the memories
+% ================= (b) synchronization schedule of the memories
 \begin{scope}[xshift=82mm]
 \node[anchor=west, font=\small\bfseries] at (-0.2,1.15) {(b) When each memory reaches the receiver};
 \def\sx{0.62mm}
@@ -52,7 +52,7 @@
 \foreach \x in {10,20,...,100} { \fill[s3] ({\x*\sx-0.45mm},{\rowB-1.4mm}) rectangle ++(0.9mm,2.8mm); }
 \foreach \x in {1,11,...,91} { \draw[req, line width=0.7pt] ({\x*\sx},{\rowC-1.2mm}) -- ++(0,2.4mm); }
 \foreach \x in {50,100} { \fill[ink] ({\x*\sx-0.7mm},{\rowD-1.8mm}) rectangle ++(1.4mm,3.6mm); }
-\node[anchor=north west, align=left, text width=62mm, font=\scriptsize, execute at begin node={\hyphenpenalty=10000 \exhyphenpenalty=10000 }] at (-2mm,{\rowD-5mm}) {Context grows with every decoded message and costs nothing on the air. The medium memory is shipped every 10 steps (6.3~kbit), the active LoRA slot every 50 steps (1.18~Mbit), and the slot choice is signalled every 10 steps, before the messages of the step ($\lceil\log_2(K_\mathrm{s}{+}1)\rceil=2$ bits for $K_\mathrm{s}=2$ slots). Average over the stream: 24.2~kbit per step. Values at 8 bits per parameter, from the bit ledger.};
+\node[anchor=north west, align=left, text width=62mm, font=\scriptsize, execute at begin node={\hyphenpenalty=10000 \exhyphenpenalty=10000 }] at (-2mm,{\rowD-5mm}) {Context grows with every decoded message and costs nothing on the air. The medium memory is shipped every 10 steps (6.3~kbit), the active LoRA slot every 50 steps (1.18~Mbit), and the slot choice is signaled every 10 steps, before the messages of the step ($\lceil\log_2(K_\mathrm{s}{+}1)\rceil=2$ bits for $K_\mathrm{s}=2$ slots). Average over the stream: 24.2~kbit per step. Values at 8 bits per parameter, from the bit ledger.};
 \end{scope}
 \end{tikzpicture}
 \end{document}

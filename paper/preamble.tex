@@ -7,7 +7,9 @@
 \usepackage{amsmath,amssymb,bm}
 \usepackage{graphicx}
 \usepackage{booktabs,multirow,makecell,threeparttable,array}
-\usepackage[labelsep=space,font=small,labelfont=bf]{caption}
+\usepackage{caption}
+\DeclareCaptionLabelSeparator{bar}{\enspace|\enspace}
+\captionsetup{labelsep=bar,font=small,labelfont=bf}
 \usepackage{algorithm}
 \usepackage{algpseudocode}
 \usepackage{xcolor}
@@ -15,7 +17,7 @@
 \usepackage{lineno}
 \usepackage{url}
 \usepackage[colorlinks=true,linkcolor=black,citecolor=black,urlcolor=black]{hyperref}
-\usepackage[numbers,sort&compress,super]{natbib}
+\usepackage[numbers,square,sort&compress]{natbib}
 
 \setstretch{1.25}
 \setlength{\parskip}{0pt}
@@ -27,10 +29,10 @@
 \renewcommand{\thesection}{\arabic{section}}
 \renewcommand{\thesubsection}{\thesection.\arabic{subsection}}
 \makeatletter
-\renewcommand\section{\@startsection{section}{1}{\z@}{-3ex \@plus -1ex \@minus -.2ex}{1.5ex \@plus .2ex}{\normalfont\sffamily\bfseries\MakeUppercase}}
+\renewcommand\section{\@startsection{section}{1}{\z@}{-3ex \@plus -1ex \@minus -.2ex}{1.5ex \@plus .2ex}{\normalfont\large\sffamily\bfseries}}
 \renewcommand\subsection{\@startsection{subsection}{2}{\z@}{-2.5ex \@plus -1ex \@minus -.2ex}{1ex \@plus .2ex}{\normalfont\sffamily\bfseries}}
 \renewcommand\subsubsection{\@startsection{subsubsection}{3}{\z@}{-2ex \@plus -1ex \@minus -.2ex}{0.8ex \@plus .2ex}{\normalfont\sffamily\itshape}}
-\renewcommand\@seccntformat[1]{\csname the#1\endcsname\quad}
+\renewcommand\@seccntformat[1]{\csname the#1\endcsname\enspace|\enspace}
 \makeatother
 \algrenewcommand\algorithmicrequire{\textbf{Input:}}
 \algrenewcommand\algorithmicensure{\textbf{Output:}}

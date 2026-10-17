@@ -2,44 +2,45 @@
 \section{Related Work}
 \label{sec:related}
 
-\subsection{Learned semantic transmission of text}
+\subsection{Learned Semantic Transmission of Text}
 \label{sec:related-jscc}
 
-Deep joint source--channel coding (JSCC) replaces the separate source and channel codes by one learned mapping from content to channel symbols. For text, Farsad et al.\ \cite{farsad2018} encoded sentences with recurrent networks, and DeepSC \cite{xie2021deepsc} used a Transformer \cite{vaswani2017} with a fixed number of symbols per word, trained and evaluated on the Europarl corpus \cite{koehn2005}; its sentence lengths of 4--30 words became the common protocol of the field. For images, deep JSCC avoids the cliff effect of separate coding \cite{bourtsoulatze2019} and can deliver progressively refinable bandwidth-agile codes \cite{kurka2021}. Surveys and tutorials place these designs within the broader programme of semantic and goal-oriented communication \cite{strinati2021,gunduz2023,luo2022,kountouris2021}. Two properties of this line of work matter here. The encoder and decoder are trained jointly for a data distribution that is assumed fixed, and the number of channel uses per message is either fixed or chosen from a small set at the transmitter.
+Deep joint source--channel coding (JSCC) replaces the separate source and channel codes by one learned mapping from content to channel symbols. For text, Farsad et al.\ \cite{farsad2018} encoded sentences with recurrent networks, and DeepSC \cite{xie2021deepsc} used a Transformer \cite{vaswani2017} with a fixed number of symbols per word, trained and evaluated on the Europarl corpus \cite{koehn2005}; its restriction to sentences of 4--30 words has been adopted by many later studies. For images, deep JSCC avoids the cliff effect of separate coding \cite{bourtsoulatze2019} and can deliver progressively refinable bandwidth-agile codes \cite{kurka2021}. Surveys and tutorials place these designs within the broader program of semantic and goal-oriented communication \cite{strinati2021,gunduz2023,luo2022,kountouris2021}. Two properties of this line of work matter here. The encoder and decoder are typically trained jointly for a data distribution that is assumed fixed, and the number of channel uses per message is either fixed or chosen from a small set at the transmitter.
 
 Rate adaptation at the receiver's request has been studied as semantic hybrid automatic repeat request (HARQ). Jiang et al.\ \cite{jiang2022harq} combined a learned sentence codec with retransmission and incremental knowledge, following the incremental-redundancy principle of classical HARQ \cite{caire2001}. Successive refinement \cite{equitz1991} and nested representations \cite{kusupati2022} supply the structural idea behind prefix codes whose leading part is useful on its own. DN-SC applies incremental redundancy per token rather than per message and makes the request depend on the posterior confidence of the receiver's language prior; it also charges the requests on the return link, which a token-level policy makes frequent.
 
-\subsection{Language models in semantic communication}
+\subsection{Language Models in Semantic Communication}
 \label{sec:related-llm}
 
-Pre-trained language models enter semantic communication in three roles. As a measure of importance, they rank words so that power or bandwidth can be allocated to those that matter most \cite{guo2023importance}. As a knowledge base, large AI models supply the background knowledge of the transceiver and are argued to be a natural foundation for 6G semantic systems \cite{jiang2024largeai,xie2025largemodel,bariah2024}. As a prior, finally, the language model provides the probability of the next token given what has been decoded, which the receiver combines with the channel likelihood. Wang et al.\ \cite{wang2024llmsc} formulated this decoder for tokens as semantic units with a pre-trained LLM; Qiao et al.\ \cite{qiao2025token} used the context among tokens, through a large model, to save bandwidth. DN-SC belongs to this third group and takes the LLM-prior decoder of Ref.~\cite{wang2024llmsc} as its starting point. It adds the nested codebook with exact per-shell power control, token-level selective refinement, and memories that change after deployment.
+Pre-trained language models enter semantic communication in three roles. As a measure of importance, they rank words so that power or bandwidth can be allocated to those that matter most \cite{guo2023importance}. As a knowledge base, large AI models supply the background knowledge of the transceiver and are argued to be a natural foundation for 6G semantic systems \cite{jiang2024largeai,xie2025largemodel,bariah2024}; LLM-based text transceivers have been proposed that dispense with a fixed knowledge base \cite{chen2025llmsc}, and large models have been fine-tuned and compressed for multi-task semantic communication \cite{ni2025multitask}. As a prior, finally, the language model provides the probability of the next token given what has been decoded, which the receiver combines with the channel likelihood. Wang et al.\ \cite{wang2024llmsc} built a text semantic communication system on this principle, with tokens as semantic units and a pre-trained LLM as the prior of the decoder; Qiao et al.\ \cite{qiao2025token} exploited the cross-modal context among tokens, through large models, to save bandwidth. DN-SC belongs to this third group and takes the LLM-prior decoder as its starting point. It adds the nested codebook with exact per-shell power control, token-level selective refinement, and memories that change after deployment.
 
-\subsection{Knowledge mismatch and adaptation after deployment}
+\subsection{Knowledge Mismatch and Adaptation After Deployment}
 \label{sec:related-adapt}
 
-A semantic receiver works because it shares knowledge with the transmitter, and that knowledge can diverge. Zhang et al.\ \cite{zhang2023dynamic} studied transceivers that must cope with a task-unaware transmitter and dynamic data, and knowledge-base mismatch between the two ends has been treated as a problem of its own \cite{kbmismatch2024}. In machine learning, adaptation to a changing data stream raises the problem of catastrophic forgetting \cite{kirkpatrick2017}; low-rank adaptation (LoRA) \cite{hu2022lora} makes updates of a large model small; and communication-efficient distributed learning compresses updates by quantisation \cite{alistarh2017,mcmahan2017}. The nested-learning paradigm \cite{behrouz2025} organises a model as components updated at different frequencies. In a transceiver, however, the receiver cannot compute its own updates without the source text, so every update has a price in air time that grows with its size and frequency. To our knowledge, this price has not been charged, at the level of individual bits and channel symbols, against the rate it saves; DN-SC does so for three memories at three timescales.
+A semantic receiver works because it shares knowledge with the transmitter, and that knowledge can diverge. Zhang et al.\ \cite{zhang2023dynamic} studied transceivers that must cope with a task-unaware transmitter and dynamic data. Zhang et al.\ \cite{zhang2026kbident} test whether the knowledge bases of the two ends match and adapt them with a lightweight step when they do not, and cooperative update policies keep the knowledge bases of several semantic communication pairs current while limiting the overhead of the update \cite{zhang2026kbupdate}. In machine learning, adaptation to a changing data stream raises the problem of catastrophic forgetting \cite{kirkpatrick2017}; low-rank adaptation (LoRA) \cite{hu2022lora} makes updates of a large model small; and communication-efficient distributed learning compresses updates by quantization \cite{alistarh2017,mcmahan2017}. The nested-learning paradigm \cite{behrouz2025} organizes a model as components updated at different frequencies. In a transceiver, however, the receiver cannot compute its own updates without the source text, so every update has a price in air time that grows with its size and frequency. DN-SC differs from the work above in that it charges every update of a language-model prior, at three timescales, bit by bit and in channel symbols, against the rate that the update saves; the result is the traffic volume above which updating pays.
 
 \subsection{Positioning}
 \label{sec:related-position}
 
-Table~\ref{tab:related} positions DN-SC against the closest work along the dimensions this article studies. The table records what each work addresses as its subject; an empty cell does not mean that the work could not be extended in that direction.
+Table~\ref{tab:related} positions DN-SC against the closest work along the dimensions this article studies. The table records what each work addresses as its subject; a dash does not mean that the work could not be extended in that direction.
 
 \begin{table}[t]
 \centering
-\caption{Positioning of DN-SC against representative work. \checkmark: addressed as a subject of the work; ---: not addressed. ``Overhead in channel uses'' means that the return-link requests and the knowledge updates are both charged against the forward rate.}
+\caption{Positioning of DN-SC against representative work. \checkmark: addressed as a subject of the work; ---: not addressed as a subject.}
 \label{tab:related}
-\small
-\begin{tabular}{@{}lcccccc@{}}
+\footnotesize
+\begin{tabular}{@{}lccccc@{}}
 \toprule
-Work & \makecell{Text} & \makecell{Pre-trained\\LM at receiver} & \makecell{Receiver-driven\\incremental\\redundancy} & \makecell{Knowledge\\update after\\deployment} & \makecell{Several\\update\\timescales} & \makecell{Overhead\\in channel\\uses} \\
+Work & \makecell{Pre-trained\\language model\\in the link} & \makecell{Receiver-driven\\incremental\\redundancy} & \makecell{Knowledge or\\model adaptation\\after deployment} & \makecell{Update overhead\\as a design\\quantity} & \makecell{Several\\update\\timescales} \\
 \midrule
-DeepSC \cite{xie2021deepsc}                 & \checkmark & ---        & ---        & ---        & ---        & --- \\
-Deep JSCC with HARQ \cite{jiang2022harq}    & \checkmark & ---        & \checkmark & ---        & ---        & --- \\
-Importance-aware SC \cite{guo2023importance}& \checkmark & \checkmark & ---        & ---        & ---        & --- \\
-LLM-SC \cite{wang2024llmsc}                 & \checkmark & \checkmark & ---        & ---        & ---        & --- \\
-Token communications \cite{qiao2025token}   & \checkmark & \checkmark & ---        & ---        & ---        & --- \\
-Dynamic-data SC \cite{zhang2023dynamic}     & \checkmark & ---        & ---        & \checkmark & ---        & --- \\
-\textbf{DN-SC (this work)}                  & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark \\
+Semantic HARQ \cite{jiang2022harq}                 & ---        & \checkmark & ---        & ---        & --- \\
+Importance-aware SC \cite{guo2023importance}       & \checkmark & ---        & ---        & ---        & --- \\
+LLM-enabled text SC \cite{wang2024llmsc}           & \checkmark & ---        & ---        & ---        & --- \\
+Token communications \cite{qiao2025token}          & \checkmark & ---        & ---        & ---        & --- \\
+Dynamic-data SC \cite{zhang2023dynamic}            & ---        & ---        & \checkmark & ---        & --- \\
+Knowledge-base adaptation \cite{zhang2026kbident}  & ---        & ---        & \checkmark & ---        & --- \\
+Knowledge-base update \cite{zhang2026kbupdate}     & ---        & ---        & \checkmark & \checkmark & --- \\
+\textbf{DN-SC (this work)}                         & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark \\
 \bottomrule
 \end{tabular}
 \end{table}

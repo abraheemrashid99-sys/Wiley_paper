@@ -30,7 +30,7 @@
 \draw[flow] (conf) -- node[note, right]{yes} (out);
 
 % receiver memories, row-aligned with the receiver column
-\node[mem, right=17mm of out] (ctx) {Fast memory: context of the\\ conversation (no signalling)};
+\node[mem, right=17mm of out] (ctx) {Fast memory: context of the\\ conversation (no signaling)};
 \node[mem, right=17mm of conf] (prior) {Frozen GPT-2\\ language model};
 \node[mem, right=17mm of post] (bias) {Medium memory: fusion\\ weights, logit bias $\mathbf{u}$};
 \node[mem, right=17mm of lik] (lora) {Slow memory:\\ LoRA adapter slots};
@@ -44,7 +44,7 @@
 \node[box, text width=26mm, left=14mm of lik] (ch) {AWGN channel,\\ SNR $\gamma_n$, AR(1)};
 \node[box, left=14mm of ch] (pc) {Per-shell block\\ power control};
 \node[box, above=6mm of pc] (cb) {Rate-nested codebook\\ $\mathbf{c}_v\in\mathbb{R}^{16}$, shells $2|2|2|2|4|4$};
-\node[box, above=6mm of cb] (tok) {Tokenisation\\ $x_1,\dots,x_T$};
+\node[box, above=6mm of cb] (tok) {Tokenization\\ $x_1,\dots,x_T$};
 \node[box, above=6mm of tok] (src) {Source message};
 \draw[flow] (src) -- (tok);
 \draw[flow] (tok) -- (cb);
@@ -58,8 +58,8 @@
 \node[note, anchor=south] at ($(conf.west)+(-4.2mm,0.2mm)$) {no};
 \draw[ctrl] (conf.west) -- ($(conf.west)+(-6mm,0)$) |- node[note, pos=0.75, above, text=accent2]{requests for the next shell (return link)} ($(cb.east)+(0,0)$);
 
-% ---------------- synchronisation of the shipped memories
-\draw[ctrl] (txmem.east) -- node[note, above, text=accent2]{quantised memory updates, counted bit by bit} (txmem.east -| memfit.north) -- (memfit.north);
+% ---------------- synchronization of the shipped memories
+\draw[ctrl] (txmem.east) -- node[note, above, text=accent2]{quantized memory updates, counted bit by bit} (txmem.east -| memfit.north) -- (memfit.north);
 
 % ---------------- groups
 \begin{scope}[on background layer]

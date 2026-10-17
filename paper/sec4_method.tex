@@ -5,16 +5,16 @@
 \subsection{Overview}
 \label{sec:method-overview}
 
-Figure~\ref{fig:architecture} shows the transceiver. The transmitter tokenises a message with the tokenizer of the language model, maps every token to its codeword in the rate-nested codebook and transmits the codewords shell by shell, each shell of each message at exactly unit power. The receiver computes, for every token position, the likelihood of every vocabulary entry from the symbols received so far, combines it with the prior of the language model and its memories, and decodes the message by beam search. Tokens whose posterior confidence stays below a threshold are requested again, and the next shell is sent for them only. The receiver's prior depends on three memories, which change at three speeds; the two that need the true text are learned at the transmitter and shipped as quantised differences at their own periods. The remainder of this section specifies each part.
+Figure~\ref{fig:architecture} shows the transceiver. The transmitter tokenizes a message with the tokenizer of the language model, maps every token to its codeword in the rate-nested codebook and transmits the codewords shell by shell, each shell of each message at exactly unit power. The receiver computes, for every token position, the likelihood of every vocabulary entry from the symbols received so far, combines it with the prior of the language model and its memories, and decodes the message by beam search. Tokens whose posterior confidence stays below a threshold are requested again, and the next shell is sent for them only. The receiver's prior depends on three memories, which change at three speeds; the two that need the true text are learned at the transmitter and shipped as quantized differences at their own periods. The remainder of this section specifies each part.
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=\linewidth]{diagrams/fig_architecture.pdf}
-\caption{Architecture of DN-SC. Solid arrows: forward data path. Dashed arrows: the return-link requests for further shells and the shipments that synchronise the receiver's medium and slow memories; both are charged in channel symbols. The fast memory (context) is built by the receiver from its own decisions and costs no signalling.}
+\caption{Architecture of DN-SC. Solid arrows: forward data path. Dashed arrows: the return-link requests for further shells and the shipments that synchronize the receiver's medium and slow memories; both are charged in channel symbols. The fast memory (context) is built by the receiver from its own decisions and costs no signaling.}
 \label{fig:architecture}
 \end{figure}
 
-\subsection{Rate-nested semantic codebook}
+\subsection{Rate-Nested Semantic Codebook}
 \label{sec:method-codebook}
 
 \emph{Codewords.} Let $\vect{e}_v\in\R^{D}$ be the input embedding of token $v$ in the frozen language model and $s_e$ the standard deviation of all entries of the embedding table. A small network maps the scaled embedding $\bar{\vect{e}}_v = \vect{e}_v/s_e$ to a raw codeword,
@@ -22,9 +22,9 @@ Figure~\ref{fig:architecture} shows the transceiver. The transmitter tokenises a
 \tilde{\vect{c}}_v = \vect{W}_1\bar{\vect{e}}_v + \vect{W}_3\,\GELU\!\left(\vect{W}_2\bar{\vect{e}}_v + \vect{b}_2\right),
 \label{eq:codeword}
 \end{equation}
-with $\vect{W}_1\in\R^{M\times D}$, $\vect{W}_2\in\R^{H\times D}$, $\vect{b}_2\in\R^{H}$ and $\vect{W}_3\in\R^{M\times H}$; $\vect{W}_3$ is initialised at zero, so training starts from a linear projection of the embeddings. No language model runs at the transmitter to encode.
+with $\vect{W}_1\in\R^{M\times D}$, $\vect{W}_2\in\R^{H\times D}$, $\vect{b}_2\in\R^{H}$ and $\vect{W}_3\in\R^{M\times H}$; $\vect{W}_3$ is initialized at zero, so training starts from a linear projection of the embeddings. No language model runs at the transmitter to encode.
 
-\emph{Shells.} The $M$ coordinates are cut into $K$ shells at the prefix lengths $m_1<m_2<\dots<m_K = M$; shell $k$ holds the coordinates $\mathcal{S}_k = \{m_{k-1}+1,\dots,m_k\}$ ($m_0 = 0$) and has width $d_k = m_k-m_{k-1}$. Each shell is centred and scaled under the unigram distribution $q$ of the base corpus, and the energy of every codeword in it is limited to $\eta$ times the average:
+\emph{Shells.} The $M$ coordinates are cut into $K$ shells at the prefix lengths $m_1<m_2<\dots<m_K = M$; shell $k$ holds the coordinates $\mathcal{S}_k = \{m_{k-1}+1,\dots,m_k\}$ ($m_0 = 0$) and has width $d_k = m_k-m_{k-1}$. Each shell is centered and scaled under the unigram distribution $q$ of the base corpus, and the energy of every codeword in it is limited to $\eta$ times the average:
 \begin{equation}
 \hat{\vect{c}}_{v,k} = \frac{\tilde{\vect{c}}_{v,\mathcal{S}_k}-\vect{\mu}_k}{\sqrt{P_k}},\qquad
 \vect{c}_{v,\mathcal{S}_k} = \min\!\left\{1,\frac{\sqrt{\eta\,d_k}}{\lVert\hat{\vect{c}}_{v,k}\rVert}\right\}\hat{\vect{c}}_{v,k},
@@ -41,7 +41,7 @@ so that every transmitted block has an average power of exactly one per symbol. 
 
 \emph{Property 1 (exact incremental refinement).} For every message and every $k$, the prefix of length $m_k$ meets the power constraint with equality, and receiving shells $1,\dots,k$ in $k$ separate rounds yields the same observations $(y_{t,j},\lambda_j)_{j\le m_k}$, in distribution, as receiving the prefix $m_k$ at once. \emph{Proof.} The gain~(\ref{eq:gain}) of shell $k$ depends only on the coordinates in $\mathcal{S}_k$, and the noise in~(\ref{eq:channel}) is independent across symbols; hence neither the transmitted block nor its noise depends on when, or whether, other shells are sent. Averaging the unit power of the blocks over $k$ gives the power of any prefix. $\square$
 
-\subsection{Bayesian receiver with a language prior}
+\subsection{Bayesian Receiver With a Language Prior}
 \label{sec:method-receiver}
 
 \emph{Likelihood.} When the first $m$ symbols of token $t$ have arrived, the Gaussian log-likelihood of every vocabulary entry is, up to a term that does not depend on $v$,
@@ -71,33 +71,33 @@ with a likelihood weight $w_\mathrm{l}$ ($w_\mathrm{p} = w_\mathrm{l} = 1$ and $
 J(x_{1:t}) = \sum_{i=1}^{t}\left[\log\pi_i(x_i\mid x_{<i}) + w_\mathrm{l}\,\ell_i(x_i;m_i)\right],
 \label{eq:beam}
 \end{equation}
-which equals the log-posterior of the partial sentence up to a constant. Summing the per-position posteriors~(\ref{eq:posterior}) instead would subtract $\log p(y_i\mid x_{<i})$ at every position and so penalise exactly the prefixes that explain the next observation well, a form of the label-bias problem \cite{lafferty2001}. The confidence $q_t$ of a decision is that of the posterior at position $t$ on the selected path.
+which equals the log-posterior of the partial sentence up to a constant. Summing the per-position posteriors~(\ref{eq:posterior}) instead would subtract $\log p(y_i\mid x_{<i})$ at every position and so penalize exactly the prefixes that explain the next observation well, a form of the label-bias problem \cite{lafferty2001}. The confidence $q_t$ of a decision is that of the posterior at position $t$ on the selected path.
 
-\subsection{Training of the codebook}
+\subsection{Training of the Codebook}
 \label{sec:method-training}
 
-The codebook is trained once, before deployment and without the language model, by maximising the channel-only posterior of the transmitted token at randomly drawn prefix lengths and SNRs:
+The codebook is trained once, before deployment and without the language model, by maximizing the channel-only posterior of the transmitted token at randomly drawn prefix lengths and SNRs:
 \begin{equation}
 \mathcal{L}_\mathrm{cb}(\vect{W}) = \E_{v\sim\bar{q},\;\gamma\sim\mathcal{U}[\gamma_\mathrm{lo},\gamma_\mathrm{hi}]}\left[\frac{1}{|\mathcal{M}_b|}\sum_{m\in\mathcal{M}_b}-\log\frac{\exp\ell(v;m)}{\sum_{v'\in\mathcal{V}}\exp\ell(v';m)}\right],
 \label{eq:codebook-loss}
 \end{equation}
 where $\ell$ is~(\ref{eq:likelihood}) with $\lambda_j = 10^{\gamma/10}$, $\mathcal{M}_b$ is a set of prefix lengths drawn afresh for every batch, and $\bar{q}$ mixes the unigram distribution of the base corpus with the uniform distribution over $\mathcal{V}$, so that tokens the base corpus never uses---the vocabulary of later domains---are separated as well. The objective trains all prefixes jointly, which is what makes every prefix a usable code.
 
-\subsection{Time-nested receiver memories}
+\subsection{Time-Nested Receiver Memories}
 \label{sec:method-memories}
 
 The prior~(\ref{eq:prior}) is shaped by three memories (Figure~\ref{fig:protocol}b).
 
 \emph{Fast memory: context.} A message that continues a document is decoded with the receiver's own reconstruction of the preceding messages of the same conversation as context $\vect{h}$, up to a fixed number of tokens. This is the native memory of the language model; it changes with every message, needs no gradient and costs nothing on the air. Its errors propagate, since a wrongly decoded message becomes a wrong context.
 
-\emph{Medium and slow memories.} The medium memory $\phi_\mathrm{med} = (w_\mathrm{p}, w_\mathrm{l}, \vect{u})$ and the slow memory, a set of $K_\mathrm{s}$ LoRA adapters $\phi_1,\dots,\phi_{K_\mathrm{s}}$ of the language model \cite{hu2022lora}, can only be learned with the true text. They are therefore learned at the transmitter, which keeps a working copy $\phi^\mathrm{tx}$ of both and, at every adaptation step $n$, takes one optimiser step on
+\emph{Medium and slow memories.} The medium memory $\phi_\mathrm{med} = (w_\mathrm{p}, w_\mathrm{l}, \vect{u})$ and the slow memory, a set of $K_\mathrm{s}$ LoRA adapters $\phi_1,\dots,\phi_{K_\mathrm{s}}$ of the language model \cite{hu2022lora}, can only be learned with the true text. They are therefore learned at the transmitter, which keeps a working copy $\phi^\mathrm{tx}$ of both and, at every adaptation step $n$, takes one optimizer step on
 \begin{equation}
 \mathcal{L}_n(\phi) = \frac{1}{|\mathcal{M}_n|}\sum_{m\in\mathcal{M}_n}\frac{1}{N_n}\sum_{(i,t)}-\log p_{t}^{\phi}\!\left(x_{i,t}\mid \vect{y}_{i,t,1:m},\,\vect{x}_{i,<t},\,\vect{h}_i^\mathrm{tx}\right),
 \label{eq:adapt-loss}
 \end{equation}
 the posterior cross-entropy~(\ref{eq:posterior}) of the $N_n$ tokens of the step's messages, with the true earlier tokens and the true context $\vect{h}^\mathrm{tx}_i$, averaged over the operating prefix length and one further prefix length drawn at random ($\mathcal{M}_n$), so that the prior serves every rate. Only the active adapter slot learns.
 
-\emph{Quantised shipment.} The receiver holds its own copy $\phi^\mathrm{rx}_\ell$ of level $\ell\in\{\mathrm{med},\mathrm{slow}\}$, which changes only at the level's period $C_\ell$. When $n\equiv 0 \pmod{C_\ell}$, the transmitter quantises the difference of every parameter tensor $\vect{\Delta} = \phi^\mathrm{tx}_\ell-\phi^\mathrm{rx}_\ell$ with $b$ bits per entry, both ends apply the quantised difference, and the cost is recorded:
+\emph{Quantized shipment.} The receiver holds its own copy $\phi^\mathrm{rx}_\ell$ of level $\ell\in\{\mathrm{med},\mathrm{slow}\}$, which changes only at the level's period $C_\ell$. When $n\equiv 0 \pmod{C_\ell}$, the transmitter quantizes the difference of every parameter tensor $\vect{\Delta} = \phi^\mathrm{tx}_\ell-\phi^\mathrm{rx}_\ell$ with $b$ bits per entry, both ends apply the quantized difference, and the cost is recorded:
 \begin{equation}
 \begin{aligned}
 &\mathcal{Q}_b(\vect{\Delta}) = \frac{a}{L}\,\mathrm{round}\!\left(\frac{L\,\vect{\Delta}}{a}\right),\qquad a = \lVert\vect{\Delta}\rVert_\infty,\qquad L = 2^{b-1}-1,\\
@@ -106,7 +106,7 @@ B_\ell = \sum_{i\in\ell}\left(32 + b\,n_i\right),
 \end{aligned}
 \label{eq:sync}
 \end{equation}
-where the sum runs over the tensors of the level, $n_i$ is the number of entries of tensor $i$ and 32 bits carry its scale $a$ (an all-zero difference costs one flag bit). Right after a shipment the two copies are bit-identical; in between, the receiver decodes with a stale copy. The period $C_\ell$ thus trades staleness against air time, and nothing else: all receivers learn in the same way and differ only in when each level reaches the receiver. The multi-frequency organisation follows the nested-learning view \cite{behrouz2025}; its quantised, bit-counted synchronisation follows the practice of communication-efficient learning \cite{alistarh2017,mcmahan2017}.
+where the sum runs over the tensors of the level, $n_i$ is the number of entries of tensor $i$ and 32 bits carry its scale $a$ (an all-zero difference costs one flag bit). Right after a shipment the two copies are bit-identical; in between, the receiver decodes with a stale copy. The period $C_\ell$ thus trades staleness against air time, and nothing else: all receivers learn in the same way and differ only in when each level reaches the receiver. The multi-frequency organization follows the nested-learning view \cite{behrouz2025}; its quantized, bit-counted synchronization follows the practice of communication-efficient learning \cite{alistarh2017,mcmahan2017}.
 
 \emph{Adapter slots.} Adapting one adapter to one domain damages the prior for another, so the slow memory keeps one adapter per domain. Every $C_\mathrm{sel}$ steps the transmitter evaluates, on the messages it is about to send, the prior cross-entropy $H_s$ (bits per token) of the receiver's copy with every slot $s\in\{\varnothing,1,\dots,K_\mathrm{s}\}$, and changes the active slot $s_\mathrm{cur}$ only if another choice is better by a margin $\delta$:
 \begin{equation}
@@ -114,9 +114,9 @@ s^\star = \argmin_{s}\,H_s,\qquad
 s_\mathrm{new} = \begin{cases} s^\star, & H_{s^\star} < H_{s_\mathrm{cur}}-\delta,\\ s_\mathrm{cur}, & \text{otherwise},\end{cases}
 \label{eq:slot}
 \end{equation}
-where an untrained slot is started instead whenever $s_\mathrm{new} = \varnothing$ and one is left. The choice costs $\lceil\log_2(K_\mathrm{s}+1)\rceil$ bits. A domain that returns finds its adapter intact, so recalling it costs two bits rather than a new synchronisation, and the receiver is never left with an adapter worse than none.
+where an untrained slot is started instead whenever $s_\mathrm{new} = \varnothing$ and one is left. The choice costs $\lceil\log_2(K_\mathrm{s}+1)\rceil$ bits. A domain that returns finds its adapter intact, so recalling it costs two bits rather than a new synchronization, and the receiver is never left with an adapter worse than none.
 
-Algorithm~\ref{alg:step} summarises one adaptation step.
+Algorithm~\ref{alg:step} summarizes one adaptation step.
 
 \begin{algorithm}[t]
 \caption{One adaptation step $n$ of DN-SC}
@@ -137,14 +137,14 @@ Algorithm~\ref{alg:step} summarises one adaptation step.
   \Until{no token is open}
   \State $\vect{h}^\mathrm{rx}_i \leftarrow \vect{h}^\mathrm{rx}_i\Vert\hat{\vect{x}}_i$; \quad $\vect{h}^\mathrm{tx}_i \leftarrow \vect{h}^\mathrm{tx}_i\Vert\vect{x}_i$ \Comment{fast memory}
 \EndFor
-\State transmitter takes one optimiser step on $\mathcal{L}_n(\phi^\mathrm{tx})$, Eq.~(\ref{eq:adapt-loss}) \Comment{medium and active slow memory}
+\State transmitter takes one optimizer step on $\mathcal{L}_n(\phi^\mathrm{tx})$, Eq.~(\ref{eq:adapt-loss}) \Comment{medium and active slow memory}
 \For{$\ell\in\{\mathrm{med},\mathrm{slow}\}$ with $n\equiv 0\pmod{C_\ell}$}
   \State ship $\mathcal{Q}_b(\phi^\mathrm{tx}_\ell-\phi^\mathrm{rx}_\ell)$ and set both copies equal; ledger $\mathrel{+}= B_\ell$ \Comment{Eq.~(\ref{eq:sync})}
 \EndFor
 \end{algorithmic}
 \end{algorithm}
 
-\subsection{Selective refinement and its signalling}
+\subsection{Selective Refinement and Its Signaling}
 \label{sec:method-refinement}
 
 \emph{Protocol.} Round 1 delivers the first $m_{k_0}$ symbols of every token. After every round the receiver decodes the whole message again with the symbols received so far and, for every token that is still open, decides whether to request its next shell; a token that is not continued is closed for good, and nothing has to be said after the last shell (Figure~\ref{fig:protocol}a). Under this rule, token $t$ stops at the shell
@@ -162,19 +162,19 @@ where $q_t^{(k)}$ is the confidence of token $t$ when the message is decoded wit
 \label{fig:protocol}
 \end{figure}
 
-\emph{Signalling.} Let $n_r$ be the number of tokens that are open after round $r$ and must be decided on, and $c_r\le n_r$ the number of them that are continued. Two costs of the requests are derived from the decisions actually taken, in bits per token: an explicit bitmap, and the empirical entropy of the decisions of each round, which an ideal entropy coder of the bitmap would approach,
+\emph{Signaling.} Let $n_r$ be the number of tokens that are open after round $r$ and must be decided on, and $c_r\le n_r$ the number of them that are continued. Two costs of the requests are derived from the decisions actually taken, in bits per token: an explicit bitmap, and the empirical entropy of the decisions of each round, which an ideal entropy coder of the bitmap would approach,
 \begin{equation}
 B_\mathrm{bm} = \frac{1}{N_\mathrm{tok}}\sum_{r} n_r,\qquad
 B_\mathrm{H} = \frac{1}{N_\mathrm{tok}}\sum_{r} n_r\,h_2\!\left(\frac{c_r}{n_r}\right),\qquad
 h_2(p) = -p\log_2 p-(1-p)\log_2(1-p).
 \label{eq:feedback}
 \end{equation}
-Both are converted to real channel symbols at $C(\bar{\gamma})$ and added to the forward symbols. $B_\mathrm{H}$ is a lower reference, not an implemented code; the bitmap is implementable as it stands. A fixed-prefix receiver needs no signalling at all.
+Both are converted to real channel symbols at $C(\bar{\gamma})$ and added to the forward symbols. $B_\mathrm{H}$ is a lower reference, not an implemented code; the bitmap is implementable as it stands. A fixed-prefix receiver needs no signaling at all.
 
-\subsection{Net semantic rate and crossover traffic}
+\subsection{Net Semantic Rate and Crossover Traffic}
 \label{sec:method-cost}
 
-Let $R = \bar{T}\,[S_\mathrm{fwd}+B_\mathrm{fb}/C(\bar{\gamma})]$ be the payload of a receiver per message at the target accuracy, read off its measured operating curve (symbols against accuracy, over the thresholds $\tau$ or the prefix lengths) by linear interpolation. If one adaptation step, with $B_\mathrm{sync}$ bits of synchronisation, serves $N$ messages, the net semantic rate and the traffic above which the receiver is cheaper than a reference receiver with payload $R^\mathrm{ref}>R$ are
+Let $R = \bar{T}\,[S_\mathrm{fwd}+B_\mathrm{fb}/C(\bar{\gamma})]$ be the payload of a receiver per message at the target accuracy, read off its measured operating curve (symbols against accuracy, over the thresholds $\tau$ or the prefix lengths) by linear interpolation. If one adaptation step, with $B_\mathrm{sync}$ bits of synchronization, serves $N$ messages, the net semantic rate and the traffic above which the receiver is cheaper than a reference receiver with payload $R^\mathrm{ref}>R$ are
 \begin{equation}
 R_\mathrm{net}(N) = R + \frac{B_\mathrm{sync}}{C(\bar{\gamma})\,N}\quad\text{real symbols per message},\qquad
 N^\star = \frac{B_\mathrm{sync}}{C(\bar{\gamma})\left(R^\mathrm{ref}-R\right)} .
