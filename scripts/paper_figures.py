@@ -110,7 +110,7 @@ def fig_operating(out: Path, runs: dict[str, dict[int, dict]]) -> None:
     for ax, (method, title) in zip(axes, (("frozen", "Frozen receiver"), ("nested", "DN-SC (all memories)"))):
         fm, fa, ss, sa = pooled_curves(runs[method])
         ax.plot(fm, fa, "-", color=ORANGE, marker="s", ms=4.5, lw=1.6, mec="white", mew=0.8, label="Fixed prefix")
-        ax.plot(ss, sa, "-", color=BLUE, marker="o", ms=4.5, lw=1.6, mec="white", mew=0.8, label="Selective refinement + signalling")
+        ax.plot(ss, sa, "-", color=BLUE, marker="o", ms=4.5, lw=1.6, mec="white", mew=0.8, label="Selective refinement + signaling")
         ax.axhline(0.9, color=MUTED, lw=0.9, ls=(0, (4, 3)))
         ax.text(1.3, 0.905, "target 0.90", va="bottom", ha="left", fontsize=7, color=MUTED)
         ax.set_title(f"{title}, {len(runs[method])} seeds", fontsize=8.5, color=INK)

@@ -1036,6 +1036,54 @@
     "tokens": 10707
    }
   },
+  "refine_power.stream_seed0": {
+   "gain of the whole message (published)": {
+    "tf": {
+     "frozen_fixed": 9.088780488952867,
+     "frozen_refine": 7.734445308810667,
+     "dnsc_fixed": 7.647969705875779,
+     "dnsc_refine": 6.997701784741694
+    },
+    "real_dnsc_vs_frozen_fixed": {
+     "estimate": -0.27908413235087126,
+     "ci_low": -0.33720155596930745,
+     "ci_high": -0.12547350495228937,
+     "missed": 0.0,
+     "undefined": 0.0
+    },
+    "real_frozen_refine_vs_frozen_fixed": {
+     "estimate": -0.17786148540157565,
+     "ci_low": -0.21453221007920675,
+     "ci_high": -0.05717292423775555,
+     "missed": 0.0,
+     "undefined": 0.0
+    },
+    "power": "message"
+   },
+   "unit power per round": {
+    "tf": {
+     "frozen_fixed": 9.088780488952867,
+     "frozen_refine": 7.822870400580989,
+     "dnsc_fixed": 7.652096840838983,
+     "dnsc_refine": 7.025939695158115
+    },
+    "real_dnsc_vs_frozen_fixed": {
+     "estimate": -0.2785454228454779,
+     "ci_low": -0.3339571498831264,
+     "ci_high": -0.12550934685347503,
+     "missed": 0.0,
+     "undefined": 0.0
+    },
+    "real_frozen_refine_vs_frozen_fixed": {
+     "estimate": -0.16610520854748545,
+     "ci_low": -0.19911713055793512,
+     "ci_high": -0.048230886397154005,
+     "missed": 0.0,
+     "undefined": 0.0
+    },
+    "power": "subset"
+   }
+  },
   "link.levels": [
    {
     "name": "rx_bias",
@@ -1249,6 +1297,7 @@
   "emulation_gap_fixed_pct": "results/gpt2_v0.4_six_seeds/tables/refine_cost_hier.csv",
   "pilot.full_precision": "results/gpt2_v0.3_colab_t4/raw_streams.tar.gz",
   "refine_power.held_out": "results/refine_power/refine_power.json",
+  "refine_power.stream_seed0": "results/refine_power/stream_seed0.json (scripts/compare_power.py)",
   "link.levels": "results/gpt2_v0.4_six_seeds/raw_streams.tar.gz (per-step audits)",
   "link.slot_switches_mean": "results/gpt2_v0.4_six_seeds/raw_streams.tar.gz (per-step audits)",
   "runtime.hours": "results/gpt2_v0.4_six_seeds/raw_streams.tar.gz (per-step audits)",

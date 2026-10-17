@@ -218,6 +218,9 @@ def main() -> None:
     if power_file.exists():
         pw = json.load(open(power_file, encoding="utf-8"))
         put("refine_power.held_out", {v: {"power_tau_0.9": r["power_at_tau_0.9"], "fixed": r["fixed_at_target"], "message_gain": r["message_gain"]["at_target"], "subset_gain": r["subset_gain"]["at_target"], "change_pct": 100 * (r["subset_gain"]["at_target"]["total_entropy"] / r["message_gain"]["at_target"]["total_entropy"] - 1), "messages": pw["messages"], "tokens": r["tokens"]} for v, r in pw["results"].items()}, "results/refine_power/refine_power.json")
+    seed0 = ROOT / "results" / "refine_power" / "stream_seed0.json"
+    if seed0.exists():
+        put("refine_power.stream_seed0", json.load(open(seed0, encoding="utf-8")), "results/refine_power/stream_seed0.json (scripts/compare_power.py)")
     put("link.levels", raw["nested"][0]["levels"], src_raw)
     put("link.slot_switches_mean", sum(raw["nested"][s]["slot_switches"] for s in raw["nested"]) / len(raw["nested"]), src_raw)
     put("runtime.hours", {f"{m}_s{s}": round(raw[m][s]["summary"]["seconds"] / 3600, 2) for m in raw for s in sorted(raw[m])}, src_raw)
