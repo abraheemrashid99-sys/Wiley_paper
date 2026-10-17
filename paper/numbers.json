@@ -1084,6 +1084,15 @@
     "power": "subset"
    }
   },
+  "link.separation_benchmark_symbols_per_token": {
+   "frozen": 3.9278706729727237,
+   "context_only": 3.2428448475645935,
+   "nested": 3.024600903694588
+  },
+  "link.cost_over_benchmark": {
+   "dnsc_refine": 2.3392838345572504,
+   "frozen_fixed": 2.3491608477568824
+  },
   "link.levels": [
    {
     "name": "rx_bias",
@@ -1298,6 +1307,8 @@
   "pilot.full_precision": "results/gpt2_v0.3_colab_t4/raw_streams.tar.gz",
   "refine_power.held_out": "results/refine_power/refine_power.json",
   "refine_power.stream_seed0": "results/refine_power/stream_seed0.json (scripts/compare_power.py)",
+  "link.separation_benchmark_symbols_per_token": "results/gpt2_v0.4_six_seeds/tables/stream_hier.csv and C(10 dB)",
+  "link.cost_over_benchmark": "tf readings / separation benchmark",
   "link.levels": "results/gpt2_v0.4_six_seeds/raw_streams.tar.gz (per-step audits)",
   "link.slot_switches_mean": "results/gpt2_v0.4_six_seeds/raw_streams.tar.gz (per-step audits)",
   "runtime.hours": "results/gpt2_v0.4_six_seeds/raw_streams.tar.gz (per-step audits)",

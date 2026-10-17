@@ -1,0 +1,47 @@
+\documentclass[tikz,border=4pt]{standalone}
+\usepackage[T1]{fontenc}
+\usepackage{helvet}
+\renewcommand{\familydefault}{\sfdefault}
+\usepackage{amsmath,amssymb}
+\usetikzlibrary{arrows.meta,positioning,calc,shapes.geometric}
+\definecolor{ink}{HTML}{1F1F1E}
+\definecolor{muted}{HTML}{6B6A63}
+\definecolor{line}{HTML}{8A8980}
+\definecolor{fillA}{HTML}{EEF4FC}
+\definecolor{fillB}{HTML}{F6F5F1}
+\begin{document}
+\begin{tikzpicture}[
+  font=\footnotesize, text=ink,
+  >={Stealth[length=2.2mm,width=1.6mm]},
+  every node/.append style={execute at begin node={\hyphenpenalty=10000 \exhyphenpenalty=10000 }},
+  box/.style={draw=line, fill=white, align=center, inner sep=3pt, text width=30mm, minimum height=15mm},
+  pre/.style={box, fill=fillB},
+  meas/.style={box, fill=fillA},
+  dec/.style={draw=line, fill=white, diamond, aspect=1.7, align=center, inner sep=0.5pt, text width=22mm},
+  flow/.style={->, draw=ink, line width=0.6pt},
+  lab/.style={font=\scriptsize, text=muted},
+  num/.style={font=\scriptsize\bfseries, text=muted, anchor=south west, inner sep=1pt},
+  node distance=7mm
+]
+% row 1: fixed before the confirmatory runs
+\node[pre] (p1) {Protocol, endpoint, tests and margins written down in advance};
+\node[pre, right=12mm of p1] (p2) {Codebook trained once on the base corpus};
+\node[pre, right=12mm of p2] (p3) {Decoder chosen on validation text by a fixed rule};
+\node[pre, right=12mm of p3] (p4) {Stream runs of the three receivers, 600 steps each};
+% row 2: measurement and analysis
+\node[meas, below=17mm of p1] (m1) {Teacher-forced emulation on every step; real decoding on every 23rd step};
+\node[dec, right=8mm of m1] (d) {Gap of real decoding $\le 5$\,\%?};
+\node[meas, right=22mm of d] (m2) {Cost read at 90\,\% token accuracy on each operating curve};
+\node[meas, right=of m2] (m3) {Paired bootstrap, sign-flip test, Holm; net rate and crossover};
+\foreach \n/\k in {p1/1,p2/2,p3/3,p4/4,m1/5,m2/6,m3/7} { \node[num] at (\n.north west) {\k}; }
+\draw[flow] (p1) -- (p2);
+\draw[flow] (p2) -- (p3);
+\draw[flow] (p3) -- (p4);
+\draw[flow] (p4.south) -- ++(0,-6mm) -| (m1.north);
+\draw[flow] (m1) -- (d);
+\draw[flow] (d) -- node[lab, above, align=center]{yes:\\ teacher-forced} node[lab, below, align=center]{no: real\\ decoding} (m2);
+\draw[flow] (m2) -- (m3);
+\node[lab, anchor=south west] at ($(p1.north west)+(0,2.5mm)$) {Protocol and runs};
+\node[lab, anchor=north west] at ($(m1.south west)+(0,-2mm)$) {Measurement and analysis};
+\end{tikzpicture}
+\end{document}

@@ -1,40 +1,61 @@
 % ---------------------------------------------------------------- 3 system model
-\section{System Model and Problem Statement}
+\section{System Model and Problem Formulation}
 \label{sec:system}
 
-\subsection{Link, Knowledge, and Information Pattern}
+This section specifies the link and the information available at each end, the model of the traffic and of its drift, the channel, and the performance metrics. It concludes with the optimization problem that the remainder of the article addresses. Figure~\ref{fig:system} summarizes the model.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{diagrams/fig_system.pdf}
+\caption{System model. (a) Transmitter and receiver share a frozen language model and the codebook; the forward link carries the payload and the memory shipments, and the return link carries the requests for further shells. (b) The content drifts at three timescales, each tracked by one memory of the receiver; the stream used in the experiments is shown.}
+\label{fig:system}
+\end{figure}
+
+\subsection{Network, Traffic, and Drift Model}
 \label{sec:system-link}
 
-A transmitter, for example a base station or an edge server, sends text messages to a receiver over a wireless link. Both ends hold the same frozen pre-trained language model $p_\theta$ with vocabulary $\mathcal{V}$ ($|\mathcal{V}| = V$) and the same semantic codebook $\{\vect{c}_v\}_{v\in\mathcal{V}}$, $\vect{c}_v\in\R^{M}$. A message is a sequence of tokens $\vect{x} = (x_1,\dots,x_T)$, $x_t\in\mathcal{V}$; token $x_t$ is sent as a prefix of $\vect{c}_{x_t}$ of $m\le M$ real channel symbols, and $m/2$ complex channel uses carry it. The receiver additionally holds three memories that shape its prior (Section~\ref{sec:method-memories}). The information pattern is as follows. The transmitter knows the text, the codebook, the mean signal-to-noise ratio (SNR) fed back by the receiver and its own working copies of the memories; it does not know the receiver's noise or decisions. The receiver knows its channel state, the number of tokens of each message (the number of symbol groups it receives) and its own memories. A return link carries the receiver's requests for further symbols, and the forward link carries, besides the payload, the updates of the receiver's memories.
+A transmitter, such as a base station or an edge server, sends text messages to a receiver over a wireless link. Both ends hold the same frozen pre-trained language model $p_\theta$ with vocabulary $\mathcal{V}$, $|\mathcal{V}| = V$, and the same semantic codebook $\{\vect{c}_v\}_{v\in\mathcal{V}}$ with $\vect{c}_v\in\R^{M}$. A message is a token sequence $\vect{x} = (x_1,\dots,x_T)$ with $x_t\in\mathcal{V}$, and token $x_t$ is sent as a prefix of $\vect{c}_{x_t}$ of length $m\le M$ real channel symbols, that is, $m/2$ complex channel uses. The receiver additionally maintains three memories that shape its prior (Section~\ref{sec:method-memories}). The transmitter knows the text, the codebook, the mean signal-to-noise ratio (SNR) fed back by the receiver and its own working copies of the memories, but neither the receiver's noise nor its decisions. The receiver knows its channel state, the number of tokens of each message (from the number of received symbol groups) and its own memories. A return link carries the receiver's requests for further symbols, and the forward link carries, in addition to the payload, the updates of the receiver's memories.
 
-\subsection{Traffic and Drift}
-\label{sec:system-drift}
-
-Traffic is organized in adaptation steps $n = 1, 2, \dots$. At every step each of $N_\mathrm{c}$ parallel conversations sends the next sentence of its current document, and a conversation that reaches the end of a document opens a new one. The content drifts at three timescales. The fast band is the channel and the document of each conversation. The medium band is the topic from which new documents are drawn; it changes every $\tau_\mathrm{med}$ steps, and a new document is drawn from the current topic with probability $\kappa$ and otherwise from a topic chosen uniformly at random, which may again be the current one. The slow band is the knowledge domain, which changes every $\tau_\mathrm{slow}$ steps and returns after the other domains have been visited, so that retained knowledge can be measured. The SNR of step $n$, in decibels, follows a clipped first-order autoregressive process,
+Traffic is organized in adaptation steps $n = 1, 2, \dots$. At every step, each of $N_\mathrm{c}$ parallel conversations sends the next sentence of its current document, and a conversation that reaches the end of its document opens a new one. The content drifts at three timescales. The fast band comprises the channel and the document of each conversation. The medium band is the topic from which new documents are drawn; it changes every $\tau_\mathrm{med}$ steps, and a new document is drawn from the current topic with probability $\kappa$ and otherwise from a topic chosen uniformly at random. The slow band is the knowledge domain, which changes every $\tau_\mathrm{slow}$ steps and returns after the other domains have been visited, so that the retention of earlier knowledge becomes observable. The SNR of step $n$, expressed in decibels, follows a clipped first-order autoregressive process,
 \begin{equation}
 \tilde{\gamma}_n = \mu_\gamma + \rho\,(\tilde{\gamma}_{n-1}-\mu_\gamma) + \sigma_\gamma\sqrt{1-\rho^2}\,\varepsilon_n,
-\qquad \gamma_n = \min\{\gamma_{\max},\,\max\{\gamma_{\min},\,\tilde{\gamma}_n\}\},
+\qquad \gamma_n = \min\bigl\{\gamma_{\max},\,\max\{\gamma_{\min},\,\tilde{\gamma}_n\}\bigr\},
 \label{eq:snr}
 \end{equation}
-with $\varepsilon_n\sim\mathcal{N}(0,1)$ independent and $\tilde{\gamma}_0 = \mu_\gamma$; the stationary standard deviation of $\tilde{\gamma}_n$ is $\sigma_\gamma$.
+with independent $\varepsilon_n\sim\mathcal{N}(0,1)$ and $\tilde{\gamma}_0 = \mu_\gamma$, so that the stationary standard deviation of $\tilde{\gamma}_n$ equals $\sigma_\gamma$.
 
-\subsection{Channel}
+\subsection{Channel Model}
 \label{sec:system-channel}
 
-Each transmitted block (one shell of the codewords of the tokens of one message that a round carries, Section~\ref{sec:method-codebook}) is scaled to unit average power per symbol by a gain. After coherent equalization with perfect channel state information, symbol $j$ of token $t$ is received as
+Each transmitted block, defined as one shell of the codewords of the tokens of one message that a transmission round carries (Section~\ref{sec:method-codebook}), is scaled to unit average power per symbol by a gain. After coherent equalization with perfect channel state information, symbol $j$ of token $t$ is received as
 \begin{equation}
 y_{t,j} = c_{x_t,j} + w_{t,j},\qquad w_{t,j}\sim\mathcal{N}\!\left(0,\lambda_{t,j}^{-1}\right),\qquad \lambda_{t,j} = g_{t,k(j)}^2\,|h|^2\,10^{\gamma_n/10},
 \label{eq:channel}
 \end{equation}
-where $k(j)$ is the shell that contains coordinate $j$, $g_{t,k}$ is the gain of the block that carried shell $k$ of token $t$, $|h|^2 = 1$ for the additive white Gaussian noise (AWGN) channel and $|h|^2\sim\mathrm{Exp}(1)$, drawn once per message and floored at $|h| = 0.05$, under Rayleigh block fading. The noise is independent across symbols, tokens and messages. A capacity-achieving code at the mean SNR $\bar{\gamma}$ carries $C(\bar{\gamma}) = \tfrac{1}{2}\log_2(1+\bar{\gamma})$ bits per real channel symbol, with $\bar{\gamma}$ on a linear scale ($C = 1.7297$ at 10\,dB); this is the rate at which the signaling and synchronization bits are charged.
+where $k(j)$ denotes the shell containing coordinate $j$, $g_{t,k}$ the gain of the block that carried shell $k$ of token $t$, $|h|^2 = 1$ for the additive white Gaussian noise (AWGN) channel and $|h|^2\sim\mathrm{Exp}(1)$, drawn once per message and floored at $|h| = 0.05$, under Rayleigh block fading. The noise is independent across symbols, tokens and messages. Signaling and synchronization bits are charged at the capacity of the mean SNR $\bar{\gamma}$ (on a linear scale),
+\begin{equation}
+C(\bar{\gamma}) = \tfrac{1}{2}\log_2(1+\bar{\gamma})\quad\text{bits per real channel symbol},
+\label{eq:capacity}
+\end{equation}
+which equals 1.7297 at 10\,dB. This charge is optimistic and applies equally to every scheme that signals or synchronizes.
 
-\subsection{Performance Measures and Problem Statement}
+\subsection{Performance Metrics and Problem Formulation}
 \label{sec:system-problem}
 
-Fidelity is measured by the token accuracy $A$, the fraction of transmitted tokens that the receiver decides correctly, with BLEU-4 \cite{papineni2002} reported where sentences are compared. Cost is measured in real channel symbols per token, and three parts are distinguished: the forward symbols $S_\mathrm{fwd}$ of the payload, the return-link signaling $B_\mathrm{fb}$ of the refinement requests (bits per token) and the synchronization $B_\mathrm{sync}$ of the receiver's memories (bits per adaptation step). If one adaptation step serves $N$ messages of $\bar{T}$ tokens on average, a receiver policy $\pi$---its memories, decoder and refinement rule---costs
+Fidelity is measured by the token accuracy, and the knowledge of the receiver by the cross-entropy of its prior on the transmitted tokens,
 \begin{equation}
-S_\mathrm{tot}(\pi;N) = S_\mathrm{fwd}(\pi) + \frac{B_\mathrm{fb}(\pi)}{C(\bar{\gamma})} + \frac{B_\mathrm{sync}(\pi)}{C(\bar{\gamma})\,\bar{T}\,N},
-\qquad \min_{\pi}\; S_\mathrm{tot}(\pi;N)\quad\text{subject to}\quad A(\pi)\ge\alpha^\star ,
+A = \frac{1}{N_\mathrm{tok}}\sum_{t=1}^{N_\mathrm{tok}}\mathbb{1}\{\hat{x}_t = x_t\},\qquad
+\bar{H} = -\frac{1}{N_\mathrm{tok}}\sum_{t=1}^{N_\mathrm{tok}}\log_2\pi_t(x_t)\quad\text{bits per token},
+\label{eq:metrics}
+\end{equation}
+where $\hat{x}_t$ is the receiver's decision and $\pi_t$ its prior for position $t$ (Section~\ref{sec:method-receiver}); BLEU-4 \cite{papineni2002} is reported where complete sentences are compared. Cost is measured in real channel symbols per token and comprises three parts: the forward symbols $S_\mathrm{fwd}$ of the payload, the return-link signaling $B_\mathrm{fb}$ of the refinement requests in bits per token, and the synchronization $B_\mathrm{sync}$ of the receiver's memories in bits per adaptation step. If one adaptation step serves $N$ messages of $\bar{T}$ tokens on average, a receiver policy $\pi$, consisting of its memories, decoder and refinement rule, incurs the total cost
+\begin{equation}
+S_\mathrm{tot}(\pi;N) = S_\mathrm{fwd}(\pi) + \frac{B_\mathrm{fb}(\pi)}{C(\bar{\gamma})} + \frac{B_\mathrm{sync}(\pi)}{C(\bar{\gamma})\,\bar{T}\,N}
+\label{eq:cost}
+\end{equation}
+real channel symbols per token. The design problem is to minimize this cost subject to a target token accuracy $\alpha^\star$,
+\begin{equation}
+\pi^\star(N) = \argmin_{\pi}\; S_\mathrm{tot}(\pi;N)\qquad\text{subject to}\qquad A(\pi)\ge\alpha^\star .
 \label{eq:problem}
 \end{equation}
-real channel symbols per token, where $\alpha^\star$ is a target token accuracy. Charging the bits at capacity and assuming the return link error-free favors every policy that signals or synchronizes, all of them in the same way. The first two terms of~(\ref{eq:problem}) are measured per message; the third depends on how many messages one update serves, which is a property of the deployment rather than of the codec. The experiments therefore report $S_\mathrm{fwd}+B_\mathrm{fb}/C(\bar{\gamma})$ at $\alpha^\star = 0.9$ as the primary endpoint and treat the synchronization term as a function of $N$ (Section~\ref{sec:method-cost}).
+The first two terms of~(\ref{eq:cost}) are measured per message, whereas the third depends on the number of messages served by one update, which is a property of the deployment rather than of the codec. The experiments therefore report $S_\mathrm{fwd}+B_\mathrm{fb}/C(\bar{\gamma})$ at $\alpha^\star = 0.9$ as the primary endpoint and treat the synchronization term as a function of $N$ (Section~\ref{sec:method-cost}).

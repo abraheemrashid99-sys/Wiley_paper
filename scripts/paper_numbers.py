@@ -221,6 +221,9 @@ def main() -> None:
     seed0 = ROOT / "results" / "refine_power" / "stream_seed0.json"
     if seed0.exists():
         put("refine_power.stream_seed0", json.load(open(seed0, encoding="utf-8")), "results/refine_power/stream_seed0.json (scripts/compare_power.py)")
+    sep = {m: float(stream[m]["prior bits/token"].split()[0]) / cap for m in ("frozen", "context_only", "nested")}
+    put("link.separation_benchmark_symbols_per_token", sep, f"{six}/tables/stream_hier.csv and C(10 dB)")
+    put("link.cost_over_benchmark", {"dnsc_refine": 7.0754 / sep["nested"], "frozen_fixed": 9.2272 / sep["frozen"]}, "tf readings / separation benchmark")
     put("link.levels", raw["nested"][0]["levels"], src_raw)
     put("link.slot_switches_mean", sum(raw["nested"][s]["slot_switches"] for s in raw["nested"]) / len(raw["nested"]), src_raw)
     put("runtime.hours", {f"{m}_s{s}": round(raw[m][s]["summary"]["seconds"] / 3600, 2) for m in raw for s in sorted(raw[m])}, src_raw)
