@@ -56,7 +56,7 @@ KEY = "context_only,single_rate,nested_no_slots,nested"  # the methods a changed
 # The decoder of selective refinement in the published runs (version 0.3 and earlier): greedy, first shell
 # the shortest prefix, closed tokens never reopened. The first shell decides which tokens the emulated
 # receiver writes into its memories, so the published numbers are reproduced with this decoder only.
-LEGACY_DECODER = ["decoder.beam=1", "decoder.start_m=null", "decoder.reopen=false"]
+LEGACY_DECODER = ["decoder.beam=1", "decoder.start_m=null", "decoder.reopen=false", "decoder.refine_power=message"]
 # (tag, methods, overrides): variants of the hierarchical stream, one seed each in the published study
 VARIANTS = [
     ("bits4", "nested", ["nested.sync.bits=4"]),

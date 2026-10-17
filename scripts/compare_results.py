@@ -148,7 +148,8 @@ def decoder_of(run: dict) -> str:
     if d is None:
         grans = run.get("config", {}).get("codec", {}).get("granularities") or ["shortest"]
         d = {"beam": 1, "start_m": grans[0], "reopen": False}
-    return f"beam {d['beam']}, first shell {d['start_m']}, reopening {'on' if d['reopen'] else 'off'}"
+    power = d.get("refine_power", "message")  # runs before version 0.5 sent refinement rounds at the gain of the whole message
+    return f"beam {d['beam']}, first shell {d['start_m']}, reopening {'on' if d['reopen'] else 'off'}, refinement power {power}"
 
 
 def new_measurements(runs: dict[str, dict]) -> list[str]:

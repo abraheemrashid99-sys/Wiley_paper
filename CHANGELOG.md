@@ -16,9 +16,10 @@
   refinement round is scaled to unit power over the tokens it carries, in
   the teacher-forced emulation (`dnsc.refine.round_policy`) and in real
   decoding (`progressive_decode(..., power="subset")`); `message` reproduces
-  the runs of versions 0.2–0.4 exactly (tested). The default stays
-  `message` so that the published runs reproduce; new runs should set
-  `subset` (`configs/*.yaml`).
+  the runs of versions 0.2–0.4 exactly (tested). The configurations now set
+  `subset`, so new runs (`run_quick.py`, `reproduce.py --profile core`) send
+  every round at unit power; to reproduce `results/gpt2_v0.4_six_seeds`, pass
+  `decoder.refine_power=message`. `compare_results.py` names the setting.
 - `paper/`: the manuscript (sections, tables, figures, verified references,
   `numbers.json` with the source of every quoted number). Corrections found
   by the audit are stated in the text: readings above the target at the

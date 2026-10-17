@@ -86,3 +86,17 @@ three to four hours, the six runs of the primary comparison about two.
 The tables are generated from the result files; nothing is typed by hand.
 Runs made on different computers differ in the last digits of
 floating-point arithmetic; the codebook and the code are the same.
+
+## Version 0.5: refinement rounds at unit power
+
+From version 0.5 the configurations send every refinement round at unit
+power over the tokens it carries (`decoder.refine_power: subset`; the runs in
+`results/gpt2_v0.4_six_seeds` used the gain of the whole message, see
+CHANGELOG 0.5.0). To repeat the primary comparison with it on all six seeds:
+
+```
+python scripts/run_quick.py --seeds 0,1,2,3,4,5 --out runs/quick_v05 --export results_quick_v05
+```
+
+Use a new `--out` folder so that runs of version 0.4 are not mixed in; every
+run file records the setting under `summary.decoder.refine_power`.
