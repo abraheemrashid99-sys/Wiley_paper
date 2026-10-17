@@ -4,7 +4,7 @@
 
 fig_rate_priors      free-running token accuracy against symbols per token on the
                      base corpus, by receiver prior, at 0, 10 and 20 dB (results/gpt2)
-fig_operating        operating curves decoded for real on the audited steps, frozen
+fig_operating        operating curves under free-running decoding on the audited steps, frozen
                      receiver and DN-SC, six seeds pooled (results/gpt2_v0.4_six_seeds)
 fig_prior_stream     prior cross-entropy along the hierarchical stream, mean over seeds
 fig_netrate          derived net semantic rate against messages per adaptation step
@@ -135,7 +135,7 @@ def fig_operating(out: Path, runs: dict[str, dict[int, dict]]) -> None:
         ax.set_xlim(1, 16.5)
         ax.set_ylim(0, 1.02)
         tidy(ax)
-    axes[0].set_ylabel("Token accuracy (decoded for real)")
+    axes[0].set_ylabel("Token accuracy (free-running)")
     handles, labels = axes[0].get_legend_handles_labels()
     fig.legend(handles, labels, loc="lower center", bbox_to_anchor=(0.5, 1.0), ncol=2, fontsize=7.5)
     fig.tight_layout()
@@ -244,13 +244,13 @@ def fig_base_error(out: Path, m: int = 8) -> None:
 
 # ---------------------------------------------------------------- per-seed savings
 def fig_seeds(out: Path) -> None:
-    """Saving against the frozen fixed-rate receiver on every seed, teacher-forced and decoded for real."""
+    """Saving against the frozen fixed-rate receiver on every seed, teacher-forced and under free-running decoding."""
     values = json.load(open(ROOT / "paper" / "numbers.json", encoding="utf-8"))["values"]
     seeds = list(range(6))
     series = [
-        ("DN-SC + refinement, decoded for real", values["real.nested.per_seed"], BLUE, "o", "full", 0.12),
+        ("DN-SC + refinement, free-running", values["real.nested.per_seed"], BLUE, "o", "full", 0.12),
         ("DN-SC + refinement, teacher-forced", values["tf.nested.per_seed_saving_pct"], BLUE, "D", "none", -0.12),
-        ("Frozen + refinement, decoded for real", values["real.frozen.per_seed"], ORANGE, "s", "full", 0.12),
+        ("Frozen + refinement, free-running", values["real.frozen.per_seed"], ORANGE, "s", "full", 0.12),
         ("Frozen + refinement, teacher-forced", values["tf.frozen.per_seed_saving_pct"], ORANGE, "D", "none", -0.12),
     ]
     fig, ax = plt.subplots(figsize=(5.2, 2.9))

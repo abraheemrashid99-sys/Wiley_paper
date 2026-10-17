@@ -188,7 +188,37 @@ def main() -> None:
     put("floor.accuracy_at_cheapest_point", floors, src_raw)
     # emulation check on the fixed-prefix receivers as well (real against emulated, same audited steps)
     fixed_gap = {m: 100 * (float(cost[m]["free-running fixed prefix"]) / float(cost[m]["emulated fixed prefix, same steps"]) - 1) for m in ("frozen", "context_only", "nested")}
-    put("emulation_gap_fixed_pct", fixed_gap, f"{six}/tables/refine_cost_hier.csv")
+    put("emulation_gap_fixed_pct_from_table", fixed_gap, f"{six}/tables/refine_cost_hier.csv (3-decimal values)")
+    # the same checks at full precision, pooled over the audited steps as in scripts/aggregate.py
+    sys.path.insert(0, str(ROOT / "scripts"))
+    from aggregate import pooled_live  # noqa: E402
+
+    pooled = {m: pooled_live(list(raw[m].values()), 0.9) for m in ("frozen", "context_only", "nested")}
+    put("emulation_gap_full_pct", {m: 100 * (pooled[m]["forward"] / pooled[m]["emulated_forward"] - 1) for m in pooled}, src_raw)
+    put("emulation_gap_fixed_pct", {m: 100 * (pooled[m]["fixed"] / pooled[m]["emulated_fixed"] - 1) for m in pooled}, src_raw)
+    # per-shipment cost as charged by the ledger (seed 0; the ledger is identical on every seed)
+    led = raw["nested"][0]["ledger"]
+    put("link.bits_per_shipment", {k: led["bits"][k] / led["events"][k] for k in led["bits"]}, src_raw)
+    put("link.ledger_identical_on_all_seeds", all(raw["nested"][s]["ledger"]["total_bits"] == led["total_bits"] for s in raw["nested"]), src_raw)
+    # requests per round under free-running decoding at tau = 0.9 (Figure "rounds"): share of all tokens
+    # and share of the tokens still open
+    ti = raw["nested"][0]["config"]["stream"]["live_thresholds"].index(0.9)
+    rounds_share = {}
+    for m in ("frozen", "context_only", "nested"):
+        cont = opened = None
+        tokens = 0.0
+        for run in raw[m].values():
+            for step in run["live"]:
+                meter = step["live"][ti]["meter"]
+                c, o = np.asarray(meter["cont"], float), np.asarray(meter["open"], float)
+                cont = c if cont is None else cont + c
+                opened = o if opened is None else opened + o
+                tokens += meter["tokens"]
+        rounds_share[m] = {"of_all_tokens_pct": [round(100 * x / tokens, 2) for x in cont], "of_open_tokens_pct": [round(100 * x / y, 2) if y else None for x, y in zip(cont, opened)]}
+    put("real.requests_per_round", rounds_share, src_raw)
+    # unseen seeds: mean of the per-seed savings next to the ratio of the mean costs
+    per_seed = out["tf.nested.per_seed_saving_pct"]
+    put("tf.nested.unseen_mean_of_per_seed_pct", float(np.mean([per_seed[i] for i, s in enumerate(out["tf.nested.seeds"]) if s in unseen])), src_raw)
 
     # ---- pilot ablations at full precision (raw logs of the GPU reproduction)
     import tarfile
@@ -223,7 +253,17 @@ def main() -> None:
         put("refine_power.stream_seed0", json.load(open(seed0, encoding="utf-8")), "results/refine_power/stream_seed0.json (scripts/compare_power.py)")
     sep = {m: float(stream[m]["prior bits/token"].split()[0]) / cap for m in ("frozen", "context_only", "nested")}
     put("link.separation_benchmark_symbols_per_token", sep, f"{six}/tables/stream_hier.csv and C(10 dB)")
-    put("link.cost_over_benchmark", {"dnsc_refine": 7.0754 / sep["nested"], "frozen_fixed": 9.2272 / sep["frozen"]}, "tf readings / separation benchmark")
+    put("link.cost_over_benchmark", {"frozen_fixed": out["tf.frozen.fixed"] / sep["frozen"], "frozen_refine": out["tf.frozen.sel_entropy"] / sep["frozen"], "dnsc_fixed": out["tf.nested.fixed"] / sep["nested"], "dnsc_refine": out["tf.nested.sel_entropy"] / sep["nested"]}, "tf readings / separation benchmark")
+    # link level on the base corpus (Table 3, Figure 6 and text)
+    base = "results/gpt2/tables"
+    acc = {}
+    for line in open(ROOT / base / "rate_europarl_nltk_gen_tok_acc.csv", encoding="utf-8").read().splitlines()[1:]:
+        ch, prior, m_, a0, a10, a20 = line.split(",")
+        acc[f"{ch}.{prior}.m{m_}"] = {"0dB": float(a0), "10dB": float(a10), "20dB": float(a20)}
+    put("base.free_running_token_accuracy", acc, f"{base}/rate_europarl_nltk_gen_tok_acc.csv")
+    power = {line.split(",")[0]: float(line.split(",")[1]) for line in open(ROOT / base / "rate_europarl_nltk_power.csv", encoding="utf-8").read().splitlines()[1:]}
+    put("base.codebook_power_before_control", power, f"{base}/rate_europarl_nltk_power.csv")
+    put("data.corpora", json.load(open(ROOT / "results" / "gpt2" / "data_summary.json", encoding="utf-8")), "results/gpt2/data_summary.json (copy of data/summary.json written by the data preparation)")
     put("link.levels", raw["nested"][0]["levels"], src_raw)
     put("link.slot_switches_mean", sum(raw["nested"][s]["slot_switches"] for s in raw["nested"]) / len(raw["nested"]), src_raw)
     put("runtime.hours", {f"{m}_s{s}": round(raw[m][s]["summary"]["seconds"] / 3600, 2) for m in raw for s in sorted(raw[m])}, src_raw)

@@ -4,7 +4,7 @@
 
 Saving of every receiver against the frozen fixed-rate receiver (same decoder,
 same seeds) in real channel symbols per token at 90 % token accuracy, signalling
-of refinement charged at its entropy: decoded for real on the audited steps
+of refinement charged at its entropy: free-running decoding on the audited steps
 (with the 95 % paired bootstrap interval of realdecode_hier) and teacher-forced
 on every step (refine_cost_hier). Nothing is typed by hand.
 """
@@ -59,12 +59,12 @@ def main() -> None:
         return 100 * (mine / ref - 1)
 
     rows = [
-        ("Frozen receiver + refinement", real["frozen"]["vs frozen fixed [95% CI]"], tf_saving("frozen", "symbols_at_target_selective_fb_entropy"), int(real["frozen"]["seeds"])),
+        ("Frozen + refinement", real["frozen"]["vs frozen fixed [95% CI]"], tf_saving("frozen", "symbols_at_target_selective_fb_entropy"), int(real["frozen"]["seeds"])),
         ("Context memory + refinement", real["context_only"]["vs frozen fixed [95% CI]"], tf_saving("context_only", "symbols_at_target_selective_fb_entropy"), int(real["context_only"]["seeds"])),
         ("DN-SC memories, fixed rate", real["nested"]["fixed prefix vs frozen fixed"], tf_saving("nested", "symbols_at_target_fixed"), int(real["nested"]["seeds"])),
-        ("DN-SC memories + refinement", real["nested"]["vs frozen fixed [95% CI]"], tf_saving("nested", "symbols_at_target_selective_fb_entropy"), int(real["nested"]["seeds"])),
+        ("DN-SC + refinement", real["nested"]["vs frozen fixed [95% CI]"], tf_saving("nested", "symbols_at_target_selective_fb_entropy"), int(real["nested"]["seeds"])),
     ]
-    plt.rcParams.update({"font.size": 9, "font.family": "DejaVu Sans", "axes.edgecolor": MUTED, "axes.labelcolor": INK, "xtick.color": MUTED, "ytick.color": INK})
+    plt.rcParams.update({"font.size": 8.5, "font.family": "DejaVu Sans", "axes.edgecolor": MUTED, "axes.labelcolor": INK, "xtick.color": MUTED, "ytick.color": INK})
     fig, ax = plt.subplots(figsize=(6.6, 2.8), dpi=300)
     ys = list(range(len(rows)))[::-1]
     for y, (label, cell, tf, seeds) in zip(ys, rows):
@@ -86,7 +86,7 @@ def main() -> None:
     ax.set_axisbelow(True)
     for side in ("top", "right", "left"):
         ax.spines[side].set_visible(False)
-    real_handle = ax.plot([], [], "o-", color=REAL, ms=7, mec="white", mew=1.5, lw=2, label="decoded for real on the audited steps, 95 % interval")[0]
+    real_handle = ax.plot([], [], "o-", color=REAL, ms=7, mec="white", mew=1.5, lw=2, label="free-running decoding on the audited steps, 95 % interval")[0]
     tf_handle = ax.plot([], [], "D", ms=6, mfc="white", mec=EMULATED, mew=1.8, label="teacher-forced, all 600 steps")[0]
     ax.legend(handles=[real_handle, tf_handle], loc="lower center", bbox_to_anchor=(0.4, 1.0), ncol=2, frameon=False, fontsize=7.5)
     fig.tight_layout()

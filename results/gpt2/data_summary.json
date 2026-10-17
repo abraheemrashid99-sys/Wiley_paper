@@ -1,0 +1,42 @@
+[
+  {
+    "corpus": "europarl_nltk",
+    "sentences": 14006,
+    "train": 11458,
+    "val": 1270,
+    "test": 1278,
+    "topics": 1,
+    "mean_words": 17.64,
+    "time_span": "-"
+  },
+  {
+    "corpus": "ag_news",
+    "sentences": 40000,
+    "train": 31971,
+    "val": 4030,
+    "test": 3999,
+    "topics": 4,
+    "mean_words": 13.47,
+    "time_span": "-"
+  },
+  {
+    "corpus": "teleqna",
+    "sentences": 25543,
+    "train": 20384,
+    "val": 2619,
+    "test": 2540,
+    "topics": 5,
+    "mean_words": 13.83,
+    "time_span": "-"
+  },
+  {
+    "corpus": "huffpost_gh",
+    "sentences": 40000,
+    "train": 32046,
+    "val": 4034,
+    "test": 3920,
+    "topics": 42,
+    "mean_words": 11.98,
+    "time_span": "2012-10-06..2022-08-31"
+  }
+]

@@ -3,7 +3,7 @@
 \begin{document}
 \begin{tikzpicture}[node distance=6mm]
 % ---------------- receiver column (sets the rows)
-\node[blk, text width=34mm] (lik) {Likelihood $\ell_t(v;m_t)$ of\\ the received prefix};
+\node[blk, text width=34mm] (lik) {Likelihood $\Lambda_t(v;m_t)$ of\\ the received prefix};
 \node[blk, text width=34mm, above=of lik] (post) {Posterior and beam-search\\ MAP decoding};
 \node[blk, text width=34mm, above=of post] (conf) {All tokens confident,\\ $q_t\ge\tau$ (or 16 symbols)?};
 \node[blk, text width=34mm, above=of conf] (out) {Decoded message $\hat{x}_{1:T}$};
@@ -18,7 +18,7 @@
 \node[blk, text width=36mm, right=16mm of lik] (lora) {Slow memory:\\ LoRA adapter slots};
 \node[grp, fit=(ctx)(prior)(bias)(lora)] (memfit) {};
 \draw[arr] (out.east) -- node[lbl, above]{decisions} (ctx.west);
-\draw[arr] (bias.west) -- node[lbl, above]{prior $\pi_t(v)$} (post.east);
+\draw[arr] (memfit.west |- post.east) -- node[lbl, above]{prior $\pi_t(v)$} (post.east);
 
 % ---------------- channel and transmitter
 \node[blk, text width=24mm, left=13mm of lik] (ch) {Channel: AWGN\\ or Rayleigh, $\gamma_n$};

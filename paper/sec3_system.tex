@@ -32,7 +32,7 @@ Each transmitted block, defined as one shell of the codewords of the tokens of o
 y_{t,j} = c_{x_t,j} + w_{t,j},\qquad w_{t,j}\sim\mathcal{N}\!\left(0,\lambda_{t,j}^{-1}\right),\qquad \lambda_{t,j} = g_{t,k(j)}^2\,|h|^2\,10^{\gamma_n/10},
 \label{eq:channel}
 \end{equation}
-where $k(j)$ denotes the shell containing coordinate $j$, $g_{t,k}$ the gain of the block that carried shell $k$ of token $t$, $|h|^2 = 1$ for the additive white Gaussian noise (AWGN) channel and $|h|^2\sim\mathrm{Exp}(1)$, drawn once per message and floored at $|h| = 0.05$, under Rayleigh block fading. The noise is independent across symbols, tokens and messages. Signaling and synchronization bits are charged at the capacity of the mean SNR $\bar{\gamma}$ (on a linear scale),
+where $k(j)$ denotes the shell containing coordinate $j$, $g_{t,k}$ the gain $g_k(\mathcal{T})$ of~(\ref{eq:gain}) of the block that carried shell $k$ of token $t$, $|h|^2 = 1$ for the additive white Gaussian noise (AWGN) channel and $|h|^2\sim\mathrm{Exp}(1)$, drawn once per message and floored at $|h| = 0.05$, under Rayleigh block fading. The noise is independent across symbols, tokens and messages. Signaling and synchronization bits are charged at the capacity of $\bar{\gamma} = 10^{\mu_\gamma/10}$, the linear value of the mean SNR in decibels,
 \begin{equation}
 C(\bar{\gamma}) = \tfrac{1}{2}\log_2(1+\bar{\gamma})\quad\text{bits per real channel symbol},
 \label{eq:capacity}
@@ -48,14 +48,14 @@ A = \frac{1}{N_\mathrm{tok}}\sum_{t=1}^{N_\mathrm{tok}}\mathbb{1}\{\hat{x}_t = x
 \bar{H} = -\frac{1}{N_\mathrm{tok}}\sum_{t=1}^{N_\mathrm{tok}}\log_2\pi_t(x_t)\quad\text{bits per token},
 \label{eq:metrics}
 \end{equation}
-where $\hat{x}_t$ is the receiver's decision and $\pi_t$ its prior for position $t$ (Section~\ref{sec:method-receiver}); BLEU-4 \cite{papineni2002} is reported where complete sentences are compared. Cost is measured in real channel symbols per token and comprises three parts: the forward symbols $S_\mathrm{fwd}$ of the payload, the return-link signaling $B_\mathrm{fb}$ of the refinement requests in bits per token, and the synchronization $B_\mathrm{sync}$ of the receiver's memories in bits per adaptation step. If one adaptation step serves $N$ messages of $\bar{T}$ tokens on average, a receiver policy $\pi$, consisting of its memories, decoder and refinement rule, incurs the total cost
+where $\hat{x}_t$ is the receiver's decision and $\pi_t$ its prior for position $t$ (Section~\ref{sec:method-receiver}); BLEU-4 \cite{papineni2002} is reported where complete sentences are compared. Cost is measured in real channel symbols per token and comprises three parts: the forward symbols $S_\mathrm{fwd}$ of the payload, the return-link signaling $B_\mathrm{fb}$ of the refinement requests in bits per token, and the synchronization $\bar{B}_\mathrm{sync}$ of the receiver's memories in bits per adaptation step; $B_\mathrm{fb}$ is either of the two signaling costs defined in Section~\ref{sec:method-refinement}. If one adaptation step serves $N$ messages of $\bar{T}$ tokens on average, a receiver policy $\varpi$, consisting of its memories, decoder and refinement rule, incurs the total cost
 \begin{equation}
-S_\mathrm{tot}(\pi;N) = S_\mathrm{fwd}(\pi) + \frac{B_\mathrm{fb}(\pi)}{C(\bar{\gamma})} + \frac{B_\mathrm{sync}(\pi)}{C(\bar{\gamma})\,\bar{T}\,N}
+S_\mathrm{tot}(\varpi;N) = S_\mathrm{fwd}(\varpi) + \frac{B_\mathrm{fb}(\varpi)}{C(\bar{\gamma})} + \frac{\bar{B}_\mathrm{sync}(\varpi)}{C(\bar{\gamma})\,\bar{T}\,N}
 \label{eq:cost}
 \end{equation}
-real channel symbols per token. The design problem is to minimize this cost subject to a target token accuracy $\alpha^\star$,
+real channel symbols per token. The design problem is to minimize this cost subject to a target token accuracy $A^\star$,
 \begin{equation}
-\pi^\star(N) = \argmin_{\pi}\; S_\mathrm{tot}(\pi;N)\qquad\text{subject to}\qquad A(\pi)\ge\alpha^\star .
+\varpi^\star(N) = \argmin_{\varpi}\; S_\mathrm{tot}(\varpi;N)\qquad\text{subject to}\qquad A(\varpi)\ge A^\star .
 \label{eq:problem}
 \end{equation}
-The first two terms of~(\ref{eq:cost}) are measured per message, whereas the third depends on the number of messages served by one update, which is a property of the deployment rather than of the codec. The experiments therefore report $S_\mathrm{fwd}+B_\mathrm{fb}/C(\bar{\gamma})$ at $\alpha^\star = 0.9$ as the primary endpoint and treat the synchronization term as a function of $N$ (Section~\ref{sec:method-cost}).
+The first two terms of~(\ref{eq:cost}) are measured per message, whereas the third depends on the number of messages served by one update, which is a property of the deployment rather than of the codec. The experiments therefore report $S_\mathrm{fwd}+B_\mathrm{fb}/C(\bar{\gamma})$ at $A^\star = 0.9$ as the primary endpoint and treat the synchronization term as a function of $N$ (Section~\ref{sec:method-cost}).
