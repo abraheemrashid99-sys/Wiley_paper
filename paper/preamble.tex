@@ -1,0 +1,48 @@
+% ---------------------------------------------------------------- preamble
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{mathptmx}
+\usepackage[scaled=0.92]{helvet}
+\usepackage[a4paper,margin=25mm]{geometry}
+\usepackage{amsmath,amssymb,bm}
+\usepackage{graphicx}
+\usepackage{booktabs,multirow,makecell,threeparttable,array}
+\usepackage[labelsep=space,font=small,labelfont=bf]{caption}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{xcolor}
+\usepackage{setspace}
+\usepackage{lineno}
+\usepackage{url}
+\usepackage[colorlinks=true,linkcolor=black,citecolor=black,urlcolor=black]{hyperref}
+\usepackage[numbers,sort&compress,super]{natbib}
+
+\setstretch{1.25}
+\setlength{\parskip}{0pt}
+\setlength{\parindent}{1.5em}
+\renewcommand{\figurename}{FIGURE}
+\renewcommand{\tablename}{TABLE}
+\captionsetup[table]{position=top,skip=4pt}
+\captionsetup[figure]{skip=4pt}
+\renewcommand{\thesection}{\arabic{section}}
+\renewcommand{\thesubsection}{\thesection.\arabic{subsection}}
+\makeatletter
+\renewcommand\section{\@startsection{section}{1}{\z@}{-3ex \@plus -1ex \@minus -.2ex}{1.5ex \@plus .2ex}{\normalfont\sffamily\bfseries\MakeUppercase}}
+\renewcommand\subsection{\@startsection{subsection}{2}{\z@}{-2.5ex \@plus -1ex \@minus -.2ex}{1ex \@plus .2ex}{\normalfont\sffamily\bfseries}}
+\renewcommand\subsubsection{\@startsection{subsubsection}{3}{\z@}{-2ex \@plus -1ex \@minus -.2ex}{0.8ex \@plus .2ex}{\normalfont\sffamily\itshape}}
+\renewcommand\@seccntformat[1]{\csname the#1\endcsname\quad}
+\makeatother
+\algrenewcommand\algorithmicrequire{\textbf{Input:}}
+\algrenewcommand\algorithmicensure{\textbf{Output:}}
+\newcommand{\Ell}{\ell}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\vect}[1]{\mathbf{#1}}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator{\softmax}{softmax}
+\DeclareMathOperator{\GELU}{GELU}
+\hyphenation{Tele-QnA}
+\renewcommand{\bibfont}{\small}
+\setlength{\bibsep}{1.5pt plus 0.5pt}
+\renewcommand{\refname}{References}

@@ -116,6 +116,11 @@ Information pattern, stated once: the transmitter knows the text, the
 codebook, the fed-back average SNR and its own working copies. It does not
 know the receiver's noise or decisions; it trains with the *true* earlier
 messages as context and on a channel realisation of its own.
+(Implementation note: unless the codebook itself is adapted, the adaptation
+loss of a step reuses that step's channel realisation. An update reaches the
+receiver only after the step has been decoded and the noise is independent
+across steps, so this is equivalent in distribution to a realisation drawn
+by the transmitter; it is stated in the paper, Section 5.5.)
 
 (`nested.rule: chunk` switches to the literal chunked rule of the continuum
 memory system — gradients accumulated at fixed parameters and applied once
@@ -294,8 +299,8 @@ any shipping period: 23 from version 0.4, 47 in the runs of versions 0.2 and
 0.3) the same received symbols are in addition decoded for real —
 free-running, round by round, with the receiver's own decisions as the
 language-model input and with the configured decoder — at the thresholds
-`stream.live_thresholds` (0.7, 0.9, 0.95 and 0.99 from version 0.4; 0.5, 0.7
-and 0.9 before, which too often stopped short of the target accuracy when
+`stream.live_thresholds` (0.5, 0.7, 0.9, 0.95 and 0.99 from version 0.4; 0.5,
+0.7 and 0.9 before, which too often stopped short of the target accuracy when
 decoding for real), and so is every fixed prefix, with the same decoder,
 because the reference must be audited like the proposal. The emulated and
 the real operating curves on exactly those steps are reported side by side;

@@ -16,7 +16,8 @@
 %   memories alone (fixed rate): 15.5% teacher-forced / 21.2% decoded for real;
 %   refinement on top: a further 9.3% / 8.4%; return-link signalling 1.4 bits per
 %   token over 2.8 rounds per message; shipped adaptation pays only above about
-%   1,000 messages per adaptation step (6,000 relative to the context memory).
+%   1,250 messages per adaptation step relative to the frozen receiver with refinement
+%   (about 6,100 relative to the context memory; four matched seeds; paper/NUMBERS.md).
 %
 % REMOVE from the manuscript every number of the earlier pilot that is not
 % reproduced here, in particular: "47.7 %", "half the channel symbols", "20.9 %",
@@ -157,12 +158,14 @@ and the selective cost at the operating threshold by 0.12 symbols per token
 \label{sec:results-crossover}
 
 Shipping the updates is not free. Charged at channel capacity, the 24.2\,kbit
-per adaptation step pay for themselves against the frozen receiver only when
-one update serves more than about 1{,}100 messages (forward symbols and
-signalling), and against the context memory alone above about 6{,}100. In the
-stream itself an update serves six messages, so for a single link the context
-memory with refinement is the economical configuration. Shipped adaptation pays
-where one update serves a cell or a multicast group.
+per adaptation step pay for themselves (forward symbols and signalling, the
+four seeds shared by all receivers) against the frozen fixed-rate receiver
+when one update serves more than about 400 messages, against the frozen
+receiver with refinement above about 1{,}250, and against the context memory
+with refinement above about 6{,}100. In the stream itself an update serves six
+messages, so for a single link the context memory with refinement is the
+economical configuration. Shipped adaptation pays where one update serves a
+cell or a multicast group.
 
 \subsection{Limitations}
 \label{sec:results-limitations}

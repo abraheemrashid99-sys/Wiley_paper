@@ -653,8 +653,13 @@ charged at its entropy:
 - Shipped adaptation over the context memory: −0.37 bits per token of prior
   and −0.12 symbols per token at the operating threshold (per-step intervals
   exclude zero; four seeds, p = 0.125). Its synchronisation (24.2 kbit per
-  adaptation step) pays only above about 1,100 messages per step against the
-  frozen receiver and 6,100 against the context memory.
+  adaptation step) pays only above about 400 messages per step against the
+  frozen fixed-rate receiver, 1,250 against the frozen receiver with
+  refinement and 6,100 against the context memory with refinement (four
+  seeds shared by all receivers, signalling included; `paper/NUMBERS.md`,
+  `link.crossover_*`). An earlier version of this line gave "about 1,100"
+  against the frozen receiver, read on six seeds instead of the four shared
+  ones.
 - Limits: Holm over the three receivers gives 0.094; `context_only` has four
   seeds; the frozen receiver's gap sits at the 5 % limit; the temporal stream
   was not repeated with this decoder; two machines (same code and codebook).

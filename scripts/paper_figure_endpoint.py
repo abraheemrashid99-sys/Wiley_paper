@@ -86,7 +86,7 @@ def main() -> None:
     ax.set_axisbelow(True)
     for side in ("top", "right", "left"):
         ax.spines[side].set_visible(False)
-    real_handle = ax.plot([], [], "o-", color=REAL, ms=7, mec="white", mew=1.5, lw=2, label="decoded for real, with 95 % interval (156 audited steps)")[0]
+    real_handle = ax.plot([], [], "o-", color=REAL, ms=7, mec="white", mew=1.5, lw=2, label="decoded for real on the audited steps, 95 % interval")[0]
     tf_handle = ax.plot([], [], "D", ms=6, mfc="white", mec=EMULATED, mew=1.8, label="teacher-forced, all 600 steps")[0]
     ax.legend(handles=[real_handle, tf_handle], loc="lower center", bbox_to_anchor=(0.4, 1.0), ncol=2, frameon=False, fontsize=7.5)
     fig.tight_layout()

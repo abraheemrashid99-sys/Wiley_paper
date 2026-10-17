@@ -1,0 +1,1042 @@
+{
+ "values": {
+  "real.frozen.seeds": 6,
+  "real.frozen.steps": 156,
+  "real.frozen.fixed": 10.366,
+  "real.frozen.sel_entropy": 8.363,
+  "real.frozen.sel_bitmap": 8.426,
+  "real.frozen.vs_ref": [
+   -19.3,
+   -21.4,
+   -15.6
+  ],
+  "real.frozen.vs_own": [
+   -19.3,
+   -21.4,
+   -15.6
+  ],
+  "real.frozen.vs_ref_bitmap": [
+   -18.7,
+   -21.0,
+   -14.5
+  ],
+  "real.frozen.p": "0.0312",
+  "real.frozen.p_holm": "0.0938",
+  "real.frozen.per_seed": [
+   -17.8,
+   -19.9,
+   -17.9,
+   -3.6,
+   -22.1,
+   -21.1
+  ],
+  "real.context_only.seeds": 4,
+  "real.context_only.steps": 104,
+  "real.context_only.fixed": 9.052,
+  "real.context_only.sel_entropy": 7.547,
+  "real.context_only.sel_bitmap": 7.703,
+  "real.context_only.vs_ref": [
+   -25.4,
+   -29.0,
+   -15.6
+  ],
+  "real.context_only.vs_own": [
+   -16.6,
+   -23.2,
+   -5.0
+  ],
+  "real.context_only.vs_ref_bitmap": [
+   -23.9,
+   -27.9,
+   -13.2
+  ],
+  "real.context_only.fixed_vs_ref": [
+   -10.6,
+   -16.1,
+   -5.3
+  ],
+  "real.context_only.p": "0.1250",
+  "real.context_only.p_holm": "0.1250",
+  "real.context_only.per_seed": [
+   -26.8,
+   -7.5,
+   -26.1,
+   -26.8
+  ],
+  "real.nested.seeds": 6,
+  "real.nested.steps": 156,
+  "real.nested.fixed": 8.168,
+  "real.nested.sel_entropy": 7.478,
+  "real.nested.sel_bitmap": 7.644,
+  "real.nested.vs_ref": [
+   -27.9,
+   -31.7,
+   -21.6
+  ],
+  "real.nested.vs_own": [
+   -8.4,
+   -18.3,
+   -3.9
+  ],
+  "real.nested.vs_ref_bitmap": [
+   -26.3,
+   -30.3,
+   -19.5
+  ],
+  "real.nested.fixed_vs_ref": [
+   -21.2,
+   -23.9,
+   -14.9
+  ],
+  "real.nested.p": "0.0312",
+  "real.nested.p_holm": "0.0938",
+  "real.nested.per_seed": [
+   -27.9,
+   -30.4,
+   -28.9,
+   -9.1,
+   -29.2,
+   -31.2
+  ],
+  "emulation_gap.frozen": "+5.0%",
+  "emulation_gap.context_only": "+3.4%",
+  "emulation_gap.nested": "+3.6%",
+  "tf.frozen.fixed": 9.227,
+  "tf.frozen.sel_forward": 7.143,
+  "tf.frozen.sel_entropy": 7.805,
+  "tf.frozen.sel_bitmap": 7.941,
+  "tf.frozen.fb_entropy_bits": 1.622,
+  "tf.frozen.fb_bitmap_bits": 1.687,
+  "tf.frozen.rounds": 3.07,
+  "tf.context_only.fixed": 8.044,
+  "tf.context_only.sel_forward": 6.696,
+  "tf.context_only.sel_entropy": 7.178,
+  "tf.context_only.sel_bitmap": 7.41,
+  "tf.context_only.fb_entropy_bits": 1.403,
+  "tf.context_only.fb_bitmap_bits": 1.525,
+  "tf.context_only.rounds": 2.81,
+  "tf.nested.fixed": 7.797,
+  "tf.nested.sel_forward": 6.618,
+  "tf.nested.sel_entropy": 7.075,
+  "tf.nested.sel_bitmap": 7.32,
+  "tf.nested.fb_entropy_bits": 1.394,
+  "tf.nested.fb_bitmap_bits": 1.518,
+  "tf.nested.rounds": 2.84,
+  "tf.frozen.prior_bits": "6.7941 \u00b1 0.0389",
+  "tf.frozen.sync_kbit_per_step": 0.0,
+  "tf.frozen.ece": "0.0068 \u00b1 0.0020",
+  "tf.frozen.dprior_vs_nested": [
+   1.5624,
+   1.4107,
+   1.7225
+  ],
+  "tf.frozen.dsel_vs_nested": [
+   0.5652,
+   0.4884,
+   0.6501
+  ],
+  "tf.frozen.p_prior": "0.0312",
+  "tf.context_only.prior_bits": "5.6092 \u00b1 0.0207",
+  "tf.context_only.sync_kbit_per_step": 0.0,
+  "tf.context_only.ece": "0.0047 \u00b1 0.0012",
+  "tf.context_only.dprior_vs_nested": [
+   0.368,
+   0.3248,
+   0.4117
+  ],
+  "tf.context_only.dsel_vs_nested": [
+   0.1214,
+   0.0958,
+   0.1504
+  ],
+  "tf.context_only.p_prior": "0.1250",
+  "tf.nested.prior_bits": "5.2317 \u00b1 0.0178",
+  "tf.nested.sync_kbit_per_step": 24.23,
+  "tf.nested.ece": "0.0032 \u00b1 0.0009",
+  "tf.frozen.seeds": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5
+  ],
+  "tf.frozen.ref_fixed_same_seeds": 9.227183076284275,
+  "tf.frozen.fixed_vs_ref_pct": 0.0,
+  "tf.frozen.sel_forward_vs_ref_pct": -22.588479708725618,
+  "tf.frozen.sel_entropy_vs_ref_pct": -15.417968467148647,
+  "tf.frozen.sel_bitmap_vs_ref_pct": -13.942095853520875,
+  "tf.frozen.refine_adds_pct": -15.417968467148647,
+  "tf.frozen.per_seed_saving_pct": [
+   -14.901176035534725,
+   -17.161578285571245,
+   -16.899665492228543,
+   -6.932558730667171,
+   -14.211728506350862,
+   -20.021430855749035
+  ],
+  "tf.frozen.tokens_per_message": 17.992962962962963,
+  "tf.context_only.seeds": [
+   0,
+   3,
+   4,
+   5
+  ],
+  "tf.context_only.ref_fixed_same_seeds": 8.950179546843792,
+  "tf.context_only.fixed_vs_ref_pct": -10.119691178923008,
+  "tf.context_only.sel_forward_vs_ref_pct": -25.18249743607547,
+  "tf.context_only.sel_entropy_vs_ref_pct": -19.79850439209746,
+  "tf.context_only.sel_bitmap_vs_ref_pct": -17.208555629568046,
+  "tf.context_only.refine_adds_pct": -10.768558030259868,
+  "tf.context_only.per_seed_saving_pct": [
+   -21.880224227120713,
+   -9.634809750391792,
+   -18.96611096042268,
+   -26.062903416739424
+  ],
+  "tf.context_only.tokens_per_message": 17.95076388888889,
+  "tf.nested.seeds": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5
+  ],
+  "tf.nested.ref_fixed_same_seeds": 9.227183076284275,
+  "tf.nested.fixed_vs_ref_pct": -15.50160659067802,
+  "tf.nested.sel_forward_vs_ref_pct": -28.279347722716963,
+  "tf.nested.sel_entropy_vs_ref_pct": -23.320049474616322,
+  "tf.nested.sel_bitmap_vs_ref_pct": -20.670685337602823,
+  "tf.nested.refine_adds_pct": -9.252771051000552,
+  "tf.nested.per_seed_saving_pct": [
+   -23.007252807489575,
+   -26.135728714446017,
+   -28.152653045702603,
+   -10.526201417305659,
+   -19.96314787971547,
+   -28.504364877842846
+  ],
+  "tf.nested.tokens_per_message": 17.935092592592593,
+  "tf.nested.unseen_saving_pct": -20.615270961445553,
+  "decoder.decision": {
+   "stage1_winner": "beam1_start2_closed",
+   "chosen": "beam4_start2_closed",
+   "beam": 4,
+   "start_m": 6,
+   "reopen": false,
+   "criterion": 8.306157446225143,
+   "fixed_same_beam": 9.048571428571428,
+   "fixed_greedy": 10.994444444444447,
+   "baseline_v03": 8.970677864049767
+  },
+  "decoder.n_messages": 96,
+  "decoder.n_tokens": 1633,
+  "decoder.snr_mean": 9.764044299917328,
+  "decoder.beam1_start0_closed": {
+   "forward": 7.526638089406002,
+   "total_entropy": 8.970677864049767,
+   "total_bitmap": 9.441883464841958,
+   "fixed": 10.994444444444447
+  },
+  "decoder.beam1_start0_reopen": {
+   "forward": 7.485609308022045,
+   "total_entropy": 9.93720938238236,
+   "total_bitmap": 10.5408811403838,
+   "fixed": 10.994444444444447
+  },
+  "decoder.beam1_start1_closed": {
+   "forward": 7.395387887968544,
+   "total_entropy": 8.651769101251658,
+   "total_bitmap": 8.740009816495208,
+   "fixed": 10.994444444444447
+  },
+  "decoder.beam1_start1_reopen": {
+   "forward": 7.68156766687079,
+   "total_entropy": 9.640106456030683,
+   "total_bitmap": 10.060289734268082,
+   "fixed": 10.994444444444447
+  },
+  "decoder.beam1_start2_closed": {
+   "forward": 7.835884874464177,
+   "total_entropy": 8.729908006399457,
+   "total_bitmap": 8.758484920250357,
+   "fixed": 10.994444444444447
+  },
+  "decoder.beam1_start2_reopen": {
+   "forward": 8.2106552357624,
+   "total_entropy": 9.533429845677972,
+   "total_bitmap": 9.947522397936996,
+   "fixed": 10.994444444444447
+  },
+  "decoder.beam2_start2_closed": {
+   "forward": 7.737905695039804,
+   "total_entropy": 8.602581584100125,
+   "total_bitmap": 8.637493844058485,
+   "fixed": 10.043781094527363
+  },
+  "decoder.beam4_start2_closed": {
+   "forward": 7.491733006736069,
+   "total_entropy": 8.306157446225143,
+   "total_bitmap": 8.357334354375059,
+   "fixed": 9.048571428571428
+  },
+  "pilot.context_only": {
+   "seeds": 3,
+   "prior_bits": "5.6284 \u00b1 0.0227",
+   "sync_kbit_per_step": 0.0,
+   "dprior_vs_nested_95": "+0.3725 [+0.3221, +0.4198]*",
+   "equivalent_prior": "no",
+   "dprior_vs_nested_90": "+0.3725 [+0.3302, +0.4123]"
+  },
+  "pilot.ewc": {
+   "seeds": 1,
+   "prior_bits": "5.4135 \u00b1 0.0000",
+   "sync_kbit_per_step": 23.73,
+   "dprior_vs_nested_95": "+0.1229 [+0.0730, +0.1825]*",
+   "equivalent_prior": "no",
+   "dprior_vs_nested_90": "+0.1229 [+0.0811, +0.1708]"
+  },
+  "pilot.frozen": {
+   "seeds": 3,
+   "prior_bits": "6.7934 \u00b1 0.0438",
+   "sync_kbit_per_step": 0.0,
+   "dprior_vs_nested_95": "+1.5375 [+1.3149, +1.7597]*",
+   "equivalent_prior": "no",
+   "dprior_vs_nested_90": "+1.5375 [+1.3514, +1.7233]"
+  },
+  "pilot.full_online": {
+   "seeds": 3,
+   "prior_bits": "5.2499 \u00b1 0.0308",
+   "sync_kbit_per_step": 1185.8,
+   "dprior_vs_nested_95": "-0.0061 [-0.0311, +0.0199]",
+   "equivalent_prior": "yes",
+   "dprior_vs_nested_90": "-0.0061 [-0.0276, +0.0151]"
+  },
+  "pilot.nested": {
+   "seeds": 3,
+   "prior_bits": "5.2559 \u00b1 0.0307",
+   "sync_kbit_per_step": 24.23,
+   "dprior_vs_nested_95": "-",
+   "equivalent_prior": "-",
+   "dprior_vs_nested_90": "-"
+  },
+  "pilot.nested_no_context": {
+   "seeds": 1,
+   "prior_bits": "6.4351 \u00b1 0.0000",
+   "sync_kbit_per_step": 24.23,
+   "dprior_vs_nested_95": "+1.1445 [+0.8287, +1.4435]*",
+   "equivalent_prior": "no",
+   "dprior_vs_nested_90": "+1.1445 [+0.8867, +1.4008]"
+  },
+  "pilot.nested_no_slots": {
+   "seeds": 3,
+   "prior_bits": "5.3522 \u00b1 0.0239",
+   "sync_kbit_per_step": 24.23,
+   "dprior_vs_nested_95": "+0.0963 [+0.0640, +0.1345]*",
+   "equivalent_prior": "no",
+   "dprior_vs_nested_90": "+0.0963 [+0.0677, +0.1294]"
+  },
+  "pilot.nested_two_level": {
+   "seeds": 1,
+   "prior_bits": "5.3122 \u00b1 0.0000",
+   "sync_kbit_per_step": 29.63,
+   "dprior_vs_nested_95": "+0.0216 [+0.0129, +0.0315]*",
+   "equivalent_prior": "yes",
+   "dprior_vs_nested_90": "+0.0216 [+0.0143, +0.0296]"
+  },
+  "pilot.single_rate": {
+   "seeds": 3,
+   "prior_bits": "5.3626 \u00b1 0.0237",
+   "sync_kbit_per_step": 23.73,
+   "dprior_vs_nested_95": "+0.1067 [+0.0760, +0.1429]*",
+   "equivalent_prior": "no",
+   "dprior_vs_nested_90": "+0.1067 [+0.0803, +0.1372]"
+  },
+  "base.gen_tok_acc_awgn": {
+   "llm@2": {
+    "0": 0.0204,
+    "10": 0.1104,
+    "20": 0.4547
+   },
+   "llm@4": {
+    "0": 0.0383,
+    "10": 0.4633,
+    "20": 0.9639
+   },
+   "llm@6": {
+    "0": 0.0684,
+    "10": 0.857,
+    "20": 0.9993
+   },
+   "llm@8": {
+    "0": 0.119,
+    "10": 0.9706,
+    "20": 1.0
+   },
+   "llm@12": {
+    "0": 0.2642,
+    "10": 0.9995,
+    "20": 1.0
+   },
+   "llm@16": {
+    "0": 0.517,
+    "10": 1.0,
+    "20": 1.0
+   },
+   "llm_ctx@2": {
+    "0": 0.0381,
+    "10": 0.1474,
+    "20": 0.5456
+   },
+   "llm_ctx@4": {
+    "0": 0.0613,
+    "10": 0.551,
+    "20": 0.9737
+   },
+   "llm_ctx@6": {
+    "0": 0.0984,
+    "10": 0.893,
+    "20": 0.9995
+   },
+   "llm_ctx@8": {
+    "0": 0.1491,
+    "10": 0.9818,
+    "20": 1.0
+   },
+   "llm_ctx@12": {
+    "0": 0.3587,
+    "10": 0.9995,
+    "20": 1.0
+   },
+   "llm_ctx@16": {
+    "0": 0.6012,
+    "10": 1.0,
+    "20": 1.0
+   },
+   "none@2": {
+    "0": 0.0304,
+    "10": 0.1271,
+    "20": 0.3777
+   },
+   "none@4": {
+    "0": 0.0442,
+    "10": 0.3728,
+    "20": 0.8823
+   },
+   "none@6": {
+    "0": 0.0581,
+    "10": 0.7032,
+    "20": 0.9985
+   },
+   "none@8": {
+    "0": 0.0935,
+    "10": 0.9119,
+    "20": 1.0
+   },
+   "none@12": {
+    "0": 0.1835,
+    "10": 0.998,
+    "20": 1.0
+   },
+   "none@16": {
+    "0": 0.337,
+    "10": 1.0,
+    "20": 1.0
+   },
+   "unigram@2": {
+    "0": 0.0611,
+    "10": 0.1378,
+    "20": 0.3863
+   },
+   "unigram@4": {
+    "0": 0.0957,
+    "10": 0.4081,
+    "20": 0.8899
+   },
+   "unigram@6": {
+    "0": 0.1327,
+    "10": 0.7366,
+    "20": 0.9993
+   },
+   "unigram@8": {
+    "0": 0.196,
+    "10": 0.9291,
+    "20": 1.0
+   },
+   "unigram@12": {
+    "0": 0.3436,
+    "10": 0.9985,
+    "20": 1.0
+   },
+   "unigram@16": {
+    "0": 0.5296,
+    "10": 0.9998,
+    "20": 1.0
+   }
+  },
+  "base.bleu4": {
+   "awgn:llm@2": {
+    "0": 0.0,
+    "10": 0.0027,
+    "20": 0.1414
+   },
+   "awgn:llm@4": {
+    "0": 0.0008,
+    "10": 0.1839,
+    "20": 0.9215
+   },
+   "awgn:llm@6": {
+    "0": 0.0009,
+    "10": 0.7059,
+    "20": 0.9979
+   },
+   "awgn:llm@8": {
+    "0": 0.0092,
+    "10": 0.9273,
+    "20": 1.0
+   },
+   "awgn:llm@12": {
+    "0": 0.0637,
+    "10": 0.999,
+    "20": 1.0
+   },
+   "awgn:llm@16": {
+    "0": 0.2461,
+    "10": 1.0,
+    "20": 1.0
+   },
+   "awgn:llm_ctx@2": {
+    "0": 0.0018,
+    "10": 0.015,
+    "20": 0.2651
+   },
+   "awgn:llm_ctx@4": {
+    "0": 0.0067,
+    "10": 0.3103,
+    "20": 0.9426
+   },
+   "awgn:llm_ctx@6": {
+    "0": 0.0146,
+    "10": 0.7819,
+    "20": 0.999
+   },
+   "awgn:llm_ctx@8": {
+    "0": 0.0239,
+    "10": 0.9607,
+    "20": 1.0
+   },
+   "awgn:llm_ctx@12": {
+    "0": 0.1429,
+    "10": 0.999,
+    "20": 1.0
+   },
+   "awgn:llm_ctx@16": {
+    "0": 0.3637,
+    "10": 1.0,
+    "20": 1.0
+   },
+   "awgn:none@2": {
+    "0": 0.0,
+    "10": 0.0,
+    "20": 0.021
+   },
+   "awgn:none@4": {
+    "0": 0.0,
+    "10": 0.0354,
+    "20": 0.7331
+   },
+   "awgn:none@6": {
+    "0": 0.0,
+    "10": 0.3813,
+    "20": 0.9958
+   },
+   "awgn:none@8": {
+    "0": 0.0,
+    "10": 0.7672,
+    "20": 1.0
+   },
+   "awgn:none@12": {
+    "0": 0.0012,
+    "10": 0.9946,
+    "20": 1.0
+   },
+   "awgn:none@16": {
+    "0": 0.0211,
+    "10": 1.0,
+    "20": 1.0
+   },
+   "awgn:unigram@2": {
+    "0": 0.0,
+    "10": 0.0,
+    "20": 0.0181
+   },
+   "awgn:unigram@4": {
+    "0": 0.0,
+    "10": 0.0506,
+    "20": 0.7487
+   },
+   "awgn:unigram@6": {
+    "0": 0.0,
+    "10": 0.4261,
+    "20": 0.9979
+   },
+   "awgn:unigram@8": {
+    "0": 0.0037,
+    "10": 0.8152,
+    "20": 1.0
+   },
+   "awgn:unigram@12": {
+    "0": 0.0291,
+    "10": 0.9971,
+    "20": 1.0
+   },
+   "awgn:unigram@16": {
+    "0": 0.1328,
+    "10": 0.9995,
+    "20": 1.0
+   },
+   "rayleigh:llm@2": {
+    "0": 0.0,
+    "10": 0.0069,
+    "20": 0.1094
+   },
+   "rayleigh:llm@4": {
+    "0": 0.0013,
+    "10": 0.1734,
+    "20": 0.7592
+   },
+   "rayleigh:llm@6": {
+    "0": 0.0154,
+    "10": 0.4547,
+    "20": 0.9287
+   },
+   "rayleigh:llm@8": {
+    "0": 0.0479,
+    "10": 0.6528,
+    "20": 0.9727
+   },
+   "rayleigh:llm@12": {
+    "0": 0.1834,
+    "10": 0.8228,
+    "20": 0.9894
+   },
+   "rayleigh:llm@16": {
+    "0": 0.2967,
+    "10": 0.9057,
+    "20": 0.9954
+   },
+   "rayleigh:llm_ctx@2": {
+    "0": 0.0029,
+    "10": 0.0322,
+    "20": 0.196
+   },
+   "rayleigh:llm_ctx@4": {
+    "0": 0.0083,
+    "10": 0.2534,
+    "20": 0.8028
+   },
+   "rayleigh:llm_ctx@6": {
+    "0": 0.0409,
+    "10": 0.5198,
+    "20": 0.9488
+   },
+   "rayleigh:llm_ctx@8": {
+    "0": 0.0881,
+    "10": 0.6921,
+    "20": 0.9761
+   },
+   "rayleigh:llm_ctx@12": {
+    "0": 0.229,
+    "10": 0.8489,
+    "20": 0.9897
+   },
+   "rayleigh:llm_ctx@16": {
+    "0": 0.3387,
+    "10": 0.921,
+    "20": 0.9968
+   },
+   "rayleigh:none@2": {
+    "0": 0.0,
+    "10": 0.0007,
+    "20": 0.0265
+   },
+   "rayleigh:none@4": {
+    "0": 0.0,
+    "10": 0.0706,
+    "20": 0.5619
+   },
+   "rayleigh:none@6": {
+    "0": 0.0018,
+    "10": 0.2894,
+    "20": 0.886
+   },
+   "rayleigh:none@8": {
+    "0": 0.0066,
+    "10": 0.4879,
+    "20": 0.9538
+   },
+   "rayleigh:none@12": {
+    "0": 0.0805,
+    "10": 0.7425,
+    "20": 0.9805
+   },
+   "rayleigh:none@16": {
+    "0": 0.1715,
+    "10": 0.8257,
+    "20": 0.9844
+   },
+   "rayleigh:unigram@2": {
+    "0": 0.0,
+    "10": 0.0011,
+    "20": 0.0236
+   },
+   "rayleigh:unigram@4": {
+    "0": 0.0,
+    "10": 0.0814,
+    "20": 0.5646
+   },
+   "rayleigh:unigram@6": {
+    "0": 0.0009,
+    "10": 0.315,
+    "20": 0.8869
+   },
+   "rayleigh:unigram@8": {
+    "0": 0.0236,
+    "10": 0.5432,
+    "20": 0.9594
+   },
+   "rayleigh:unigram@12": {
+    "0": 0.1218,
+    "10": 0.7649,
+    "20": 0.9804
+   },
+   "rayleigh:unigram@16": {
+    "0": 0.2304,
+    "10": 0.8537,
+    "20": 0.9877
+   }
+  },
+  "codebook.channel_only_acc_10dB": {
+   "step": 2000,
+   "2": 0.11849999976158142,
+   "4": 0.36100000071525573,
+   "6": 0.660499997138977,
+   "8": 0.8885000023841858,
+   "12": 0.9969999980926514,
+   "16": 1.0
+  },
+  "codebook.train_seconds": 2193.9400368670013,
+  "codebook.fixed8_channel_only_acc_10dB": 0.8889999980926514,
+  "base.separation_lm_fbl_awgn": {
+   "2": {
+    "0": 0.0,
+    "10": 0.0,
+    "20": 0.465
+   },
+   "4": {
+    "0": 0.0,
+    "10": 0.42,
+    "20": 1.0
+   },
+   "6": {
+    "0": 0.0,
+    "10": 0.965,
+    "20": 1.0
+   },
+   "8": {
+    "0": 0.0,
+    "10": 1.0,
+    "20": 1.0
+   },
+   "12": {
+    "0": 0.025,
+    "10": 1.0,
+    "20": 1.0
+   },
+   "16": {
+    "0": 0.49,
+    "10": 1.0,
+    "20": 1.0
+   }
+  },
+  "compute.t4": {
+   "device": "cuda (1 CPU threads)",
+   "receiver, forward only (stream step, it/s)": "56.99",
+   "transmitter, bias adaptation (stream step, it/s)": "53.32",
+   "transmitter, bias + LoRA adaptation (stream step, it/s)": "22.98",
+   "codebook training (it/s)": "26.01",
+   "parameters: frozen backbone": "124,439,808",
+   "parameters: codebook (trained once)": "213,248",
+   "parameters: medium memory (fusion weights and logit bias)": "771",
+   "parameters: slow memory (one LoRA slot)": "147,456",
+   "peak resident memory of the benchmark process (MB)": "1633",
+   "decode latency, one message of 19 tokens, prior 'llm', m=2 (ms)": "198.8",
+   "decode latency, one message of 19 tokens, prior 'llm', m=4 (ms)": "193.1",
+   "decode latency, one message of 19 tokens, prior 'llm', m=6 (ms)": "197.8",
+   "decode latency, one message of 19 tokens, prior 'llm', m=8 (ms)": "193.9",
+   "decode latency, one message of 19 tokens, prior 'llm', m=12 (ms)": "197.8",
+   "decode latency, one message of 19 tokens, prior 'llm', m=16 (ms)": "195.0",
+   "decode latency, one message of 19 tokens, prior 'none', m=2 (ms)": "3.4",
+   "decode latency, one message of 19 tokens, prior 'none', m=4 (ms)": "3.4",
+   "decode latency, one message of 19 tokens, prior 'none', m=6 (ms)": "3.4",
+   "decode latency, one message of 19 tokens, prior 'none', m=8 (ms)": "3.5",
+   "decode latency, one message of 19 tokens, prior 'none', m=12 (ms)": "3.7",
+   "decode latency, one message of 19 tokens, prior 'none', m=16 (ms)": "3.7"
+  },
+  "real.frozen.unseen_vs_ref_pct": [
+   -19.467342018957435,
+   -24.074523617760978,
+   -6.199258000154028
+  ],
+  "real.nested.unseen_vs_ref_pct": [
+   -25.88624331440895,
+   -33.24452726039651,
+   -10.955919560166617
+  ],
+  "link.capacity_10dB_bits_per_real_symbol": 1.7297158093186487,
+  "link.crossover_seeds": [
+   0,
+   3,
+   4,
+   5
+  ],
+  "link.sync_bits_per_step": 24226.54,
+  "link.crossover_vs_frozen": {
+   "N_star": 1253.0328013762114,
+   "asymptote_pct": -8.115380228126579,
+   "payload_ref": 137.73532114602412,
+   "payload_dnsc": 126.55757612659303
+  },
+  "link.crossover_vs_context_only": {
+   "N_star": 6131.736233001205,
+   "asymptote_pct": -1.7728683528747902,
+   "payload_ref": 128.84177111191963,
+   "payload_dnsc": 126.55757612659303
+  },
+  "link.crossover_vs_frozen_fixed": {
+   "N_star": 404.9053180204097,
+   "asymptote_pct": -21.46528585681189,
+   "payload_ref": 161.14857933505357,
+   "payload_dnsc": 126.55757612659303
+  },
+  "tf.prior_bits_matched_seeds": {
+   "frozen": 6.806890298646106,
+   "context_only": 5.60916331322624,
+   "nested": 5.241211030163049
+  },
+  "tf.context_share_of_prior_gain_matched_pct": 76.49887237635267,
+  "link.levels": [
+   {
+    "name": "rx_bias",
+    "side": "rx",
+    "period": 10,
+    "lr": 0.001,
+    "ema": false,
+    "n_params": 771,
+    "bits_per_update": 6296
+   },
+   {
+    "name": "rx_lora",
+    "side": "rx",
+    "period": 50,
+    "lr": 0.0005,
+    "ema": false,
+    "n_params": 147456,
+    "bits_per_update": 1180032
+   },
+   {
+    "name": "rx_lora#1",
+    "side": "rx",
+    "period": 50,
+    "lr": 0.0005,
+    "ema": false,
+    "n_params": 147456,
+    "bits_per_update": 1180032
+   }
+  ],
+  "link.slot_switches_mean": 3.3333333333333335,
+  "runtime.hours": {
+   "context_only_s0": 1.09,
+   "context_only_s3": 5.95,
+   "context_only_s4": 6.33,
+   "context_only_s5": 5.3,
+   "frozen_s0": 0.99,
+   "frozen_s1": 1.11,
+   "frozen_s2": 1.03,
+   "frozen_s3": 6.3,
+   "frozen_s4": 6.08,
+   "frozen_s5": 4.84,
+   "nested_s0": 1.45,
+   "nested_s1": 1.63,
+   "nested_s2": 1.56,
+   "nested_s3": 8.64,
+   "nested_s4": 9.53,
+   "nested_s5": 8.84
+  },
+  "runtime.platform": {
+   "context_only_s0": "Linux-6.18.44-fc-v11 / 1 threads",
+   "context_only_s3": "Windows-11-10.0.2620 / 2 threads",
+   "context_only_s4": "Windows-11-10.0.2620 / 2 threads",
+   "context_only_s5": "Windows-11-10.0.2620 / 2 threads",
+   "frozen_s0": "Linux-6.18.44-fc-v11 / 1 threads",
+   "frozen_s1": "Linux-6.18.44-fc-v13 / 1 threads",
+   "frozen_s2": "Linux-6.18.44-fc-v13 / 1 threads",
+   "frozen_s3": "Windows-11-10.0.2620 / 2 threads",
+   "frozen_s4": "Windows-11-10.0.2620 / 2 threads",
+   "frozen_s5": "Windows-11-10.0.2620 / 2 threads",
+   "nested_s0": "Linux-6.18.44-fc-v11 / 1 threads",
+   "nested_s1": "Linux-6.18.44-fc-v13 / 1 threads",
+   "nested_s2": "Linux-6.18.44-fc-v13 / 1 threads",
+   "nested_s3": "Windows-11-10.0.2620 / 2 threads",
+   "nested_s4": "Windows-11-10.0.2620 / 2 threads",
+   "nested_s5": "Windows-11-10.0.2620 / 2 threads"
+  }
+ },
+ "sources": {
+  "real.frozen.seeds": "results/gpt2_v0.4_six_seeds/tables/realdecode_hier.csv",
+  "real.frozen.steps": "results/gpt2_v0.4_six_seeds/tables/realdecode_hier.csv",
+  "real.frozen.fixed": "results/gpt2_v0.4_six_seeds/tables/realdecode_hier.csv",
+  "real.frozen.sel_entropy": "results/gpt2_v0.4_six_seeds/tables/realdecode_hier.csv",
+  "real.frozen.sel_bitmap": "results/gpt2_v0.4_six_seeds/tables/realdecode_hier.csv",
+  "real.frozen.vs_ref": "results/gpt2_v0.4_six_seeds/tables/realdecode_hier.csv",
+  "real.frozen.vs_own": "results/gpt2_v0.4_six_seeds/tables/realdecode_hier.csv",
+  "real.frozen.vs_ref_bitmap": "results/gpt2_v0.4_six_seeds/tables/realdecode_hier.csv",
+  "real.frozen.p": "results/gpt2_v0.4_six_seeds/tables/realdecode_hier.csv",
+  "real.frozen.p_holm": "results/gpt2_v0.4_six_seeds/tables/realdecode_hier.csv",
+  "real.frozen.per_seed": "results/gpt2_v0.4_six_seeds/tables/realdecode_hier.csv",
+  "real.context_only.seeds": "results/gpt2_v0.4_six_seeds/tables/realdecode_hier.csv",
+  "real.context_only.steps": "results/gpt2_v0.4_six_seeds/tables/realdecode_hier.csv",
+  "real.context_only.fixed": "results/gpt2_v0.4_six_seeds/tables/realdecode_hier.csv",
+  "real.context_only.sel_entropy": "results/gpt2_v0.4_six_seeds/tables/realdecode_hier.csv",
+  "real.context_only.sel_bitmap": "results/gpt2_v0.4_six_seeds/tables/realdecode_hier.csv",
+  "real.context_only.vs_ref": "results/gpt2_v0.4_six_seeds/tables/realdecode_hier.csv",
+  "real.context_only.vs_own": "results/gpt2_v0.4_six_seeds/tables/realdecode_hier.csv",
+  "real.context_only.vs_ref_bitmap": "results/gpt2_v0.4_six_seeds/tables/realdecode_hier.csv",
+  "real.context_only.fixed_vs_ref": "results/gpt2_v0.4_six_seeds/tables/realdecode_hier.csv",
+  "real.context_only.p": "results/gpt2_v0.4_six_seeds/tables/realdecode_hier.csv",
+  "real.context_only.p_holm": "results/gpt2_v0.4_six_seeds/tables/realdecode_hier.csv",
+  "real.context_only.per_seed": "results/gpt2_v0.4_six_seeds/tables/realdecode_hier.csv",
+  "real.nested.seeds": "results/gpt2_v0.4_six_seeds/tables/realdecode_hier.csv",
+  "real.nested.steps": "results/gpt2_v0.4_six_seeds/tables/realdecode_hier.csv",
+  "real.nested.fixed": "results/gpt2_v0.4_six_seeds/tables/realdecode_hier.csv",
+  "real.nested.sel_entropy": "results/gpt2_v0.4_six_seeds/tables/realdecode_hier.csv",
+  "real.nested.sel_bitmap": "results/gpt2_v0.4_six_seeds/tables/realdecode_hier.csv",
+  "real.nested.vs_ref": "results/gpt2_v0.4_six_seeds/tables/realdecode_hier.csv",
+  "real.nested.vs_own": "results/gpt2_v0.4_six_seeds/tables/realdecode_hier.csv",
+  "real.nested.vs_ref_bitmap": "results/gpt2_v0.4_six_seeds/tables/realdecode_hier.csv",
+  "real.nested.fixed_vs_ref": "results/gpt2_v0.4_six_seeds/tables/realdecode_hier.csv",
+  "real.nested.p": "results/gpt2_v0.4_six_seeds/tables/realdecode_hier.csv",
+  "real.nested.p_holm": "results/gpt2_v0.4_six_seeds/tables/realdecode_hier.csv",
+  "real.nested.per_seed": "results/gpt2_v0.4_six_seeds/tables/realdecode_hier.csv",
+  "emulation_gap.frozen": "results/gpt2_v0.4_six_seeds/tables/emulation_check_hier.csv",
+  "emulation_gap.context_only": "results/gpt2_v0.4_six_seeds/tables/emulation_check_hier.csv",
+  "emulation_gap.nested": "results/gpt2_v0.4_six_seeds/tables/emulation_check_hier.csv",
+  "tf.frozen.fixed": "results/gpt2_v0.4_six_seeds/tables/refine_cost_hier.csv",
+  "tf.frozen.sel_forward": "results/gpt2_v0.4_six_seeds/tables/refine_cost_hier.csv",
+  "tf.frozen.sel_entropy": "results/gpt2_v0.4_six_seeds/tables/refine_cost_hier.csv",
+  "tf.frozen.sel_bitmap": "results/gpt2_v0.4_six_seeds/tables/refine_cost_hier.csv",
+  "tf.frozen.fb_entropy_bits": "results/gpt2_v0.4_six_seeds/tables/refine_cost_hier.csv",
+  "tf.frozen.fb_bitmap_bits": "results/gpt2_v0.4_six_seeds/tables/refine_cost_hier.csv",
+  "tf.frozen.rounds": "results/gpt2_v0.4_six_seeds/tables/refine_cost_hier.csv",
+  "tf.context_only.fixed": "results/gpt2_v0.4_six_seeds/tables/refine_cost_hier.csv",
+  "tf.context_only.sel_forward": "results/gpt2_v0.4_six_seeds/tables/refine_cost_hier.csv",
+  "tf.context_only.sel_entropy": "results/gpt2_v0.4_six_seeds/tables/refine_cost_hier.csv",
+  "tf.context_only.sel_bitmap": "results/gpt2_v0.4_six_seeds/tables/refine_cost_hier.csv",
+  "tf.context_only.fb_entropy_bits": "results/gpt2_v0.4_six_seeds/tables/refine_cost_hier.csv",
+  "tf.context_only.fb_bitmap_bits": "results/gpt2_v0.4_six_seeds/tables/refine_cost_hier.csv",
+  "tf.context_only.rounds": "results/gpt2_v0.4_six_seeds/tables/refine_cost_hier.csv",
+  "tf.nested.fixed": "results/gpt2_v0.4_six_seeds/tables/refine_cost_hier.csv",
+  "tf.nested.sel_forward": "results/gpt2_v0.4_six_seeds/tables/refine_cost_hier.csv",
+  "tf.nested.sel_entropy": "results/gpt2_v0.4_six_seeds/tables/refine_cost_hier.csv",
+  "tf.nested.sel_bitmap": "results/gpt2_v0.4_six_seeds/tables/refine_cost_hier.csv",
+  "tf.nested.fb_entropy_bits": "results/gpt2_v0.4_six_seeds/tables/refine_cost_hier.csv",
+  "tf.nested.fb_bitmap_bits": "results/gpt2_v0.4_six_seeds/tables/refine_cost_hier.csv",
+  "tf.nested.rounds": "results/gpt2_v0.4_six_seeds/tables/refine_cost_hier.csv",
+  "tf.frozen.prior_bits": "results/gpt2_v0.4_six_seeds/tables/stream_hier.csv",
+  "tf.frozen.sync_kbit_per_step": "results/gpt2_v0.4_six_seeds/tables/stream_hier.csv",
+  "tf.frozen.ece": "results/gpt2_v0.4_six_seeds/tables/stream_hier.csv",
+  "tf.frozen.dprior_vs_nested": "results/gpt2_v0.4_six_seeds/tables/stream_hier.csv",
+  "tf.frozen.dsel_vs_nested": "results/gpt2_v0.4_six_seeds/tables/stream_hier.csv",
+  "tf.frozen.p_prior": "results/gpt2_v0.4_six_seeds/tables/stream_hier.csv",
+  "tf.context_only.prior_bits": "results/gpt2_v0.4_six_seeds/tables/stream_hier.csv",
+  "tf.context_only.sync_kbit_per_step": "results/gpt2_v0.4_six_seeds/tables/stream_hier.csv",
+  "tf.context_only.ece": "results/gpt2_v0.4_six_seeds/tables/stream_hier.csv",
+  "tf.context_only.dprior_vs_nested": "results/gpt2_v0.4_six_seeds/tables/stream_hier.csv",
+  "tf.context_only.dsel_vs_nested": "results/gpt2_v0.4_six_seeds/tables/stream_hier.csv",
+  "tf.context_only.p_prior": "results/gpt2_v0.4_six_seeds/tables/stream_hier.csv",
+  "tf.nested.prior_bits": "results/gpt2_v0.4_six_seeds/tables/stream_hier.csv",
+  "tf.nested.sync_kbit_per_step": "results/gpt2_v0.4_six_seeds/tables/stream_hier.csv",
+  "tf.nested.ece": "results/gpt2_v0.4_six_seeds/tables/stream_hier.csv",
+  "tf.frozen.seeds": "results/gpt2_v0.4_six_seeds/stream/*.json",
+  "tf.frozen.ref_fixed_same_seeds": "results/gpt2_v0.4_six_seeds/stream/*.json",
+  "tf.frozen.fixed_vs_ref_pct": "results/gpt2_v0.4_six_seeds/stream/*.json",
+  "tf.frozen.sel_forward_vs_ref_pct": "results/gpt2_v0.4_six_seeds/stream/*.json",
+  "tf.frozen.sel_entropy_vs_ref_pct": "results/gpt2_v0.4_six_seeds/stream/*.json",
+  "tf.frozen.sel_bitmap_vs_ref_pct": "results/gpt2_v0.4_six_seeds/stream/*.json",
+  "tf.frozen.refine_adds_pct": "results/gpt2_v0.4_six_seeds/stream/*.json",
+  "tf.frozen.per_seed_saving_pct": "results/gpt2_v0.4_six_seeds/stream/*.json",
+  "tf.frozen.tokens_per_message": "results/gpt2_v0.4_six_seeds/stream/*.json",
+  "tf.context_only.seeds": "results/gpt2_v0.4_six_seeds/stream/*.json",
+  "tf.context_only.ref_fixed_same_seeds": "results/gpt2_v0.4_six_seeds/stream/*.json",
+  "tf.context_only.fixed_vs_ref_pct": "results/gpt2_v0.4_six_seeds/stream/*.json",
+  "tf.context_only.sel_forward_vs_ref_pct": "results/gpt2_v0.4_six_seeds/stream/*.json",
+  "tf.context_only.sel_entropy_vs_ref_pct": "results/gpt2_v0.4_six_seeds/stream/*.json",
+  "tf.context_only.sel_bitmap_vs_ref_pct": "results/gpt2_v0.4_six_seeds/stream/*.json",
+  "tf.context_only.refine_adds_pct": "results/gpt2_v0.4_six_seeds/stream/*.json",
+  "tf.context_only.per_seed_saving_pct": "results/gpt2_v0.4_six_seeds/stream/*.json",
+  "tf.context_only.tokens_per_message": "results/gpt2_v0.4_six_seeds/stream/*.json",
+  "tf.nested.seeds": "results/gpt2_v0.4_six_seeds/stream/*.json",
+  "tf.nested.ref_fixed_same_seeds": "results/gpt2_v0.4_six_seeds/stream/*.json",
+  "tf.nested.fixed_vs_ref_pct": "results/gpt2_v0.4_six_seeds/stream/*.json",
+  "tf.nested.sel_forward_vs_ref_pct": "results/gpt2_v0.4_six_seeds/stream/*.json",
+  "tf.nested.sel_entropy_vs_ref_pct": "results/gpt2_v0.4_six_seeds/stream/*.json",
+  "tf.nested.sel_bitmap_vs_ref_pct": "results/gpt2_v0.4_six_seeds/stream/*.json",
+  "tf.nested.refine_adds_pct": "results/gpt2_v0.4_six_seeds/stream/*.json",
+  "tf.nested.per_seed_saving_pct": "results/gpt2_v0.4_six_seeds/stream/*.json",
+  "tf.nested.tokens_per_message": "results/gpt2_v0.4_six_seeds/stream/*.json",
+  "tf.nested.unseen_saving_pct": "results/gpt2_v0.4_six_seeds/stream/*.json",
+  "decoder.decision": "results/decoder_selection/decoder_selection.json",
+  "decoder.n_messages": "results/decoder_selection/decoder_selection.json",
+  "decoder.n_tokens": "results/decoder_selection/decoder_selection.json",
+  "decoder.snr_mean": "results/decoder_selection/decoder_selection.json",
+  "decoder.beam1_start0_closed": "results/decoder_selection/decoder_selection.json",
+  "decoder.beam1_start0_reopen": "results/decoder_selection/decoder_selection.json",
+  "decoder.beam1_start1_closed": "results/decoder_selection/decoder_selection.json",
+  "decoder.beam1_start1_reopen": "results/decoder_selection/decoder_selection.json",
+  "decoder.beam1_start2_closed": "results/decoder_selection/decoder_selection.json",
+  "decoder.beam1_start2_reopen": "results/decoder_selection/decoder_selection.json",
+  "decoder.beam2_start2_closed": "results/decoder_selection/decoder_selection.json",
+  "decoder.beam4_start2_closed": "results/decoder_selection/decoder_selection.json",
+  "pilot.context_only": "results/gpt2_v0.3_colab_t4/tables/stream_hier.csv, equivalence_hier.csv",
+  "pilot.ewc": "results/gpt2_v0.3_colab_t4/tables/stream_hier.csv, equivalence_hier.csv",
+  "pilot.frozen": "results/gpt2_v0.3_colab_t4/tables/stream_hier.csv, equivalence_hier.csv",
+  "pilot.full_online": "results/gpt2_v0.3_colab_t4/tables/stream_hier.csv, equivalence_hier.csv",
+  "pilot.nested": "results/gpt2_v0.3_colab_t4/tables/stream_hier.csv, equivalence_hier.csv",
+  "pilot.nested_no_context": "results/gpt2_v0.3_colab_t4/tables/stream_hier.csv, equivalence_hier.csv",
+  "pilot.nested_no_slots": "results/gpt2_v0.3_colab_t4/tables/stream_hier.csv, equivalence_hier.csv",
+  "pilot.nested_two_level": "results/gpt2_v0.3_colab_t4/tables/stream_hier.csv, equivalence_hier.csv",
+  "pilot.single_rate": "results/gpt2_v0.3_colab_t4/tables/stream_hier.csv, equivalence_hier.csv",
+  "base.gen_tok_acc_awgn": "results/gpt2/tables/rate_europarl_nltk_gen_tok_acc.csv",
+  "base.bleu4": "results/gpt2/tables/rate_europarl_nltk_bleu4.csv",
+  "codebook.channel_only_acc_10dB": "results/gpt2/base/pretrain_summary.json",
+  "codebook.train_seconds": "results/gpt2/base/pretrain_summary.json",
+  "codebook.fixed8_channel_only_acc_10dB": "results/gpt2/fixed8/pretrain_summary.json",
+  "base.separation_lm_fbl_awgn": "results/gpt2/tables/rate_europarl_nltk_separation.csv",
+  "compute.t4": "results/gpt2_v0.3_colab_t4/tables/cost.csv",
+  "real.frozen.unseen_vs_ref_pct": "results/gpt2_v0.4_six_seeds/raw_streams.tar.gz (per-step audits)",
+  "real.nested.unseen_vs_ref_pct": "results/gpt2_v0.4_six_seeds/raw_streams.tar.gz (per-step audits)",
+  "link.capacity_10dB_bits_per_real_symbol": "results/gpt2_v0.4_six_seeds/raw_streams.tar.gz (per-step audits)",
+  "link.crossover_seeds": "results/gpt2_v0.4_six_seeds/raw_streams.tar.gz (per-step audits)",
+  "link.sync_bits_per_step": "results/gpt2_v0.4_six_seeds/raw_streams.tar.gz (per-step audits)",
+  "link.crossover_vs_frozen": "results/gpt2_v0.4_six_seeds/raw_streams.tar.gz (per-step audits)",
+  "link.crossover_vs_context_only": "results/gpt2_v0.4_six_seeds/raw_streams.tar.gz (per-step audits)",
+  "link.crossover_vs_frozen_fixed": "results/gpt2_v0.4_six_seeds/raw_streams.tar.gz (per-step audits)",
+  "tf.prior_bits_matched_seeds": "results/gpt2_v0.4_six_seeds/raw_streams.tar.gz (per-step audits)",
+  "tf.context_share_of_prior_gain_matched_pct": "results/gpt2_v0.4_six_seeds/raw_streams.tar.gz (per-step audits)",
+  "link.levels": "results/gpt2_v0.4_six_seeds/raw_streams.tar.gz (per-step audits)",
+  "link.slot_switches_mean": "results/gpt2_v0.4_six_seeds/raw_streams.tar.gz (per-step audits)",
+  "runtime.hours": "results/gpt2_v0.4_six_seeds/raw_streams.tar.gz (per-step audits)",
+  "runtime.platform": "results/gpt2_v0.4_six_seeds/raw_streams.tar.gz (per-step audits)"
+ }
+}
