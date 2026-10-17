@@ -1,0 +1,82 @@
+\documentclass[tikz,border=4pt]{standalone}
+\usepackage[T1]{fontenc}
+\usepackage{helvet}
+\renewcommand{\familydefault}{\sfdefault}
+\usepackage{amsmath,amssymb}
+\usetikzlibrary{arrows.meta,positioning,fit,calc,backgrounds}
+\definecolor{ink}{HTML}{1F1F1E}
+\definecolor{muted}{HTML}{6B6A63}
+\definecolor{line}{HTML}{8A8980}
+\definecolor{fillA}{HTML}{EEF4FC}
+\definecolor{fillB}{HTML}{F6F5F1}
+\definecolor{accent}{HTML}{2A78D6}
+\definecolor{accent2}{HTML}{C4501F}
+\definecolor{band1}{HTML}{CDE2FB}
+\definecolor{band2}{HTML}{86B6EF}
+\definecolor{band3}{HTML}{3987E5}
+\begin{document}
+\begin{tikzpicture}[
+  font=\footnotesize, text=ink,
+  >={Stealth[length=2.2mm,width=1.6mm]},
+  node/.style={draw=line, fill=white, rounded corners=1.5pt, align=center, inner sep=3pt},
+  mem/.style={draw=line, fill=fillA, rounded corners=1.5pt, align=center, inner sep=3pt, text width=33mm, minimum height=7mm},
+  note/.style={font=\scriptsize, text=muted, align=center},
+  fwd/.style={->, draw=ink, line width=0.7pt},
+  ret/.style={->, draw=accent2, line width=0.7pt, dash pattern=on 3pt off 2pt},
+]
+% ================= (a) link and information pattern
+\node[anchor=west, font=\small\bfseries] at (0,4.25) {(a) Link and information pattern};
+% transmitter (x 0.2 .. 4.8)
+\draw[line, fill=fillB, rounded corners=3pt] (0.2,0.15) rectangle (4.8,3.75);
+\node[font=\bfseries] at (2.5,3.47) {Transmitter};
+\node[note] at (2.5,3.13) {base station or edge server};
+\node[mem, text width=38mm] at (2.5,2.45) {Frozen LLM and codebook};
+\node[mem, text width=38mm] at (2.5,1.45) {Working copies of the\\ medium and slow memories};
+\node[note] at (2.5,0.55) {knows the source text\\ and the mean SNR};
+% receiver (x 9.6 .. 14.2)
+\draw[line, fill=fillB, rounded corners=3pt] (9.6,0.15) rectangle (14.2,3.75);
+\node[font=\bfseries] at (11.9,3.47) {Receiver};
+\node[note] at (11.9,3.13) {user equipment};
+\node[mem, text width=38mm] at (11.9,2.45) {Frozen LLM and codebook};
+\node[mem, text width=38mm] at (11.9,1.45) {Context; medium and slow\\ memories (receiver copies)};
+\node[note] at (11.9,0.55) {knows its channel state\\ and the message length};
+% links (x 4.8 .. 9.6)
+\draw[fwd] (4.8,2.75) -- (9.6,2.75);
+\node[align=center, font=\scriptsize] at (7.2,3.12) {payload: shells of $\mathbf{c}_{x_t}$};
+\draw[fwd] (4.8,1.85) -- (9.6,1.85);
+\node[align=center, font=\scriptsize] at (7.2,2.2) {memory shipments, slot choice};
+\draw[ret] (9.6,0.95) -- (4.8,0.95);
+\node[align=center, font=\scriptsize, text=accent2] at (7.2,1.27) {requests for further shells};
+\node[note] at (7.2,0.45) {forward link: AWGN or\\ Rayleigh fading, SNR $\gamma_n$};
+
+% ================= (b) three timescales of drift
+\node[anchor=west, font=\small\bfseries] at (0,-0.55) {(b) Drift at three timescales and the memory that tracks each};
+\def\x0{0.2}\def\L{13.8}
+% axis
+\draw[line] (\x0,-4.25) -- (\x0+\L,-4.25);
+\foreach \s in {0,150,300,450,600} { \draw[line] ({\x0+\L*\s/600},-4.25) -- ++(0,0.12); \node[note] at ({\x0+\L*\s/600},-4.5) {\s}; }
+\node[note, anchor=west] at (\x0+\L+0.1,-4.5) {step};
+% slow band: domains
+\foreach \a/\b/\lab/\c in {0/150/AG News/band1,150/300/TeleQnA/band3,300/450/AG News/band1,450/600/TeleQnA/band3} {
+  \fill[\c] ({\x0+\L*\a/600},-1.35) rectangle ({\x0+\L*\b/600},-1.0);
+  \node[font=\scriptsize, text=ink] at ({\x0+\L*(\a+\b)/1200},-1.175) {\lab};
+}
+% medium band: topics every 30 steps
+\foreach \k in {0,...,19} {
+  \pgfmathsetmacro{\shade}{mod(\k,2)==0 ? 1 : 0}
+  \ifdim\shade pt=1pt \fill[band2!55] ({\x0+\L*(30*\k)/600},-2.25) rectangle ({\x0+\L*(30*\k+30)/600},-1.9); \else \fill[band2!25] ({\x0+\L*(30*\k)/600},-2.25) rectangle ({\x0+\L*(30*\k+30)/600},-1.9); \fi
+}
+% fast band: messages and SNR
+\draw[accent, line width=0.6pt] plot[smooth, tension=0.6] coordinates {
+ ({\x0+\L*0/600},-3.35) ({\x0+\L*40/600},-3.0) ({\x0+\L*80/600},-3.55) ({\x0+\L*120/600},-3.2) ({\x0+\L*170/600},-2.95) ({\x0+\L*220/600},-3.6) ({\x0+\L*260/600},-3.3) ({\x0+\L*310/600},-3.05) ({\x0+\L*360/600},-3.45) ({\x0+\L*410/600},-3.15) ({\x0+\L*460/600},-3.6) ({\x0+\L*510/600},-3.0) ({\x0+\L*560/600},-3.4) ({\x0+\L*600/600},-3.2)};
+\foreach \s in {0,10,...,600} { \draw[line] ({\x0+\L*\s/600},-3.95) -- ++(0,0.18); }
+% band labels on the left margin
+\node[anchor=east, align=right, font=\scriptsize] at (\x0-0.1,-1.175) {slow: domain\\ ($\tau_\mathrm{slow}=150$)};
+\node[anchor=east, align=right, font=\scriptsize] at (\x0-0.1,-2.075) {medium: topic\\ ($\tau_\mathrm{med}=30$)};
+\node[anchor=east, align=right, font=\scriptsize] at (\x0-0.1,-3.4) {fast: SNR $\gamma_n$,\\ messages};
+% memories on the right margin
+\node[anchor=west, align=left, font=\scriptsize, text=accent] at (\x0+\L+0.15,-1.175) {LoRA slots, shipped\\ every 50 steps};
+\node[anchor=west, align=left, font=\scriptsize, text=accent] at (\x0+\L+0.15,-2.075) {logit bias, shipped\\ every 10 steps};
+\node[anchor=west, align=left, font=\scriptsize, text=accent] at (\x0+\L+0.15,-3.4) {context and refinement,\\ every message (free)};
+\end{tikzpicture}
+\end{document}

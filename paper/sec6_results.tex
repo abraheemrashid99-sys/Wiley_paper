@@ -9,7 +9,7 @@ This section first establishes the link-level behavior of the codec on the base 
 
 Table~\ref{tab:base} lists the free-running token accuracy and BLEU-4 of the codec on 200 test sentences of the base corpus over AWGN at 10\,dB, for four receiver priors and a greedy decoder, and Figure~\ref{fig:base} extends the comparison at 8 symbols per token to other SNRs and to Rayleigh block fading. The language prior lowers the rate required for a given fidelity at prefix lengths of 4 to 12 symbols; at 2 symbols per token GPT-2 is slightly below the other priors, and at 16 symbols all priors are essentially error-free. At 6 symbols per token, GPT-2 decides 85.7\,\% of the tokens correctly, against 73.7\,\% with token frequencies alone and 70.3\,\% without a prior, and BLEU-4 rises from 0.38 to 0.71. The last row of the table is a diagnostic that provides the receiver with the true preceding sentences of the document and thereby bounds the contribution of the fast memory (89.3\,\% at 6 symbols). Under Rayleigh block fading at 10\,dB and 8 symbols per token, the four priors reach 0.681 (none), 0.731 (unigram), 0.758 (GPT-2) and 0.785 (GPT-2 with true history). At 0\,dB the ordering reverses under both channels, and GPT-2 falls below the unigram prior at every prefix length (at 8 symbols per token, 0.119 against 0.196 over AWGN and 0.146 against 0.199 under Rayleigh fading), most likely because the greedy decoder then follows its own early errors. The operating point of this study is therefore an SNR of about 10\,dB.
 
-\begin{table}[t]
+\begin{table}[!tbp]
 \centering
 \caption{Free-running token accuracy and BLEU-4 on the base corpus (200 test sentences, AWGN, 10\,dB, greedy decoding) for four receiver priors, against the number of real channel symbols per token $m$.}
 \label{tab:base}
@@ -28,7 +28,7 @@ GPT-2 + true history (diagnostic) & 0.5510 & 0.8930 & 0.9818 & 0.9995 & 0.3103 &
 \end{tabular}
 \end{table}
 
-\begin{figure}[t]
+\begin{figure}[!tbp]
 \centering
 \includegraphics[width=\linewidth]{figures/fig_base_error.pdf}
 \caption{Free-running token accuracy at 8 real channel symbols per token on the base corpus, by receiver prior, SNR and channel (greedy decoding).}
@@ -44,7 +44,7 @@ Table~\ref{tab:decoder} reports the selection on validation text. In the first s
 
 The selected decoder, with beam width 4, a first round of 6 symbols and no reopening, requires 7.4\,\% fewer symbols than the greedy decoder starting from 2 symbols. The selection also shows that beam search benefits the fixed prefix far more than refinement: with width 4, the fixed prefix requires 17.7\,\% fewer symbols than with greedy decoding (9.049 against 10.994), because the beam removes much of the error propagation that refinement had previously compensated for. Every fixed-prefix reference in the remainder of this section is decoded with the same beam, so that all comparisons are made against this stronger baseline.
 
-\begin{table}[t]
+\begin{table}[!tbp]
 \centering
 \caption{Selection of the decoder on validation text (96 messages, 1633 tokens, mean SNR 9.8\,dB): real channel symbols per token for 90\,\% token accuracy under free-running decoding. Selective refinement is charged its signaling at the entropy (criterion) or as a bitmap; the fixed prefix is decoded with the same beam width. Where a curve exceeds 90\,\% at its lowest threshold ($\tau = 0.7$; all rows except the first and third), the value is read there and is an upper bound. Rounds per message at confidence 0.95.}
 \label{tab:decoder}
@@ -70,7 +70,7 @@ Beam & \makecell{First round\\(symbols)} & Reopening & \makecell{Forward\\only} 
 
 Table~\ref{tab:primary} and Figure~\ref{fig:primary} present the primary endpoint. With its memories and selective refinement, DN-SC reaches 90\,\% token accuracy with 7.08 real channel symbols per token, compared with 9.23 for the frozen fixed-rate receiver. This is a reduction of 23.3\,\% with the return-link signaling charged at its entropy, of 28.3\,\% for the forward symbols alone and of 20.7\,\% with an explicit bitmap. Figure~\ref{fig:seeds} shows that the reduction occurs on every seed, between 10.5\,\% and 28.5\,\% (exact sign-flip test $p = 0.031$, the smallest value attainable with six seeds; Holm-adjusted over the three refinement receivers, $p = 0.094$), including the three seeds that had never been run before the protocol was fixed (20.6\,\%). Under free-running decoding on the audited steps, the reduction amounts to 27.9\,\% (95\,\% CI 21.6--31.7\,\%; 26.3\,\% with a bitmap), again on every seed, and to 25.9\,\% (95\,\% CI 11.0--33.2\,\%) on the unseen seeds alone. Seed~3 is the weakest on both measures ($-10.5$\,\% teacher-forced and $-9.1$\,\% decoded for real). These figures exclude the synchronization of the shipped memories, which is charged in Section~\ref{sec:results-cost}.
 
-\begin{table}[t]
+\begin{table}[!tbp]
 \centering
 \caption{Real channel symbols per token for 90\,\% token accuracy on the hierarchical drift stream (GPT-2 prior, beam-4 decoder for every receiver). Selective refinement includes its return-link signaling at the entropy; synchronization is not included. Teacher-forced: mean over seeds, all 600 steps. Decoded for real: 26 audited steps per seed, curves pooled over the seeds, 95\,\% paired bootstrap interval in brackets. Changes are relative to the frozen fixed-rate receiver on the same seeds. Where a curve exceeds 90\,\% at its cheapest point, the value is read there and is an upper bound (see text).}
 \label{tab:primary}
@@ -93,14 +93,14 @@ $p$: exact sign-flip test~(\ref{eq:signflip}) on the per-seed costs decoded for 
 \end{minipage}
 \end{table}
 
-\begin{figure}[t]
+\begin{figure}[!tbp]
 \centering
 \includegraphics[width=0.92\linewidth]{figures/fig_primary_endpoint.pdf}
 \caption{Change in real channel symbols per token for 90\,\% token accuracy against the frozen fixed-rate receiver, return-link signaling of refinement included. Dots: decoded for real on the audited steps, with 95\,\% paired bootstrap intervals; diamonds: teacher-forced on all 600 steps.}
 \label{fig:primary}
 \end{figure}
 
-\begin{figure}[t]
+\begin{figure}[!tbp]
 \centering
 \includegraphics[width=0.72\linewidth]{figures/fig_seeds.pdf}
 \caption{Change against the frozen fixed-rate receiver on every seed, teacher-forced and decoded for real, for DN-SC and for the frozen receiver with refinement. Shaded: seeds that had never been run before the protocol was fixed.}
@@ -111,7 +111,7 @@ The savings of DN-SC are conservative. Its operating curve already exceeds 90\,\
 
 Applied to the refinement policy, as implemented, the decision rule of Section~\ref{sec:setup-protocol} retains the teacher-forced curves: on the audited steps, real decoding requires $+3.4$\,\% (context memory), $+3.6$\,\% (DN-SC) and $+5.0$\,\% (frozen receiver) more forward symbols than the emulation. For the context memory and DN-SC, these are readings at the cheapest point, $\tau = 0.5$, at which real decoding is the more accurate of the two. Applied to the fixed-prefix receivers as well, which the wording of the rule also covers, the rule would not retain them: decoded for real, the fixed prefix requires $+9.7$\,\% (frozen), $+10.9$\,\% (context memory) and $+3.8$\,\% (DN-SC) more symbols than emulated on the same steps (10.37 against 9.45 for the frozen reference). Under that stricter reading, the real-decoding figures constitute the measurement. They yield the larger savings, because a fixed prefix suffers more from error propagation than the refinement policy, so that the teacher-forced figures quoted as the headline are the conservative ones; both are reported for every receiver. Figure~\ref{fig:operating} displays the pooled operating curves under free-running decoding. Refinement moves the curve of the frozen receiver to the left over the whole range it covers (87.7\,\% accuracy and above), whereas the memories of DN-SC raise the fixed-prefix curve at every rate and thereby leave less to refinement.
 
-\begin{figure}[t]
+\begin{figure}[!tbp]
 \centering
 \includegraphics[width=\linewidth]{figures/fig_operating.pdf}
 \caption{Operating curves under free-running decoding on the audited steps of the drift stream, pooled over six seeds (156 steps, 936 messages per receiver). Fixed prefix: all six prefix lengths. Selective refinement: thresholds $\tau = 0.5$ to $0.99$ from left to right, with the return-link signaling at its entropy added to the forward symbols.}
@@ -127,7 +127,7 @@ The receiver memories and selective refinement both contribute to the saving, an
 
 Table~\ref{tab:decomposition} exposes the mechanism. The prior cross-entropy~(\ref{eq:metrics}) falls from 6.79 bits per token for the frozen receiver to 5.61 with the context memory and to 5.23 with all memories; on the four seeds shared by the three receivers, the context memory accounts for 76\,\% of that reduction. The shipped memories lower the prior by a further 0.37 bits per token and the selective cost at $\tau = 0.9$ by 0.12 symbols per token. Both intervals exclude zero, although with four seeds the seed-level test cannot go below $p = 0.125$. The signaling remains light: at the operating threshold, the requests of DN-SC cost 1.39 bits per token at the entropy (1.52 as a bitmap) over 2.84 rounds per message, against 1.62 bits and 3.07 rounds for the frozen receiver, in agreement with Proposition~3.
 
-\begin{table}[t]
+\begin{table}[!tbp]
 \centering
 \caption{Mechanism of the saving on the drift stream (teacher-forced, all 600 steps). Prior cross-entropy: mean $\pm$ SD over seeds; differences to DN-SC are paired per step, with 95\,\% block-bootstrap intervals. Requests and rounds at the operating threshold $\tau = 0.9$.}
 \label{tab:decomposition}
@@ -145,21 +145,21 @@ DN-SC & 6 & $5.23\pm0.02$ & --- & 1.39 / 1.52 & 2.84 & 24.23 \\
 
 Figure~\ref{fig:prior_stream} follows the prior along the stream. Within AG News the three receivers differ by less than one bit per token. At the first switch to TeleQnA the frozen prior rises, whereas the context memory and DN-SC fall to about 5 bits per token within one topic period; a TeleQnA document, comprising question, explanation and answer, repeats much of its own vocabulary, which the context makes available to the prior. The shipped memories add their gain mainly within TeleQnA, and more so on its second visit, which is consistent with the recall of the adapter slot learned during the first visit. Figure~\ref{fig:ledger} confirms this behavior for one seed: the slow memory is shipped every 50 steps in steps of 1.18\,Mbit, the active slot follows the domain, and the slot learned on the first visit of TeleQnA is recalled on the second visit for two bits (3.3 slot switches per run on average). Figure~\ref{fig:rounds} shows where the requests occur under free-running decoding at $\tau = 0.9$: after the first round, the frozen receiver requests a further shell for about half of its tokens, whereas the context memory and DN-SC request one for about 37--38\,\%, and the difference persists in the later rounds.
 
-\begin{figure}[t]
+\begin{figure}[!tbp]
 \centering
 \includegraphics[width=\linewidth]{figures/fig_prior_stream.pdf}
 \caption{Prior cross-entropy along the hierarchical drift stream (25-step moving average, mean over the four seeds shared by the three receivers). Shaded: TeleQnA regimes.}
 \label{fig:prior_stream}
 \end{figure}
 
-\begin{figure}[t]
+\begin{figure}[!tbp]
 \centering
 \includegraphics[width=\linewidth]{figures/fig_ledger.pdf}
 \caption{Synchronization ledger and active adapter of DN-SC along the stream (seed 0). Top: cumulative synchronized bits, with a shipment of the medium memory every 10 steps and of the active adapter slot every 50 steps. Bottom: adapter slot chosen by~(\ref{eq:slot}).}
 \label{fig:ledger}
 \end{figure}
 
-\begin{figure}[t]
+\begin{figure}[!tbp]
 \centering
 \includegraphics[width=0.66\linewidth]{figures/fig_rounds.pdf}
 \caption{Share of the tokens for which a further shell is requested after each round, under free-running decoding at $\tau = 0.9$, pooled over the audited steps of all seeds of each receiver.}
@@ -168,7 +168,7 @@ Figure~\ref{fig:prior_stream} follows the prior along the stream. Within AG News
 
 Table~\ref{tab:ablation} reports the components of the memories, obtained from pilot runs made with an earlier version of the code on a T4 GPU (greedy decoder, first round of 2 symbols, one to three seeds per receiver). These results are exploratory, and only the prior cross-entropy is reported, because it does not depend on the decoder of refinement except through the context. The context memory is indispensable, since DN-SC without it is 1.14 bits per token worse. Adapter slots help, as a single adapter dragged between the domains costs 0.10 bits per token. Shipping both gradient levels at one period with approximately the same synchronization budget (23.73 against 24.23\,kbit per step) and a single adapter costs 0.11 bits, and adding elastic weight consolidation \cite{kirkpatrick2017} does not help (0.12). The two separate shipping periods, by contrast, are not shown to matter: with slots and context retained and both levels shipped at one period, the difference is 0.02 bits per token, within the equivalence margin of $\pm0.05$, on one seed. Shipping after every step costs 49 times the air time of DN-SC and is equivalent to it within the same margin. On this stream, the gain of the shipped memories therefore stems from the adapter slots and from infrequent shipping rather than from the separation of the timescales of the two shipped levels.
 
-\begin{table}[t]
+\begin{table}[!tbp]
 \centering
 \caption{Component analysis (pilot runs, exploratory): prior cross-entropy on the drift stream, mean $\pm$ SD over seeds, paired per-step difference to DN-SC with 95\,\% block-bootstrap interval, equivalence within $\pm0.05$ bits per token by two one-sided tests (90\,\% interval), and measured synchronization.}
 \label{tab:ablation}
@@ -195,7 +195,7 @@ Shipping after every step & 3 & $5.250\pm0.031$ & $-0.006$ [$-0.031$, $+0.020$] 
 
 The shipped memories are not free. DN-SC synchronizes 24.23\,kbit per adaptation step, which at the capacity of 10\,dB occupies about 14{,}000 real channel symbols, roughly 110 times the payload of one message at the target accuracy (about 127 symbols). Figure~\ref{fig:netrate} shows the net semantic rate~(\ref{eq:netrate}) of DN-SC relative to three references, on the four seeds shared by all receivers and with the signaling of refinement included. In accordance with Proposition~4, shipping pays against the frozen fixed-rate receiver once an update serves more than about 400 messages, and the saving then approaches 21.5\,\%. Against the frozen receiver with refinement, the crossover lies at about 1250 messages (asymptote 8.1\,\%), and against the context memory with refinement, which requires no synchronization, at about 6100 messages, with an asymptotic saving of only 1.8\,\%. The last comparison is indicative only, because on these seeds both refinement readings are mostly upper bounds taken above 90\,\% accuracy and are not taken at equal accuracy. In the stream itself, an update serves six messages. For a single link, the context memory with selective refinement is therefore the economical configuration, whereas shipped adaptation pays where one update serves many messages, such as the users of a cell or of a multicast group that share a domain.
 
-\begin{figure}[t]
+\begin{figure}[!tbp]
 \centering
 \includegraphics[width=0.72\linewidth]{figures/fig_netrate.pdf}
 \caption{Change in the net semantic rate of DN-SC, synchronization included, relative to three references, against the number of messages served by one adaptation step (four seeds shared by all receivers; return-link signaling at the entropy; synchronization charged at the capacity of 10\,dB). Markers and labels: crossover traffic $N^\star$.}

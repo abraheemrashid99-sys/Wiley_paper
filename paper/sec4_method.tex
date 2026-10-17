@@ -4,7 +4,7 @@
 
 This section develops the DN-SC transceiver. It first describes the rate-nested codebook and its power control, then the Bayesian receiver with its language prior, the time-nested memories and their synchronization, and the token-level refinement protocol. It closes with the cost model and the analytical properties on which the evaluation relies. Figure~\ref{fig:architecture} shows the architecture of the transceiver.
 
-\begin{figure}[t]
+\begin{figure}[!tbp]
 \centering
 \includegraphics[width=\linewidth]{diagrams/fig_architecture.pdf}
 \caption{Architecture of DN-SC. Solid arrows denote the forward data path; dashed arrows denote the return-link requests for further shells and the shipments that synchronize the medium and slow memories of the receiver, both of which are charged in channel symbols. The fast memory (context) is built by the receiver from its own decisions and requires no signaling.}
@@ -141,7 +141,7 @@ s_\mathrm{new} = \begin{cases} s^\star, & H_{s^\star} < H_{s_\mathrm{cur}}-\delt
 \end{equation}
 Whenever $s_\mathrm{new} = \varnothing$ and an untrained slot remains, that slot is started instead. A domain that returns therefore finds its adapter intact, recalling it costs two bits rather than a new synchronization, and the receiver keeps an adapter that is worse than none by more than $\delta$ for at most $C_\mathrm{sel}$ steps. Algorithm~\ref{alg:step} states one adaptation step, and Figure~\ref{fig:flowstep} depicts it as a flowchart.
 
-\begin{algorithm}[t]
+\begin{algorithm}[!tbp]
 \caption{One adaptation step $n$ of DN-SC}
 \label{alg:step}
 \small
@@ -167,10 +167,10 @@ Whenever $s_\mathrm{new} = \varnothing$ and an untrained slot remains, that slot
 \end{algorithmic}
 \end{algorithm}
 
-\begin{figure}[t]
+\begin{figure}[!tbp]
 \centering
-\includegraphics[width=0.78\linewidth]{diagrams/fig_flow_step.pdf}
-\caption{Flowchart of one adaptation step of DN-SC (Algorithm~\ref{alg:step}).}
+\includegraphics[width=0.7\linewidth]{diagrams/fig_flow_step.pdf}
+\caption{Flowchart of one adaptation step of DN-SC (Algorithm~\ref{alg:step}). Tx and Rx indicate the end at which an operation is performed; parallelograms denote transmissions of signaling or synchronization data.}
 \label{fig:flowstep}
 \end{figure}
 
@@ -185,10 +185,10 @@ S_\mathrm{fwd}(\tau) = \frac{1}{N_\mathrm{tok}}\sum_{t} m_{k_t(\tau)},
 \end{equation}
 where $q_t^{(k)}$ is the confidence of token $t$ when the message is decoded with $m_k$ symbols for that token, and $S_\mathrm{fwd}$ is the mean number of forward symbols per token over the $N_\mathrm{tok}$ tokens of an adaptation step; operating curves average these step means over the steps. By Property 1, the additional symbols extend what has already been received, which constitutes incremental redundancy at the level of individual tokens, spent where the language model cannot fill the gap.
 
-\begin{figure}[t]
+\begin{figure}[!tbp]
 \centering
 \includegraphics[width=\linewidth]{diagrams/fig_protocol.pdf}
-\caption{(a) Selective refinement of one message of eight tokens with a first round of 6 symbols per token (illustrative). (b) Instants at which each memory reaches the receiver during the first 100 adaptation steps, with the cost of one shipment; the average over the stream is taken from the bit ledger of the experiments.}
+\caption{(a) Selective refinement of one message of eight tokens with a first round of 6 symbols per token (illustrative). Each cell gives the number of symbols received for the token after the round, and each arrow a request for the next shell on the return link; the mean cost is $(5\cdot 6+2\cdot 8+12)/8 = 7.25$ symbols per token in three rounds. (b) Instants at which each memory reaches the receiver during the first 100 adaptation steps, with the cost of one shipment at $b = 8$ bits per parameter; averaged over the stream, the synchronization amounts to 24.2\,kbit per adaptation step (bit ledger of the experiments).}
 \label{fig:protocol}
 \end{figure}
 

@@ -1,65 +1,39 @@
-\documentclass[tikz,border=4pt]{standalone}
-\usepackage[T1]{fontenc}
-\usepackage{helvet}
-\renewcommand{\familydefault}{\sfdefault}
-\usepackage{amsmath,amssymb}
-\usetikzlibrary{arrows.meta,positioning,calc,shapes.geometric,shapes.misc}
-\definecolor{ink}{HTML}{1F1F1E}
-\definecolor{muted}{HTML}{6B6A63}
-\definecolor{line}{HTML}{8A8980}
-\definecolor{fillA}{HTML}{EEF4FC}
-\definecolor{fillB}{HTML}{F6F5F1}
-\definecolor{fillC}{HTML}{FDF1EA}
-\definecolor{accent2}{HTML}{C4501F}
+\documentclass[tikz,border=3pt]{standalone}
+\input{bw_style}
 \begin{document}
 \begin{tikzpicture}[
-  font=\footnotesize, text=ink,
-  >={Stealth[length=2.2mm,width=1.6mm]},
-  every node/.append style={execute at begin node={\hyphenpenalty=10000 \exhyphenpenalty=10000 }},
-  proc/.style={draw=line, fill=white, align=center, inner sep=3pt, text width=52mm, minimum height=8.5mm},
-  rxproc/.style={proc, fill=fillA},
-  txproc/.style={proc, fill=fillB},
-  side/.style={draw=line, fill=fillC, align=center, inner sep=3pt, text width=40mm, minimum height=8.5mm},
-  term/.style={draw=line, fill=white, rounded rectangle, align=center, inner sep=3pt, minimum height=7mm, text width=56mm},
-  dec/.style={draw=line, fill=white, diamond, aspect=2.6, align=center, inner sep=1pt, text width=34mm},
-  flow/.style={->, draw=ink, line width=0.6pt},
-  lab/.style={font=\scriptsize, text=muted},
-  node distance=5.5mm
+  node distance=5.5mm,
+  proc/.style={blk, text width=54mm, minimum height=8.5mm},
+  io/.style={draw, trapezium, trapezium left angle=72, trapezium right angle=108, trapezium stretches body, fill=white, align=center, inner sep=2.5pt, text width=40mm, minimum height=8.5mm},
+  term/.style={draw, rectangle, rounded corners=3.5mm, fill=white, align=center, inner sep=3pt, minimum height=7mm, text width=58mm},
+  dec/.style={draw, diamond, aspect=2.6, fill=white, align=center, inner sep=1pt, text width=34mm},
 ]
 \node[term] (start) {Step $n$: messages $\mathbf{x}_1,\dots,\mathbf{x}_{N_\mathrm{c}}$, SNR $\gamma_n$};
 \node[dec, below=of start] (d1) {$(n-1) \bmod C_\mathrm{sel} = 0$?};
-\node[side, right=12mm of d1] (slot) {Evaluate $H_s$ for every slot and signal the choice of slot};
-\node[txproc, below=of d1] (enc) {Encode every token; send round 1 ($m_{k_0} = 6$ symbols per token)};
-\node[rxproc, below=of enc] (dec) {Beam-search MAP decoding with the language prior and the memories};
+\node[io, right=10mm of d1] (slot) {Tx: evaluate $H_s$ of every slot under $\phi^{\mathrm{rx}}$; signal the slot choice};
+\node[proc, below=8mm of d1] (enc) {Tx: encode every token; send round 1\\ ($m_{k_0} = 6$ symbols per token)};
+\node[proc, below=of enc] (dec) {Rx: beam-search MAP decoding with the language prior and the memories};
 \node[dec, below=of dec] (d2) {Open token with $q_t < \tau$ and shells left?};
-\node[side, right=12mm of d2] (req) {Request the next shell; it is sent at unit power over the requested tokens};
-\node[rxproc, below=of d2] (ctx) {Deliver the message; append it to the context $\mathbf{h}$ (fast memory)};
-\node[txproc, below=of ctx] (learn) {One optimizer step on $\mathcal{L}_n$ with the true text};
+\node[io, right=10mm of d2] (req) {Rx: request the next shell; Tx: send it at unit power};
+\node[proc, below=of d2] (ctx) {Rx: deliver the message; append it\\ to the context $\mathbf{h}$ (fast memory)};
+\node[proc, below=of ctx] (learn) {Tx: one optimizer step on $\mathcal{L}_n$ with the true text};
 \node[dec, below=of learn] (d3) {$n \bmod C_\ell = 0$ for a level $\ell$?};
-\node[side, right=12mm of d3] (ship) {Ship $\mathcal{Q}_b(\Delta_\ell)$, set both copies equal and record $B_\ell$};
-\node[term, below=of d3] (end) {Step $n+1$};
+\node[io, right=10mm of d3] (ship) {Tx: ship $\mathcal{Q}_b(\Delta_\ell)$; both copies set equal, $B_\ell$ recorded};
+\node[term, below=8mm of d3] (end) {Step $n+1$};
 
-\draw[flow] (start) -- (d1);
-\draw[flow] (d1) -- node[lab, above]{yes} (slot);
-\draw[flow] (d1) -- node[lab, left, pos=0.35]{no} (enc);
-\draw[flow] (slot) |- ($(d1.south)!0.5!(enc.north)$);
-\draw[flow] (enc) -- (dec);
-\draw[flow] (dec) -- (d2);
-\draw[flow] (d2) -- node[lab, above]{yes} (req);
-\draw[flow] (req) |- (dec.east);
-\draw[flow] (d2) -- node[lab, left]{no} (ctx);
-\draw[flow] (ctx) -- (learn);
-\draw[flow] (learn) -- (d3);
-\draw[flow] (d3) -- node[lab, above]{yes} (ship);
-\draw[flow] (d3) -- node[lab, left, pos=0.35]{no} (end);
-\draw[flow] (ship) |- ($(d3.south)!0.5!(end.north)$);
-
-% legend
-\node[rxproc, text width=12mm, minimum height=4mm, anchor=north west] (l1) at ($(end.south west)+(-1mm,-5mm)$) {};
-\node[lab, anchor=west] at (l1.east) {receiver};
-\node[txproc, text width=12mm, minimum height=4mm, anchor=west] (l2) at ($(l1.east)+(15mm,0)$) {};
-\node[lab, anchor=west] at (l2.east) {transmitter};
-\node[side, text width=12mm, minimum height=4mm, anchor=west] (l3) at ($(l2.east)+(18mm,0)$) {};
-\node[lab, anchor=west] at (l3.east) {signaling or synchronization on the air};
+\draw[arr] (start) -- (d1);
+\draw[arr] (d1) -- node[lbl, above]{yes} (slot);
+\draw[arr] (d1) -- node[lbl, left, pos=0.3]{no} (enc);
+\draw[arr] (slot) |- ($(d1.south)!0.68!(enc.north)$);
+\draw[arr] (enc) -- (dec);
+\draw[arr] (dec) -- (d2);
+\draw[arr] (d2) -- node[lbl, above]{yes} (req);
+\draw[arr] (req) |- (dec.east);
+\draw[arr] (d2) -- node[lbl, left]{no} (ctx);
+\draw[arr] (ctx) -- (learn);
+\draw[arr] (learn) -- (d3);
+\draw[arr] (d3) -- node[lbl, above]{yes} (ship);
+\draw[arr] (d3) -- node[lbl, left, pos=0.3]{no} (end);
+\draw[arr] (ship) |- ($(d3.south)!0.68!(end.north)$);
 \end{tikzpicture}
 \end{document}

@@ -1,0 +1,17 @@
+% common black-and-white style of the diagrams
+\usepackage[T1]{fontenc}
+\usepackage{mathptmx}
+\usepackage{amsmath,amssymb,bm}
+\usetikzlibrary{arrows.meta,positioning,fit,calc,backgrounds,shapes.geometric,shapes.misc,patterns}
+\tikzset{
+  every picture/.style={font=\small, line width=0.5pt},
+  >={Latex[length=2.2mm,width=1.5mm]},
+  blk/.style={draw, rectangle, fill=white, align=center, inner sep=3pt, minimum height=9mm},
+  grp/.style={draw, rectangle, dashed, inner sep=4pt},
+  arr/.style={->, line width=0.6pt},
+  darr/.style={->, line width=0.6pt, dash pattern=on 3pt off 2pt},
+  lbl/.style={font=\footnotesize, align=center},
+  ttl/.style={font=\small\bfseries},
+}
+
+\AtBeginDocument{\hyphenpenalty=10000 \exhyphenpenalty=10000 \relax}
