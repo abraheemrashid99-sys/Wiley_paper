@@ -21,7 +21,7 @@
 \draw[arr] (bias.west) -- node[lbl, above]{prior $\pi_t(v)$} (post.east);
 
 % ---------------- channel and transmitter
-\node[blk, text width=24mm, left=13mm of lik] (ch) {Channel: AWGN,\\ SNR $\gamma_n$};
+\node[blk, text width=24mm, left=13mm of lik] (ch) {Channel: AWGN\\ or Rayleigh, $\gamma_n$};
 \node[blk, text width=34mm, left=13mm of ch] (pc) {Per-shell block\\ power control};
 \node[blk, text width=34mm, above=of pc] (cb) {Rate-nested codebook\\ $\mathbf{c}_v\in\mathbb{R}^{16}$, shells $2|2|2|2|4|4$};
 \node[blk, text width=34mm, above=of cb] (tok) {Tokenizer\\ $x_1,\dots,x_T$};
@@ -48,6 +48,6 @@
 \node[grp, fit=(lik)(post)(conf)(out)] (rx) {};
 \node[ttl, anchor=north west] at (tx.south west) {Transmitter};
 \node[ttl, anchor=north west] at (rx.south west) {Receiver};
-\node[ttl, anchor=north west] at (memfit.south west) {Receiver memories};
+\node[ttl, anchor=north west] at (memfit.south west) {Prior and memories};
 \end{tikzpicture}
 \end{document}
