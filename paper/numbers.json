@@ -988,6 +988,54 @@
     "equivalent": false
    }
   },
+  "refine_power.held_out": {
+   "no_context": {
+    "power_tau_0.9": {
+     "blocks": 1216,
+     "symbol_weighted_mean": 1.149835758529451,
+     "median": 1.133924679656855,
+     "p5": 0.5233510869038789,
+     "p95": 2.0533020197004417
+    },
+    "fixed": 8.469441141498217,
+    "message_gain": {
+     "forward": 6.884642120357753,
+     "total_entropy": 7.483611355206116,
+     "total_bitmap": 7.6405334070025255
+    },
+    "subset_gain": {
+     "forward": 6.9472360997258535,
+     "total_entropy": 7.561970915056278,
+     "total_bitmap": 7.7101019355002
+    },
+    "change_pct": 1.0470821656933138,
+    "messages": 600,
+    "tokens": 10743
+   },
+   "true_context": {
+    "power_tau_0.9": {
+     "blocks": 1133,
+     "symbol_weighted_mean": 1.1211380779658826,
+     "median": 1.1155716696753581,
+     "p5": 0.48923550802036125,
+     "p95": 2.0201453225992925
+    },
+    "fixed": 7.918715393133999,
+    "message_gain": {
+     "forward": 6.60994040090688,
+     "total_entropy": 7.0860677884841685,
+     "total_bitmap": 7.314272795974986
+    },
+    "subset_gain": {
+     "forward": 6.651500002457811,
+     "total_entropy": 7.140140913727586,
+     "total_bitmap": 7.360953515761775
+    },
+    "change_pct": 0.7630907134601905,
+    "messages": 600,
+    "tokens": 10707
+   }
+  },
   "link.levels": [
    {
     "name": "rx_bias",
@@ -1200,6 +1248,7 @@
   "floor.accuracy_at_cheapest_point": "results/gpt2_v0.4_six_seeds/raw_streams.tar.gz (per-step audits)",
   "emulation_gap_fixed_pct": "results/gpt2_v0.4_six_seeds/tables/refine_cost_hier.csv",
   "pilot.full_precision": "results/gpt2_v0.3_colab_t4/raw_streams.tar.gz",
+  "refine_power.held_out": "results/refine_power/refine_power.json",
   "link.levels": "results/gpt2_v0.4_six_seeds/raw_streams.tar.gz (per-step audits)",
   "link.slot_switches_mean": "results/gpt2_v0.4_six_seeds/raw_streams.tar.gz (per-step audits)",
   "runtime.hours": "results/gpt2_v0.4_six_seeds/raw_streams.tar.gz (per-step audits)",

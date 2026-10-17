@@ -1,0 +1,424 @@
+{
+ "messages": 600,
+ "first_round_symbols": 6,
+ "thresholds": [
+  0.2,
+  0.3,
+  0.4,
+  0.5,
+  0.6,
+  0.7,
+  0.8,
+  0.9,
+  0.95,
+  0.99
+ ],
+ "capacity": 1.7297158093186487,
+ "results": {
+  "no_context": {
+   "tokens": 10743,
+   "fixed_curve": [
+    {
+     "m": 2,
+     "tok_acc": 0.4164572279623941
+    },
+    {
+     "m": 4,
+     "tok_acc": 0.6151912873499022
+    },
+    {
+     "m": 6,
+     "tok_acc": 0.7830215023736387
+    },
+    {
+     "m": 8,
+     "tok_acc": 0.8908126221725775
+    },
+    {
+     "m": 12,
+     "tok_acc": 0.9690961556362282
+    },
+    {
+     "m": 16,
+     "tok_acc": 0.9876198454807782
+    }
+   ],
+   "fixed_at_target": 8.469441141498217,
+   "message_gain": {
+    "curve": [
+     {
+      "threshold": 0.2,
+      "tok_acc": 0.8018244438238853,
+      "forward": 6.170529647212138,
+      "total_entropy": 6.379338556587695,
+      "total_bitmap": 6.788751135574774
+     },
+     {
+      "threshold": 0.3,
+      "tok_acc": 0.8280740947593782,
+      "forward": 6.350553849017965,
+      "total_entropy": 6.6895766405374975,
+      "total_bitmap": 7.00612263133287
+     },
+     {
+      "threshold": 0.4,
+      "tok_acc": 0.8573955133575352,
+      "forward": 6.553290514753793,
+      "total_entropy": 7.005942540824408,
+      "total_bitmap": 7.247821027358961
+     },
+     {
+      "threshold": 0.5,
+      "tok_acc": 0.8886716931955692,
+      "forward": 6.779111979893885,
+      "total_entropy": 7.3363140115600425,
+      "total_bitmap": 7.5157254663761055
+     },
+     {
+      "threshold": 0.6,
+      "tok_acc": 0.916689937633808,
+      "forward": 7.040119147351764,
+      "total_entropy": 7.700623793297659,
+      "total_bitmap": 7.824412320349418
+     },
+     {
+      "threshold": 0.7,
+      "tok_acc": 0.9402401563808992,
+      "forward": 7.305780508237922,
+      "total_entropy": 8.050391042645849,
+      "total_bitmap": 8.135923673234615
+     },
+     {
+      "threshold": 0.8,
+      "tok_acc": 0.959229265568277,
+      "forward": 7.607558410127525,
+      "total_entropy": 8.431660823629992,
+      "total_bitmap": 8.487210956156044
+     },
+     {
+      "threshold": 0.9,
+      "tok_acc": 0.9746811877501629,
+      "forward": 8.015079586707623,
+      "total_entropy": 8.927063423738804,
+      "total_bitmap": 8.958825255354519
+     },
+     {
+      "threshold": 0.95,
+      "tok_acc": 0.9823140649725403,
+      "forward": 8.364888764777064,
+      "total_entropy": 9.33985480468065,
+      "total_bitmap": 9.36282567983597
+     },
+     {
+      "threshold": 0.99,
+      "tok_acc": 0.9866890067951224,
+      "forward": 9.113096900307177,
+      "total_entropy": 10.190419991281985,
+      "total_bitmap": 10.224421060837885
+     }
+    ],
+    "at_target": {
+     "forward": 6.884642120357753,
+     "total_entropy": 7.483611355206116,
+     "total_bitmap": 7.6405334070025255
+    },
+    "vs_fixed_entropy_pct": -11.639844587404635
+   },
+   "subset_gain": {
+    "curve": [
+     {
+      "threshold": 0.2,
+      "tok_acc": 0.801452108349623,
+      "forward": 6.188029414502466,
+      "total_entropy": 6.401768316261213,
+      "total_bitmap": 6.808134411926095
+     },
+     {
+      "threshold": 0.3,
+      "tok_acc": 0.8260262496509355,
+      "forward": 6.380713022433213,
+      "total_entropy": 6.72683303036509,
+      "total_bitmap": 7.038972531978108
+     },
+     {
+      "threshold": 0.4,
+      "tok_acc": 0.8555338359862236,
+      "forward": 6.588662384808712,
+      "total_entropy": 7.048326190718891,
+      "total_bitmap": 7.2861526973668695
+     },
+     {
+      "threshold": 0.5,
+      "tok_acc": 0.8857860932700363,
+      "forward": 6.81224983710323,
+      "total_entropy": 7.375407492720202,
+      "total_bitmap": 7.5512849780924425
+     },
+     {
+      "threshold": 0.6,
+      "tok_acc": 0.9146420925253653,
+      "forward": 7.086288746160291,
+      "total_entropy": 7.754154453585845,
+      "total_bitmap": 7.873703162744733
+     },
+     {
+      "threshold": 0.7,
+      "tok_acc": 0.9373545564553663,
+      "forward": 7.348226752303826,
+      "total_entropy": 8.098951487802784,
+      "total_bitmap": 8.18100682998591
+     },
+     {
+      "threshold": 0.8,
+      "tok_acc": 0.9571814204598343,
+      "forward": 7.655589686307363,
+      "total_entropy": 8.485251130539192,
+      "total_bitmap": 8.53852491955647
+     },
+     {
+      "threshold": 0.9,
+      "tok_acc": 0.9737503490645071,
+      "forward": 8.07577026901238,
+      "total_entropy": 8.99243921197416,
+      "total_bitmap": 9.02430543212866
+     },
+     {
+      "threshold": 0.95,
+      "tok_acc": 0.9814763101554501,
+      "forward": 8.419994414967887,
+      "total_entropy": 9.39845886042571,
+      "total_bitmap": 9.422021235416379
+     },
+     {
+      "threshold": 0.99,
+      "tok_acc": 0.9858512519780323,
+      "forward": 9.154798473424556,
+      "total_entropy": 10.23357648407645,
+      "total_bitmap": 10.269243877542054
+     }
+    ],
+    "at_target": {
+     "forward": 6.9472360997258535,
+     "total_entropy": 7.561970915056278,
+     "total_bitmap": 7.7101019355002
+    },
+    "vs_fixed_entropy_pct": -10.71464115850046
+   },
+   "power_at_tau_0.9": {
+    "blocks": 1216,
+    "symbol_weighted_mean": 1.149835758529451,
+    "median": 1.133924679656855,
+    "p5": 0.5233510869038789,
+    "p95": 2.0533020197004417
+   }
+  },
+  "true_context": {
+   "tokens": 10707,
+   "fixed_curve": [
+    {
+     "m": 2,
+     "tok_acc": 0.4923881572802839
+    },
+    {
+     "m": 4,
+     "tok_acc": 0.678714859437751
+    },
+    {
+     "m": 6,
+     "tok_acc": 0.8190903147473615
+    },
+    {
+     "m": 8,
+     "tok_acc": 0.9034276641449519
+    },
+    {
+     "m": 12,
+     "tok_acc": 0.9709535817689362
+    },
+    {
+     "m": 16,
+     "tok_acc": 0.9901933314653965
+    }
+   ],
+   "fixed_at_target": 7.918715393133999,
+   "message_gain": {
+    "curve": [
+     {
+      "threshold": 0.2,
+      "tok_acc": 0.8336602222844868,
+      "forward": 6.130942374147754,
+      "total_entropy": 6.3024701884828636,
+      "total_bitmap": 6.739741461984531
+     },
+     {
+      "threshold": 0.3,
+      "tok_acc": 0.8567292425516018,
+      "forward": 6.279816942187354,
+      "total_entropy": 6.569289935211224,
+      "total_bitmap": 6.920473365884326
+     },
+     {
+      "threshold": 0.4,
+      "tok_acc": 0.8816661996824507,
+      "forward": 6.459325674792192,
+      "total_entropy": 6.855981597158962,
+      "total_bitmap": 7.134647199543816
+     },
+     {
+      "threshold": 0.5,
+      "tok_acc": 0.9051088073223125,
+      "forward": 6.651909965443168,
+      "total_entropy": 7.150182483672598,
+      "total_bitmap": 7.3643263880523415
+     },
+     {
+      "threshold": 0.6,
+      "tok_acc": 0.9281778275894275,
+      "forward": 6.868403847949939,
+      "total_entropy": 7.456225380443332,
+      "total_bitmap": 7.6188870871378205
+     },
+     {
+      "threshold": 0.7,
+      "tok_acc": 0.9476977678154478,
+      "forward": 7.0919958905389,
+      "total_entropy": 7.7589653636094535,
+      "total_bitmap": 7.881193892119595
+     },
+     {
+      "threshold": 0.8,
+      "tok_acc": 0.9632950406276268,
+      "forward": 7.356495750443635,
+      "total_entropy": 8.103215197000532,
+      "total_bitmap": 8.190024044806059
+     },
+     {
+      "threshold": 0.9,
+      "tok_acc": 0.9773045671056318,
+      "forward": 7.718688708321658,
+      "total_entropy": 8.561716944903555,
+      "total_bitmap": 8.61145004919024
+     },
+     {
+      "threshold": 0.95,
+      "tok_acc": 0.9836555524423275,
+      "forward": 8.040534229943027,
+      "total_entropy": 8.954396982511252,
+      "total_bitmap": 8.983511371404798
+     },
+     {
+      "threshold": 0.99,
+      "tok_acc": 0.9893527598767161,
+      "forward": 8.760997478285233,
+      "total_entropy": 9.792997283110264,
+      "total_bitmap": 9.814395385567511
+     }
+    ],
+    "at_target": {
+     "forward": 6.60994040090688,
+     "total_entropy": 7.0860677884841685,
+     "total_bitmap": 7.314272795974986
+    },
+    "vs_fixed_entropy_pct": -10.514932830794576
+   },
+   "subset_gain": {
+    "curve": [
+     {
+      "threshold": 0.2,
+      "tok_acc": 0.8330064443821799,
+      "forward": 6.1376669468571965,
+      "total_entropy": 6.311112785151231,
+      "total_bitmap": 6.7473299624461145
+     },
+     {
+      "threshold": 0.3,
+      "tok_acc": 0.8560754646492948,
+      "forward": 6.293639674978985,
+      "total_entropy": 6.586725842592434,
+      "total_bitmap": 6.935483999335151
+     },
+     {
+      "threshold": 0.4,
+      "tok_acc": 0.8802652470346503,
+      "forward": 6.483235266647987,
+      "total_entropy": 6.884649179866545,
+      "total_bitmap": 7.160770606264473
+     },
+     {
+      "threshold": 0.5,
+      "tok_acc": 0.9033342673017652,
+      "forward": 6.679929018399178,
+      "total_entropy": 7.183307288071359,
+      "total_bitmap": 7.394775237811248
+     },
+     {
+      "threshold": 0.6,
+      "tok_acc": 0.9273372560007471,
+      "forward": 6.89866442514243,
+      "total_entropy": 7.4909466035122865,
+      "total_bitmap": 7.651955429524769
+     },
+     {
+      "threshold": 0.7,
+      "tok_acc": 0.9458298309517138,
+      "forward": 7.127113103577099,
+      "total_entropy": 7.798629990611344,
+      "total_bitmap": 7.919280856805778
+     },
+     {
+      "threshold": 0.8,
+      "tok_acc": 0.9616138974502662,
+      "forward": 7.389371439245354,
+      "total_entropy": 8.139621397044037,
+      "total_bitmap": 8.225653503317726
+     },
+     {
+      "threshold": 0.9,
+      "tok_acc": 0.9768375828896984,
+      "forward": 7.74894928551415,
+      "total_entropy": 8.594700797391102,
+      "total_bitmap": 8.64408642770112
+     },
+     {
+      "threshold": 0.95,
+      "tok_acc": 0.9830017745400206,
+      "forward": 8.06481740917157,
+      "total_entropy": 8.980054285043428,
+      "total_bitmap": 9.010224347436237
+     },
+     {
+      "threshold": 0.99,
+      "tok_acc": 0.9891659661903428,
+      "forward": 8.788642943868497,
+      "total_entropy": 9.821441100214987,
+      "total_bitmap": 9.84457863892269
+     }
+    ],
+    "at_target": {
+     "forward": 6.651500002457811,
+     "total_entropy": 7.140140913727586,
+     "total_bitmap": 7.360953515761775
+    },
+    "vs_fixed_entropy_pct": -9.832080593292748
+   },
+   "power_at_tau_0.9": {
+    "blocks": 1133,
+    "symbol_weighted_mean": 1.1211380779658826,
+    "median": 1.1155716696753581,
+    "p5": 0.48923550802036125,
+    "p95": 2.0201453225992925
+   }
+  }
+ },
+ "env": {
+  "python": "3.13.16",
+  "platform": "Linux-6.18.44-fc-v139-x86_64-with-glibc2.39",
+  "machine": "x86_64",
+  "torch": "2.14.1+cu130",
+  "threads": 2,
+  "transformers": "5.19.0",
+  "gpu": "",
+  "git": "0b6380f",
+  "time": "2026-10-17 10:02:50"
+ }
+}
