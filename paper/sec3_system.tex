@@ -10,7 +10,7 @@ A transmitter, for example a base station or an edge server, sends text messages
 \subsection{Traffic and Drift}
 \label{sec:system-drift}
 
-Traffic is organized in adaptation steps $n = 1, 2, \dots$. At every step each of $N_\mathrm{c}$ parallel conversations sends the next sentence of its current document, and a conversation that reaches the end of a document opens a new one. The content drifts at three timescales. The fast band is the channel and the document of each conversation. The medium band is the topic from which new documents are drawn; it changes every $\tau_\mathrm{med}$ steps, and a new document belongs to the current topic with probability $\kappa$. The slow band is the knowledge domain, which changes every $\tau_\mathrm{slow}$ steps and returns after the other domains have been visited, so that retained knowledge can be measured. The SNR of step $n$, in decibels, follows a clipped first-order autoregressive process,
+Traffic is organized in adaptation steps $n = 1, 2, \dots$. At every step each of $N_\mathrm{c}$ parallel conversations sends the next sentence of its current document, and a conversation that reaches the end of a document opens a new one. The content drifts at three timescales. The fast band is the channel and the document of each conversation. The medium band is the topic from which new documents are drawn; it changes every $\tau_\mathrm{med}$ steps, and a new document is drawn from the current topic with probability $\kappa$ and otherwise from a topic chosen uniformly at random, which may again be the current one. The slow band is the knowledge domain, which changes every $\tau_\mathrm{slow}$ steps and returns after the other domains have been visited, so that retained knowledge can be measured. The SNR of step $n$, in decibels, follows a clipped first-order autoregressive process,
 \begin{equation}
 \tilde{\gamma}_n = \mu_\gamma + \rho\,(\tilde{\gamma}_{n-1}-\mu_\gamma) + \sigma_\gamma\sqrt{1-\rho^2}\,\varepsilon_n,
 \qquad \gamma_n = \min\{\gamma_{\max},\,\max\{\gamma_{\min},\,\tilde{\gamma}_n\}\},
@@ -21,12 +21,12 @@ with $\varepsilon_n\sim\mathcal{N}(0,1)$ independent and $\tilde{\gamma}_0 = \mu
 \subsection{Channel}
 \label{sec:system-channel}
 
-Each transmitted block (one shell of the codewords of one message, Section~\ref{sec:method-codebook}) is scaled to unit average power per symbol by a gain $g_k$. After coherent equalization with perfect channel state information, symbol $j$ of token $t$ is received as
+Each transmitted block (one shell of the codewords of the tokens of one message that a round carries, Section~\ref{sec:method-codebook}) is scaled to unit average power per symbol by a gain. After coherent equalization with perfect channel state information, symbol $j$ of token $t$ is received as
 \begin{equation}
-y_{t,j} = c_{x_t,j} + w_{t,j},\qquad w_{t,j}\sim\mathcal{N}\!\left(0,\lambda_j^{-1}\right),\qquad \lambda_j = g_{k(j)}^2\,|h|^2\,10^{\gamma_n/10},
+y_{t,j} = c_{x_t,j} + w_{t,j},\qquad w_{t,j}\sim\mathcal{N}\!\left(0,\lambda_{t,j}^{-1}\right),\qquad \lambda_{t,j} = g_{t,k(j)}^2\,|h|^2\,10^{\gamma_n/10},
 \label{eq:channel}
 \end{equation}
-where $k(j)$ is the shell that contains coordinate $j$, $|h|^2 = 1$ for the additive white Gaussian noise (AWGN) channel and $|h|^2\sim\mathrm{Exp}(1)$, drawn once per message and floored at $|h| = 0.05$, under Rayleigh block fading. The noise is independent across symbols, tokens and messages. A capacity-achieving code at the mean SNR $\bar{\gamma}$ carries $C(\bar{\gamma}) = \tfrac{1}{2}\log_2(1+\bar{\gamma})$ bits per real channel symbol; this is the rate at which the signaling and synchronization bits are charged.
+where $k(j)$ is the shell that contains coordinate $j$, $g_{t,k}$ is the gain of the block that carried shell $k$ of token $t$, $|h|^2 = 1$ for the additive white Gaussian noise (AWGN) channel and $|h|^2\sim\mathrm{Exp}(1)$, drawn once per message and floored at $|h| = 0.05$, under Rayleigh block fading. The noise is independent across symbols, tokens and messages. A capacity-achieving code at the mean SNR $\bar{\gamma}$ carries $C(\bar{\gamma}) = \tfrac{1}{2}\log_2(1+\bar{\gamma})$ bits per real channel symbol, with $\bar{\gamma}$ on a linear scale ($C = 1.7297$ at 10\,dB); this is the rate at which the signaling and synchronization bits are charged.
 
 \subsection{Performance Measures and Problem Statement}
 \label{sec:system-problem}

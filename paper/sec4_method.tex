@@ -30,23 +30,23 @@ with $\vect{W}_1\in\R^{M\times D}$, $\vect{W}_2\in\R^{H\times D}$, $\vect{b}_2\i
 \vect{c}_{v,\mathcal{S}_k} = \min\!\left\{1,\frac{\sqrt{\eta\,d_k}}{\lVert\hat{\vect{c}}_{v,k}\rVert}\right\}\hat{\vect{c}}_{v,k},
 \label{eq:shell}
 \end{equation}
-where $\vect{\mu}_k = \sum_v q(v)\,\tilde{\vect{c}}_{v,\mathcal{S}_k}$ and $P_k = d_k^{-1}\sum_v q(v)\,\lVert\tilde{\vect{c}}_{v,\mathcal{S}_k}-\vect{\mu}_k\rVert^2$. Every shell therefore has zero mean and average power at most one per symbol under $q$.
+where $\vect{\mu}_k = \sum_v q(v)\,\tilde{\vect{c}}_{v,\mathcal{S}_k}$ and $P_k = d_k^{-1}\sum_v q(v)\,\lVert\tilde{\vect{c}}_{v,\mathcal{S}_k}-\vect{\mu}_k\rVert^2$. Every shell therefore has zero mean before the peak limit and average power at most one per symbol under $q$.
 
-\emph{Block power control.} The constraint of~(\ref{eq:shell}) holds on average over the base corpus, not for a particular message. Before transmission, shell $k$ of a message $\vect{x}$ of $T$ tokens is therefore multiplied by
+\emph{Block power control.} The constraint of~(\ref{eq:shell}) holds on average over the base corpus, not for a particular message. Before transmission, shell $k$ of the set $\mathcal{T}$ of tokens of a message that a round carries---all $T$ tokens in the first round, the requested ones in a refinement round---is therefore multiplied by
 \begin{equation}
-g_k(\vect{x}) = \left(\frac{T\,d_k}{\sum_{t=1}^{T}\lVert\vect{c}_{x_t,\mathcal{S}_k}\rVert^2}\right)^{1/2},
+g_k(\mathcal{T}) = \left(\frac{|\mathcal{T}|\,d_k}{\sum_{t\in\mathcal{T}}\lVert\vect{c}_{x_t,\mathcal{S}_k}\rVert^2}\right)^{1/2},
 \label{eq:gain}
 \end{equation}
-so that every transmitted block has an average power of exactly one per symbol. The gain is applied to the whole block, pilots included, and is absorbed in the channel estimate; the receiver sees it only as the precision $\lambda_j$ of~(\ref{eq:channel}). As a consequence, no receiver can gain power from content whose codewords happen to be large.
+so that every transmitted block has an average power of exactly one per symbol. The gain is applied to the whole block, pilots included, and is absorbed in the channel estimate; the receiver sees it only as the precision $\lambda_{t,j}$ of~(\ref{eq:channel}). As a consequence, no receiver can gain power from content whose codewords happen to be large.
 
-\emph{Property 1 (exact incremental refinement).} For every message and every $k$, the prefix of length $m_k$ meets the power constraint with equality, and receiving shells $1,\dots,k$ in $k$ separate rounds yields the same observations $(y_{t,j},\lambda_j)_{j\le m_k}$, in distribution, as receiving the prefix $m_k$ at once. \emph{Proof.} The gain~(\ref{eq:gain}) of shell $k$ depends only on the coordinates in $\mathcal{S}_k$, and the noise in~(\ref{eq:channel}) is independent across symbols; hence neither the transmitted block nor its noise depends on when, or whether, other shells are sent. Averaging the unit power of the blocks over $k$ gives the power of any prefix. $\square$
+\emph{Property 1 (exact incremental refinement).} Every transmitted block meets the power constraint with equality, so every prefix does. Receiving shells $1,\dots,k$ of all tokens in $k$ separate rounds yields the same observations, in distribution, as receiving the prefix $m_k$ at once; a refinement round extends the prefix of each requested token by one shell, received with the precision set by the gain of the requested set. \emph{Proof.} The gain~(\ref{eq:gain}) of a block depends only on the coordinates of its own shell and on the tokens it carries, and the noise in~(\ref{eq:channel}) is independent across symbols; hence neither a block nor its noise depends on when, or whether, other shells are sent. Averaging the unit power of the blocks gives the power of any prefix. $\square$
 
 \subsection{Bayesian Receiver With a Language Prior}
 \label{sec:method-receiver}
 
 \emph{Likelihood.} When the first $m$ symbols of token $t$ have arrived, the Gaussian log-likelihood of every vocabulary entry is, up to a term that does not depend on $v$,
 \begin{equation}
-\ell_t(v;m) = \sum_{j=1}^{m}\lambda_j\left(y_{t,j}\,c_{v,j}-\tfrac{1}{2}\,c_{v,j}^2\right),
+\ell_t(v;m) = \sum_{j=1}^{m}\lambda_{t,j}\left(y_{t,j}\,c_{v,j}-\tfrac{1}{2}\,c_{v,j}^2\right),
 \label{eq:likelihood}
 \end{equation}
 which is one matrix product of the received symbols with the codebook for all $V$ entries.
@@ -81,7 +81,7 @@ The codebook is trained once, before deployment and without the language model, 
 \mathcal{L}_\mathrm{cb}(\vect{W}) = \E_{v\sim\bar{q},\;\gamma\sim\mathcal{U}[\gamma_\mathrm{lo},\gamma_\mathrm{hi}]}\left[\frac{1}{|\mathcal{M}_b|}\sum_{m\in\mathcal{M}_b}-\log\frac{\exp\ell(v;m)}{\sum_{v'\in\mathcal{V}}\exp\ell(v';m)}\right],
 \label{eq:codebook-loss}
 \end{equation}
-where $\ell$ is~(\ref{eq:likelihood}) with $\lambda_j = 10^{\gamma/10}$, $\mathcal{M}_b$ is a set of prefix lengths drawn afresh for every batch, and $\bar{q}$ mixes the unigram distribution of the base corpus with the uniform distribution over $\mathcal{V}$, so that tokens the base corpus never uses---the vocabulary of later domains---are separated as well. The objective trains all prefixes jointly, which is what makes every prefix a usable code.
+where $\ell$ is~(\ref{eq:likelihood}) with $\lambda_{t,j} = 10^{\gamma/10}$, $\mathcal{M}_b$ is a set of prefix lengths drawn afresh for every batch, and $\bar{q}$ mixes the unigram distribution of the base corpus with the uniform distribution over $\mathcal{V}$, so that tokens the base corpus never uses---the vocabulary of later domains---are separated as well. The objective trains all prefixes jointly, which is what makes every prefix a usable code.
 
 \subsection{Time-Nested Receiver Memories}
 \label{sec:method-memories}
@@ -114,7 +114,7 @@ s^\star = \argmin_{s}\,H_s,\qquad
 s_\mathrm{new} = \begin{cases} s^\star, & H_{s^\star} < H_{s_\mathrm{cur}}-\delta,\\ s_\mathrm{cur}, & \text{otherwise},\end{cases}
 \label{eq:slot}
 \end{equation}
-where an untrained slot is started instead whenever $s_\mathrm{new} = \varnothing$ and one is left. The choice costs $\lceil\log_2(K_\mathrm{s}+1)\rceil$ bits. A domain that returns finds its adapter intact, so recalling it costs two bits rather than a new synchronization, and the receiver is never left with an adapter worse than none.
+where an untrained slot is started instead whenever $s_\mathrm{new} = \varnothing$ and one is left. The choice costs $\lceil\log_2(K_\mathrm{s}+1)\rceil$ bits. A domain that returns finds its adapter intact, so recalling it costs two bits rather than a new synchronization, and the receiver keeps an adapter that is worse than none by more than $\delta$ for at most $C_\mathrm{sel}$ steps.
 
 Algorithm~\ref{alg:step} summarizes one adaptation step.
 
@@ -153,7 +153,7 @@ k_t(\tau) = \min\left\{k\in\{k_0,\dots,K\}: q_t^{(k)}\ge\tau\right\}\;(\text{or 
 S_\mathrm{fwd}(\tau) = \frac{1}{N_\mathrm{tok}}\sum_{t} m_{k_t(\tau)},
 \label{eq:stop}
 \end{equation}
-where $q_t^{(k)}$ is the confidence of token $t$ when the message is decoded with $m_k$ symbols for that token and $S_\mathrm{fwd}$ is the mean number of forward symbols per token over $N_\mathrm{tok}$ tokens. Because the shells are nested (Property 1), the extra symbols simply extend what was received: this is incremental redundancy at the level of single tokens, spent where the language model cannot fill the gap on its own.
+where $q_t^{(k)}$ is the confidence of token $t$ when the message is decoded with $m_k$ symbols for that token and $S_\mathrm{fwd}$ is the mean number of forward symbols per token over the $N_\mathrm{tok}$ tokens of an adaptation step; operating curves average these step means over the steps. Because the shells are nested (Property 1), the extra symbols simply extend what was received: this is incremental redundancy at the level of single tokens, spent where the language model cannot fill the gap on its own.
 
 \begin{figure}[t]
 \centering
@@ -174,7 +174,7 @@ Both are converted to real channel symbols at $C(\bar{\gamma})$ and added to the
 \subsection{Net Semantic Rate and Crossover Traffic}
 \label{sec:method-cost}
 
-Let $R = \bar{T}\,[S_\mathrm{fwd}+B_\mathrm{fb}/C(\bar{\gamma})]$ be the payload of a receiver per message at the target accuracy, read off its measured operating curve (symbols against accuracy, over the thresholds $\tau$ or the prefix lengths) by linear interpolation. If one adaptation step, with $B_\mathrm{sync}$ bits of synchronization, serves $N$ messages, the net semantic rate and the traffic above which the receiver is cheaper than a reference receiver with payload $R^\mathrm{ref}>R$ are
+Let $R = \bar{T}\,[S_\mathrm{fwd}+B_\mathrm{fb}/C(\bar{\gamma})]$ be the payload of a receiver per message at the target accuracy, read off its measured operating curve (symbols against accuracy, over the thresholds $\tau$ or the prefix lengths) by linear interpolation. When even the cheapest point of a curve exceeds the target, the curve is read at that point, which is then an upper bound of the cost at the target; Section~\ref{sec:results-primary} states where this occurs. If one adaptation step, with $B_\mathrm{sync}$ bits of synchronization, serves $N$ messages, the net semantic rate and the traffic above which the receiver is cheaper than a reference receiver with payload $R^\mathrm{ref}>R$ are
 \begin{equation}
 R_\mathrm{net}(N) = R + \frac{B_\mathrm{sync}}{C(\bar{\gamma})\,N}\quad\text{real symbols per message},\qquad
 N^\star = \frac{B_\mathrm{sync}}{C(\bar{\gamma})\left(R^\mathrm{ref}-R\right)} .

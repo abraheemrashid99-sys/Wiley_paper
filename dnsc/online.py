@@ -66,7 +66,7 @@ from .data.stream import build_probes
 from .linkbudget import net_semantic_rate, symbols_at_accuracy
 from .metrics import expected_calibration_error, load_similarity
 from .nested import Level, NestedOptimizer
-from .refine import FeedbackMeter, feedback_bits_per_token, level_stats, progressive_decode, rounds_per_message, stop_levels
+from .refine import FeedbackMeter, feedback_bits_per_token, level_stats, progressive_decode, round_policy, rounds_per_message, stop_levels
 from .train import LN2, evaluate_gen, evaluate_tf, sample_grans
 from .utils import Timer, environment, get_device, save_json, set_seed
 
@@ -322,6 +322,7 @@ def run_stream(cfg, method: str, seed: int, ckpt_dir: str | Path, out_path: str 
     grid_meter = [[FeedbackMeter(n_levels) for _ in thresholds] for _ in range(n_levels)]
     dcfg = cfg["decoder"]  # the real decoder of the audit (refinement and fixed-prefix reference alike)
     beam, reopen = int(dcfg["beam"]), bool(dcfg["reopen"])
+    power = str(dcfg["refine_power"])  # power of a refinement round: gain of the whole message, or of the tokens it carries
     first_shell = codec.grans.index(dcfg["start_m"]) if dcfg["start_m"] is not None else 0
     live_every = int(scfg["live_every"])
     live_thresholds = [float(t) for t in (scfg["live_thresholds"] or thresholds)]  # the thresholds that are also decoded for real
@@ -361,8 +362,10 @@ def run_stream(cfg, method: str, seed: int, ckpt_dir: str | Path, out_path: str 
                 gen = evaluate_gen(codec, item.texts[few], m_op, item.snr_db, channel, sim, cache=cache, batch_size=eval_batch, contexts=rx_contexts[few] if use_context else None, continued=continued[few] if use_context else None)
                 gen_log.append({"step": item.t, "domain": item.domain, **gen})
             with torch.no_grad():
-                y, prec = codec.transmit(codec.encode(batch), batch.lens, item.snr_db, channel)
-                power = codec.codebook_power(batch, m_op)
+                x_tx = codec.encode(batch)
+                y, prec = codec.transmit(x_tx, batch.lens, item.snr_db, channel)
+                gains = codec.block_gains(x_tx, batch.lens)  # as inside transmit: per message and shell
+                cb_power = codec.codebook_power(batch, m_op)
                 ids, y_flat, w_flat = codec.flat_channel(batch, y, prec)  # one row per real token
             with torch.set_grad_enabled(train_lora and not second_pass):
                 logits = codec.lm_logits_tf(batch, rx_contexts, flat=True)
@@ -378,7 +381,7 @@ def run_stream(cfg, method: str, seed: int, ckpt_dir: str | Path, out_path: str 
                     hit_rate = lambda rows: sum(int(a == b) for (row, length), got in zip(truth, rows) for a, b in zip(row[:length], got)) / max(n_now, 1)  # noqa: E731
                     n_now = int(batch.lens.sum())
                     for index, tau in enumerate(live_thresholds):
-                        out = progressive_decode(codec, y, prec, batch.lens, tau, rx_contexts, cache, start=first_shell, first_pass=first_pass, beam=beam, reopen=reopen)
+                        out = progressive_decode(codec, y, prec, batch.lens, tau, rx_contexts, cache, start=first_shell, first_pass=first_pass, beam=beam, reopen=reopen, power=power, x=x_tx, gains=gains)
                         first_pass = out["first_pass"]  # the first round is the same for every threshold
                         live_meter[index].merge(out["meter"])
                         meter = out["meter"]  # the decisions of this step, so that intervals over audited steps can recompute the entropy of the requests
@@ -389,18 +392,32 @@ def run_stream(cfg, method: str, seed: int, ckpt_dir: str | Path, out_path: str 
         # first shell (from the decoder's first one) at which the receiver's own
         # confidence reaches the threshold
         selective = {}
+        owner = torch.repeat_interleave(torch.arange(batch.lens.numel(), device=batch.lens.device), batch.lens)
+        gains_tok = gains[owner]
+
+        def policy(tau: float, first: int):
+            """Stop shell, correctness and decision of every token under the request policy. The policy of the
+            paper (the decoder's first shell) is emulated round by round with the configured power of a
+            refinement round; the exploratory grid of other first shells keeps the gain of the whole message."""
+            if power == "subset" and first == first_shell:
+                out = round_policy(codec, ids, y_flat, w_flat, rx_prior, tau, first, gains_tok, owner, power)
+                return out["stop"], out["correct"], out["decided"]
+            stop = stop_levels(stats["conf"], tau, first)
+            return stop, stats["correct"].gather(1, stop.unsqueeze(1)).squeeze(1), stats["decided"].gather(1, stop.unsqueeze(1)).squeeze(1)
+
+        policy_cache = {tau: policy(tau, first_shell) for tau in thresholds}
         for tau in thresholds:
-            stop = stop_levels(stats["conf"], tau, first_shell)
-            selective[tau] = (sizes[stop].mean().item(), stats["correct"].gather(1, stop.unsqueeze(1)).mean().item())
-        decided = stats["decided"].gather(1, stop_levels(stats["conf"], tau_op, first_shell).unsqueeze(1)).squeeze(1)
+            stop, hit, _ = policy_cache[tau]
+            selective[tau] = (sizes[stop].mean().item(), hit.mean().item())
+        decided = (policy_cache[tau_op] if tau_op in policy_cache else policy(tau_op, first_shell))[2]
         # the same policy for every choice of the first shell, with the return-link signalling it needs
         lengths = batch.lens.tolist()
         for first in range(n_levels):
             for index, tau in enumerate(thresholds):
-                stop = stop_levels(stats["conf"], tau, first)
+                stop, hit, _ = policy_cache[tau] if first == first_shell else policy(tau, first)
                 grid_sum[first, index] += (
                     sizes[stop].mean().item(),
-                    stats["correct"].gather(1, stop.unsqueeze(1)).mean().item(),
+                    hit.mean().item(),
                     feedback_bits_per_token(stop, n_levels, first).mean().item(),
                     rounds_per_message(stop, lengths, first),
                 )
@@ -455,7 +472,7 @@ def run_stream(cfg, method: str, seed: int, ckpt_dir: str | Path, out_path: str 
         conf_all.append(stats["conf"][:, k_op].cpu().numpy())
         correct_all.append(stats["correct"][:, k_op].cpu().numpy())
         log["snr_db"].append(item.snr_db)
-        log["codebook_power"].append(power)
+        log["codebook_power"].append(cb_power)
         log["domain"].append(item.domain)
         log["topic"].append(item.topic)
         log["regime"].append(item.regime)
@@ -539,7 +556,7 @@ def run_stream(cfg, method: str, seed: int, ckpt_dir: str | Path, out_path: str 
         "symbols_at_target_selective_fb": refine_grid[first_shell]["symbols_at_target_fb"],  # the policy, from the decoder's first shell
         "symbols_at_target_selective_fb_entropy": refine_grid[first_shell]["symbols_at_target_fb_entropy"],
         # the same policy started at the decoder's first shell (emulated); with the default decoder it is the line above
-        "decoder": {"beam": beam, "start_m": codec.grans[first_shell], "reopen": reopen},
+        "decoder": {"beam": beam, "start_m": codec.grans[first_shell], "reopen": reopen, "refine_power": power},
         "symbols_at_target_decoder_start_fb_entropy": refine_grid[first_shell]["symbols_at_target_fb_entropy"],
         "sel_feedback_bits": operating["feedback_bits"],
         "sel_feedback_entropy_bits": operating["feedback_entropy_bits"],

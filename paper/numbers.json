@@ -826,6 +826,168 @@
    "nested": 5.241211030163049
   },
   "tf.context_share_of_prior_gain_matched_pct": 76.49887237635267,
+  "tf.seed_test_vs_frozen_fixed": {
+   "frozen": {
+    "p": 0.03125,
+    "p_holm": 0.09375
+   },
+   "context_only": {
+    "p": 0.125,
+    "p_holm": 0.125
+   },
+   "nested": {
+    "p": 0.03125,
+    "p_holm": 0.09375
+   }
+  },
+  "floor.accuracy_at_cheapest_point": {
+   "tf.frozen": {
+    "0": 0.8805,
+    "1": 0.8742,
+    "2": 0.8624,
+    "3": 0.91,
+    "4": 0.8858,
+    "5": 0.8687
+   },
+   "real.frozen": 0.8767,
+   "tf.context_only": {
+    "0": 0.9014,
+    "3": 0.9268,
+    "4": 0.9027,
+    "5": 0.8909
+   },
+   "real.context_only": 0.903,
+   "tf.nested": {
+    "0": 0.908,
+    "1": 0.9029,
+    "2": 0.8993,
+    "3": 0.9313,
+    "4": 0.9102,
+    "5": 0.8988
+   },
+   "real.nested": 0.9206
+  },
+  "emulation_gap_fixed_pct": {
+   "frozen": 9.693121693121686,
+   "context_only": 10.904190149473148,
+   "nested": 3.8525111252383892
+  },
+  "pilot.full_precision": {
+   "context_only": {
+    "seeds": [
+     0,
+     1,
+     2
+    ],
+    "delta": 0.3724924886302871,
+    "ci_low": 0.3220597752370417,
+    "ci_high": 0.41979553837812256,
+    "eq90": [
+     0.33017127112907185,
+     0.4123384188467924
+    ],
+    "equivalent": false
+   },
+   "ewc": {
+    "seeds": [
+     0
+    ],
+    "delta": 0.12292120276020017,
+    "ci_low": 0.07302260092086006,
+    "ci_high": 0.18247667607105103,
+    "eq90": [
+     0.0810770013985743,
+     0.17079896946200213
+    ],
+    "equivalent": false
+   },
+   "frozen": {
+    "seeds": [
+     0,
+     1,
+     2
+    ],
+    "delta": 1.537496220224294,
+    "ci_low": 1.3149397660593356,
+    "ci_high": 1.7597313748793422,
+    "eq90": [
+     1.3514213169022977,
+     1.723314108535703
+    ],
+    "equivalent": false
+   },
+   "full_online": {
+    "seeds": [
+     0,
+     1,
+     2
+    ],
+    "delta": -0.006056660369635212,
+    "ci_low": -0.031137440381305774,
+    "ci_high": 0.01989722010800415,
+    "eq90": [
+     -0.02763986597916639,
+     0.015060531164892975
+    ],
+    "equivalent": true
+   },
+   "nested_no_context": {
+    "seeds": [
+     0
+    ],
+    "delta": 1.1444835243405673,
+    "ci_low": 0.8287350096753476,
+    "ci_high": 1.443467681045481,
+    "eq90": [
+     0.8867489902327514,
+     1.4008171811467025
+    ],
+    "equivalent": false
+   },
+   "nested_no_slots": {
+    "seeds": [
+     0,
+     1,
+     2
+    ],
+    "delta": 0.09625576531402788,
+    "ci_low": 0.06399333240132156,
+    "ci_high": 0.1345358712616379,
+    "eq90": [
+     0.06771883893629375,
+     0.12938112352547929
+    ],
+    "equivalent": false
+   },
+   "nested_two_level": {
+    "seeds": [
+     0
+    ],
+    "delta": 0.021562809556362292,
+    "ci_low": 0.012907002223085596,
+    "ci_high": 0.03148231547603168,
+    "eq90": [
+     0.01431136108422303,
+     0.029595173574553976
+    ],
+    "equivalent": true
+   },
+   "single_rate": {
+    "seeds": [
+     0,
+     1,
+     2
+    ],
+    "delta": 0.10670212548281073,
+    "ci_low": 0.07599991932682795,
+    "ci_high": 0.14292258259613502,
+    "eq90": [
+     0.08031580904745571,
+     0.13718161603834234
+    ],
+    "equivalent": false
+   }
+  },
   "link.levels": [
    {
     "name": "rx_bias",
@@ -1034,6 +1196,10 @@
   "link.crossover_vs_frozen_fixed": "results/gpt2_v0.4_six_seeds/raw_streams.tar.gz (per-step audits)",
   "tf.prior_bits_matched_seeds": "results/gpt2_v0.4_six_seeds/raw_streams.tar.gz (per-step audits)",
   "tf.context_share_of_prior_gain_matched_pct": "results/gpt2_v0.4_six_seeds/raw_streams.tar.gz (per-step audits)",
+  "tf.seed_test_vs_frozen_fixed": "results/gpt2_v0.4_six_seeds/raw_streams.tar.gz (per-step audits)",
+  "floor.accuracy_at_cheapest_point": "results/gpt2_v0.4_six_seeds/raw_streams.tar.gz (per-step audits)",
+  "emulation_gap_fixed_pct": "results/gpt2_v0.4_six_seeds/tables/refine_cost_hier.csv",
+  "pilot.full_precision": "results/gpt2_v0.3_colab_t4/raw_streams.tar.gz",
   "link.levels": "results/gpt2_v0.4_six_seeds/raw_streams.tar.gz (per-step audits)",
   "link.slot_switches_mean": "results/gpt2_v0.4_six_seeds/raw_streams.tar.gz (per-step audits)",
   "runtime.hours": "results/gpt2_v0.4_six_seeds/raw_streams.tar.gz (per-step audits)",

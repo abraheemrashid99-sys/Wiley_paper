@@ -150,3 +150,20 @@ reopening. The plan as it was written:
 4. The same on the three seeds the pilot never saw.
 
 Whatever these show is the result, and the paper is framed around it.
+
+## G. Independent audit of the manuscript (version 0.5)
+
+An auditor who had not written the manuscript checked every number against
+the result files and every equation against the code. Findings and how they
+were resolved:
+
+| # | Finding | Resolution |
+| --- | --- | --- |
+| 1 | Where a curve already exceeds 90 % at its cheapest point (τ = 0.5), `symbols_at_accuracy` returns that point: DN-SC on four of six seeds teacher-forced and on its pooled real-decoding curve (92.1 %), the context memory on three of four seeds and its pooled real curve (90.3 %), the frozen receiver with refinement on seed 3 | stated in the method (Section 4.7) and the results; the savings against the frozen fixed-rate receiver are conservative, comparisons between two such readings are labelled indicative |
+| 2 | Six of eight decoder candidates are read at the lowest validation threshold (0.7), upper bounds | stated in Section 6.2, with why the decisions stand |
+| 3 | The 5 % emulation rule was implemented for the refinement policy; the fixed-prefix receivers show +9.7 % (frozen), +10.9 % (context), +3.8 % (DN-SC) | stated; under the stricter reading the real-decoding figures are the measurement, and they give the larger savings, so the teacher-forced headline is the conservative one |
+| 4 | The teacher-forced seed-level p was not Holm-adjusted | Holm-adjusted value (0.094) reported; computed in `scripts/paper_numbers.py` |
+| 5 | Six ablation cells rounded twice | recomputed from the raw logs at full precision |
+| 6 | Refinement rounds were simulated with the gain of the whole message; their power is not one | measured (`scripts/check_refine_power.py`, `results/refine_power`), corrected protocol implemented (`decoder.refine_power=subset`), disclosed in the paper with its effect |
+| 7–19 | wording: prior helps at 4–12 symbols (not 2), channel named at 0 dB, κ is the probability of drawing from the current topic before a uniform draw, zero mean holds before the peak limit, slot rule keeps a worse adapter for at most `select_every` steps, step means averaged over steps, linear SNR in C, ablations on a T4 GPU, latency range, documents drawn with replacement | corrected in the text |
+| 20 | `netrate_hier` gives N* = 1487 (forward symbols, six seeds) while the paper gives 1253 (signalling included, four shared seeds) | the paper's values come from `scripts/paper_numbers.py` (`link.crossover_*`) and say so |

@@ -355,12 +355,15 @@ class SemanticCodec(nn.Module):
 
         ``m`` is either one prefix length for the whole batch or a (B, T)
         tensor of per-token prefix lengths; ``prec`` is the (B, M) noise
-        precision returned by :meth:`transmit`."""
+        precision returned by :meth:`transmit`, or a (B, T, M) tensor of
+        per-token precisions (refinement rounds sent at the gain of the
+        requested tokens, see :func:`dnsc.refine.progressive_decode`)."""
         prec = prec.to(device=y.device, dtype=y.dtype)
+        per_token = prec if prec.dim() == 3 else prec.unsqueeze(1).expand(-1, y.shape[1], -1)
         if not isinstance(m, int):
             keep = (torch.arange(self.M, device=y.device).view(1, 1, -1) < m.unsqueeze(-1)).to(y.dtype)
-            return self.loglik_w(y, prec.unsqueeze(1) * keep)
-        return self.loglik_w(y[..., :m], prec[:, :m].unsqueeze(1).expand(-1, y.shape[1], -1))
+            return self.loglik_w(y, per_token * keep)
+        return self.loglik_w(y[..., :m], per_token[..., :m])
 
     # ------------------------------------------- the same, on real tokens only
     # A stream step spends most of its time on vocabulary-sized tensors. The

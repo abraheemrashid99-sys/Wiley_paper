@@ -1122,3 +1122,80 @@ def test_real_configs_are_valid():
     for name in ("smoke", "rehearsal", "laptop", "main", "scale"):
         loaded = load_config(ROOT / "configs" / f"{name}.yaml")
         assert loaded["stream"]["m_op"] in loaded["codec"]["granularities"], name
+
+
+def test_refinement_rounds_at_unit_power_over_the_requested_tokens(cfg, checkpoint):
+    """power='message' reproduces the emulation of version 0.4 exactly; power='subset'
+    scales every refinement round to unit power over the tokens it carries, which
+    leaves round 1 and a round that carries every token unchanged; the real decoder
+    with power='subset' agrees with the emulation on one-token messages."""
+    from dnsc.channel import shell_slices
+    from dnsc.refine import round_policy
+
+    codec = load_codec(cfg, checkpoint, CPU)
+    grans = codec.grans
+    batch = codec.tokenize(get_corpus("toy_a", cfg["data"]).texts("test")[:12])
+    with torch.no_grad():
+        x = codec.encode(batch)
+        gains = codec.block_gains(x, batch.lens)
+        y, prec = codec.transmit(x, batch.lens, 5.0, Channel("awgn", 3))
+        ids, y_flat, w_flat = codec.flat_channel(batch, y, prec)
+        log_prior = codec.prior_tf(batch, flat=True)
+        stats = level_stats(codec, ids, y_flat, w_flat, log_prior)
+    owner = torch.repeat_interleave(torch.arange(batch.lens.numel()), batch.lens)
+    for tau in (0.5, 0.9):
+        msg = round_policy(codec, ids, y_flat, w_flat, log_prior, tau, 0, gains[owner], owner, power="message")
+        stop = stop_levels(stats["conf"], tau)
+        clear = (stats["conf"] - tau).abs().min(dim=1).values > 1e-4
+        assert bool((msg["stop"][clear] == stop[clear]).all())
+        sub = round_policy(codec, ids, y_flat, w_flat, log_prior, tau, 0, gains[owner], owner, power="subset")
+        assert bool((sub["stop"] >= 0).all()) and sub["correct"].numel() == ids.numel()
+    # a threshold no confidence reaches requests every token in every round: the subset is the message
+    full_m = round_policy(codec, ids, y_flat, w_flat, log_prior, 2.0, 0, gains[owner], owner, power="message")
+    full_s = round_policy(codec, ids, y_flat, w_flat, log_prior, 2.0, 0, gains[owner], owner, power="subset")
+    assert torch.equal(full_m["decided"], full_s["decided"])
+    always_m = progressive_decode(codec, y, prec, batch.lens, 2.0)
+    always_s = progressive_decode(codec, y, prec, batch.lens, 2.0, power="subset", x=x, gains=gains)
+    assert always_m["token_ids"] == always_s["token_ids"] and always_m["symbols"] == always_s["symbols"]
+    # every round of the subset protocol has unit average power over the tokens it carries
+    code = codec.codebook()
+    for k, sl in enumerate(shell_slices(grans)):
+        if k == 0:
+            continue
+        for b in range(batch.lens.numel()):
+            n = int(batch.lens[b])
+            pos = torch.arange(0, n, 2)  # any subset
+            sent = x[b, pos, sl]
+            g_new = torch.sqrt(pos.numel() * (sl.stop - sl.start) / sent.pow(2).sum())
+            assert float((g_new * sent).pow(2).mean()) == pytest.approx(1.0, rel=1e-5)
+    # one-token messages: real decoding with subset power equals the emulation
+    first = TokenBatch(batch.ids[:, :1].contiguous(), torch.ones_like(batch.lens))
+    with torch.no_grad():
+        x1 = codec.encode(first)
+        g1 = codec.block_gains(x1, first.lens)
+        y1, prec1 = codec.transmit(x1, first.lens, 5.0, Channel("awgn", 4))
+        ids1, yf1, wf1 = codec.flat_channel(first, y1, prec1)
+        lp1 = codec.prior_tf(first, flat=True)
+    own1 = torch.arange(first.lens.numel())
+    for tau in (0.3, 0.6, 0.9):
+        emu = round_policy(codec, ids1, yf1, wf1, lp1, tau, 0, g1[own1], own1, power="subset")
+        out = progressive_decode(codec, y1, prec1, first.lens, tau, power="subset", x=x1, gains=g1)
+        assert [row[0] for row in out["token_ids"]] == emu["decided"].tolist()
+        assert out["level"][:, 0].tolist() == emu["stop"].tolist()
+    assert grans[0] == codec.grans[0]
+
+
+def test_stream_runs_with_refinement_rounds_at_subset_power(cfg, checkpoint, tmp_path):
+    """The stream runner with decoder.refine_power=subset: the audit decodes for real,
+    the summary records the setting, and the curves are well formed."""
+    from conftest import TINY_OVERRIDES
+
+    from dnsc.config import load_config
+
+    over = TINY_OVERRIDES + [f"out_dir={tmp_path / 'run'}", f"data.cache_dir={tmp_path / 'data'}", "stream.live_every=3", "decoder={beam: 2, start_m: 1, reopen: false, refine_power: subset}"]
+    sub_cfg = load_config(None, over)
+    out = run_stream(sub_cfg, "nested", 0, checkpoint, tmp_path / "sub.json")
+    assert out["summary"]["decoder"]["refine_power"] == "subset"
+    assert out["live_curve"] and all(0.0 <= p["tok_acc"] <= 1.0 for p in out["live_curve"])
+    assert all(0.0 <= p["tok_acc"] <= 1.0 for p in out["selective_curve"])
+    assert out["summary"]["symbols_at_target_selective_fb_entropy"] is None or out["summary"]["symbols_at_target_selective_fb_entropy"] > 0

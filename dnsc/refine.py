@@ -84,6 +84,59 @@ def stop_levels(conf: torch.Tensor, threshold: float, start: int = 0) -> torch.T
     return torch.where(hit.any(dim=1), hit.float().argmax(dim=1), torch.full_like(hit[:, 0], last, dtype=torch.long))
 
 
+@torch.no_grad()
+def round_policy(codec: SemanticCodec, ids: torch.Tensor, y: torch.Tensor, weight: torch.Tensor, log_prior: torch.Tensor, threshold: float, start: int, gains: torch.Tensor, owner: torch.Tensor, power: str = "subset") -> dict[str, torch.Tensor]:
+    """Selective refinement emulated teacher-forced, round by round (flat
+    inputs as in :func:`level_stats`; ``gains`` (N, M) is the block gain of
+    every token's message and ``owner`` (N,) its message index).
+
+    Round 1 sends shells ``0..start`` to every token, at exactly unit power.
+    Every later round sends the next shell of the requested tokens only. With
+    ``power="subset"`` that round is scaled to unit average power over the
+    tokens it carries in each message, so its symbols are received as
+    ``c + (y - c) g / g'`` with precision ``w (g'/g)^2`` (the same noise
+    realisation, rescaled); with ``power="message"`` the gain of the whole
+    message is kept, which is what :func:`stop_levels` on
+    :func:`level_stats` computes. Returns the shell at which every token
+    stops, its final decision and whether that decision is correct."""
+    code = codec.codebook().to(y.dtype)
+    slices = shell_slices(codec.grans)
+    scale = float(codec.lik_weight)
+    n_levels = len(codec.grans)
+    score = log_prior.clone()
+    for sl in slices[: start + 1]:
+        w = weight[:, sl]
+        score.addmm_(torch.cat([w * y[:, sl], -0.5 * w], dim=1), torch.cat([code[:, sl], code[:, sl] ** 2], dim=1).t(), alpha=scale)
+    best, decided = torch.log_softmax(score, dim=1).max(dim=1)
+    conf = best.exp()
+    level = torch.full_like(ids, start)
+    is_open = torch.full_like(ids, start < n_levels - 1, dtype=torch.bool)
+    for k in range(start + 1, n_levels):
+        request = is_open & (conf < threshold)
+        if not bool(request.any()):
+            break
+        rows = request.nonzero().squeeze(1)
+        sl = slices[k]
+        width = sl.stop - sl.start
+        true_c = code[ids[rows], sl]
+        g_msg = gains[rows, sl.start]
+        g_new = g_msg.clone()
+        if power == "subset":
+            for b in torch.unique(owner[rows]).tolist():
+                mine = owner[rows] == b
+                g_new[mine] = torch.sqrt(mine.sum() * width / true_c[mine].pow(2).sum().clamp_min(1e-12)).to(g_new.dtype)
+        y_k = true_c + (y[rows][:, sl] - true_c) * (g_msg / g_new).unsqueeze(1)
+        w_k = weight[rows][:, sl] * (g_new / g_msg).pow(2).unsqueeze(1)
+        part = score[rows]
+        part.addmm_(torch.cat([w_k * y_k, -0.5 * w_k], dim=1), torch.cat([code[:, sl], code[:, sl] ** 2], dim=1).t(), alpha=scale)
+        score[rows] = part
+        best_r, dec_r = torch.log_softmax(part, dim=1).max(dim=1)
+        conf[rows], decided[rows] = best_r.exp(), dec_r
+        level[rows] = k
+        is_open = request & (level < n_levels - 1)
+    return {"stop": level, "decided": decided, "correct": (decided == ids).float()}
+
+
 def binary_entropy(p: float) -> float:
     """Entropy of a Bernoulli(p) decision in bits."""
     if p <= 0.0 or p >= 1.0:
@@ -173,7 +226,7 @@ def rounds_per_message(stop: torch.Tensor, lengths: list[int], start: int = 0) -
 
 
 @torch.no_grad()
-def progressive_decode(codec: SemanticCodec, y: torch.Tensor, prec: torch.Tensor, lens: torch.Tensor, threshold: float, contexts: list[list[int]] | None = None, cache=None, start: int = 0, first_pass=None, beam: int = 1, reopen: bool = False) -> dict:
+def progressive_decode(codec: SemanticCodec, y: torch.Tensor, prec: torch.Tensor, lens: torch.Tensor, threshold: float, contexts: list[list[int]] | None = None, cache=None, start: int = 0, first_pass=None, beam: int = 1, reopen: bool = False, power: str = "message", x: torch.Tensor | None = None, gains: torch.Tensor | None = None) -> dict:
     """Selective refinement decoded for real (free-running) on symbols that
     were transmitted once with :meth:`SemanticCodec.transmit`.
 
@@ -197,6 +250,11 @@ def progressive_decode(codec: SemanticCodec, y: torch.Tensor, prec: torch.Tensor
                 confidence below the threshold. Every token that still has
                 shells left then takes part in every round's decisions, and
                 the signalling is charged for all of them.
+    ``power``   "message": every shell keeps the gain of the whole message
+                (versions 0.2-0.4); "subset": a refinement round is scaled to
+                unit power over the tokens it carries in each message, which
+                needs the transmitted codewords ``x`` (B, T, M) and the block
+                gains ``gains`` (B, M) of :meth:`SemanticCodec.block_gains`.
 
     Returns the final decisions (``token_ids``), the shell reached by every
     token (``level``), the mean number of symbols per token, the feedback
@@ -216,6 +274,12 @@ def progressive_decode(codec: SemanticCodec, y: torch.Tensor, prec: torch.Tensor
     token_ids: list[list[int]] = [[] for _ in range(bsz)]
     active = torch.arange(bsz, device=device)  # messages that are still being refined
     round_index = start
+    subset = power == "subset"
+    if subset and (x is None or gains is None):
+        raise ValueError("power='subset' needs the transmitted codewords x and the block gains")
+    y_cur = y.clone() if subset else y  # observations as the receiver holds them, round by round
+    prec_cur = prec.to(y.dtype).unsqueeze(1).expand(-1, width, -1).clone() if subset else prec
+    slices = shell_slices(grans)
     limit = start + (n_levels - start) * max(width, 1)  # with reopening every round still raises at least one token
     while True:
         if round_index == start and first_pass is not None:
@@ -223,7 +287,7 @@ def progressive_decode(codec: SemanticCodec, y: torch.Tensor, prec: torch.Tensor
         else:
             span = int(lens[active].max())
             picked = active.tolist()
-            decoded = codec.decode(y[active, :span], sizes[level[active, :span]], prec[active], lens[active], "llm", cache, [contexts[i] for i in picked] if contexts else None, beam=beam)
+            decoded = codec.decode(y_cur[active, :span], sizes[level[active, :span]], prec_cur[active, :span] if subset else prec_cur[active], lens[active], "llm", cache, [contexts[i] for i in picked] if contexts else None, beam=beam)
         if round_index == start:
             first_pass = decoded
         span = decoded.token_logprob.shape[1]
@@ -241,6 +305,20 @@ def progressive_decode(codec: SemanticCodec, y: torch.Tensor, prec: torch.Tensor
         if not bool(again.any()):
             break
         level[active, :span] += request.long()
+        if subset:  # the requested shells of every message, sent at unit power over the tokens they go to
+            for i, b in enumerate(active.tolist()):
+                positions = request[i].nonzero().squeeze(1)
+                if positions.numel() == 0:
+                    continue
+                shells = level[b, positions]
+                for k in torch.unique(shells).tolist():
+                    pos = positions[shells == k]
+                    sl = slices[k]
+                    sent = x[b, pos, sl]
+                    g_old = gains[b, sl.start]
+                    g_new = torch.sqrt(pos.numel() * (sl.stop - sl.start) / sent.pow(2).sum().clamp_min(1e-12)).to(y.dtype)
+                    y_cur[b, pos, sl] = sent + (y[b, pos, sl] - sent) * (g_old / g_new)
+                    prec_cur[b, pos, sl] = prec[b, sl].to(y.dtype) * (g_new / g_old) ** 2
         active = active[again]
         rounds[active] += 1
         round_index += 1

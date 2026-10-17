@@ -127,7 +127,10 @@ DEFAULTS: dict[str, Any] = {
     # greedy); start_m: the shell sent in the first round of refinement (null:
     # the shortest); reopen: closed tokens may be requested again. Chosen on
     # validation data by scripts/tune_decoder.py (docs/METHOD.md, section 2.5).
-    "decoder": {"beam": 1, "start_m": None, "reopen": False},
+    # refine_power: power of a refinement round. "message": every shell keeps the gain computed over the
+    # whole message (the runs of versions 0.2-0.4); "subset": a round is scaled to unit power over the
+    # tokens it carries, so the power constraint holds in every round (from version 0.5)
+    "decoder": {"beam": 1, "start_m": None, "reopen": False, "refine_power": "message"},
     "link": {"traffic_per_step": 1000},
     # Margins of the equivalence tests ("no meaningful difference"), fixed here
     # before the confirmatory runs: two methods are called equivalent when the
@@ -232,6 +235,8 @@ def validate(cfg: dict) -> None:
         raise ValueError("decoder.start_m must be one of codec.granularities (or null)")
     if int(cfg["decoder"]["beam"]) < 1:
         raise ValueError("decoder.beam must be at least 1")
+    if cfg["decoder"]["refine_power"] not in ("message", "subset"):
+        raise ValueError("decoder.refine_power must be 'message' or 'subset'")
     audited = cfg["stream"]["live_thresholds"]
     if audited is not None and (not set(audited) <= set(cfg["stream"]["thresholds"]) or cfg["stream"]["threshold"] not in audited):
         raise ValueError("stream.live_thresholds must be a subset of stream.thresholds that contains stream.threshold")

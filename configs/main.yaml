@@ -55,6 +55,8 @@ decoder:                  # decoder of selective refinement, chosen on validatio
   beam: 4                 # results/decoder_selection): beam search of width 4 in every decoding pass,
   start_m: 6              # a first round of 6 symbols per token,
   reopen: false           # and a closed token is never requested again
+  refine_power: message  # power of a refinement round: 'message' = gain of the whole message (runs of versions 0.2-0.4);
+                         # 'subset' = unit power over the tokens the round carries (exact per round; use for new runs)
 nested:
   periods: {medium: 10, slow: 50}
   lrs: {medium: 1.0e-3, slow: 5.0e-4}

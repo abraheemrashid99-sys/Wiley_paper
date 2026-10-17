@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.5.0 — the manuscript, and the power of refinement rounds
+
+- **Finding (independent audit of the manuscript).** The stream simulation
+  transmits every message once, with block power control over the whole
+  message, and reads the refinement rounds off that transmission. A
+  refinement round, however, carries shell k only for the requested tokens;
+  with the gain of the whole message its average power is not one. Measured
+  on held-out text (`scripts/check_refine_power.py`, `results/refine_power`),
+  the requested tokens carry on average more energy than the message, so
+  the refinement rounds of versions 0.2–0.4 were sent at about 1.15 times
+  the allowed power (frozen prior, threshold 0.9). Correcting it raises the
+  cost of refinement at 90 % token accuracy by about 1–2 % on that text.
+- `decoder.refine_power` (`message` | `subset`): with `subset` every
+  refinement round is scaled to unit power over the tokens it carries, in
+  the teacher-forced emulation (`dnsc.refine.round_policy`) and in real
+  decoding (`progressive_decode(..., power="subset")`); `message` reproduces
+  the runs of versions 0.2–0.4 exactly (tested). The default stays
+  `message` so that the published runs reproduce; new runs should set
+  `subset` (`configs/*.yaml`).
+- `paper/`: the manuscript (sections, tables, figures, verified references,
+  `numbers.json` with the source of every quoted number). Corrections found
+  by the audit are stated in the text: readings above the target at the
+  cheapest point of a curve are upper bounds; the emulation check covers the
+  refinement policy, and the fixed-prefix receivers show larger gaps; the
+  teacher-forced seed-level test is reported with its Holm adjustment.
+
 ## 0.4.2 — the six-seed result
 
 - `results/gpt2_v0.4_six_seeds`: the primary comparison on six seeds with the

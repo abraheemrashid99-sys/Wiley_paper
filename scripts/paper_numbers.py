@@ -13,6 +13,8 @@ import csv
 import glob
 import json
 import re
+
+import numpy as np
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -167,6 +169,55 @@ def main() -> None:
     prior = {m: sum(raw[m][s]["summary"]["mean_prior_bits"] for s in common) / len(common) for m in ("frozen", "context_only", "nested")}
     put("tf.prior_bits_matched_seeds", prior, src_raw)
     put("tf.context_share_of_prior_gain_matched_pct", 100 * (prior["frozen"] - prior["context_only"]) / (prior["frozen"] - prior["nested"]), src_raw)
+    # seed-level test of the teacher-forced headline (per-seed cost with signalling against the frozen
+    # fixed prefix of the same seed), Holm-corrected over the three refinement receivers
+    from dnsc.stats import block_bootstrap, block_equivalence, holm, paired_permutation  # noqa: E402
+
+    tf_p = {}
+    for m in ("frozen", "context_only", "nested"):
+        seeds = sorted(raw[m])
+        tf_p[m] = paired_permutation([raw[m][s]["summary"]["symbols_at_target_selective_fb_entropy"] for s in seeds], [raw["frozen"][s]["summary"]["symbols_at_target_fixed"] for s in seeds])
+    adjusted = holm([tf_p[m] for m in ("frozen", "context_only", "nested")])
+    put("tf.seed_test_vs_frozen_fixed", {m: {"p": tf_p[m], "p_holm": a} for m, a in zip(("frozen", "context_only", "nested"), adjusted)}, src_raw)
+    # where a curve already exceeds the target at its cheapest point, the reading is that point (an upper bound)
+    floors = {}
+    for m in ("frozen", "context_only", "nested"):
+        floors[f"tf.{m}"] = {s: round(raw[m][s]["selective_curve"][0]["tok_acc"], 4) for s in sorted(raw[m])}
+        steps = [x for s in sorted(raw[m]) for x in raw[m][s]["live"]]
+        floors[f"real.{m}"] = round(sum(x["live"][0]["tok_acc"] for x in steps) / len(steps), 4)
+    put("floor.accuracy_at_cheapest_point", floors, src_raw)
+    # emulation check on the fixed-prefix receivers as well (real against emulated, same audited steps)
+    fixed_gap = {m: 100 * (float(cost[m]["free-running fixed prefix"]) / float(cost[m]["emulated fixed prefix, same steps"]) - 1) for m in ("frozen", "context_only", "nested")}
+    put("emulation_gap_fixed_pct", fixed_gap, f"{six}/tables/refine_cost_hier.csv")
+
+    # ---- pilot ablations at full precision (raw logs of the GPU reproduction)
+    import tarfile
+
+    pilot_dir = ROOT / "runs" / "paper_pilot_raw"
+    if not pilot_dir.exists():
+        pilot_dir.mkdir(parents=True)
+        with tarfile.open(ROOT / pilot / "raw_streams.tar.gz") as tar:
+            tar.extractall(pilot_dir)
+    praw: dict[str, dict[int, dict]] = {}
+    for path in sorted(pilot_dir.rglob("hier_*.json")):
+        run = json.load(open(path, encoding="utf-8"))
+        if path.stem != f"hier_{run['method']}_s{run['seed']}":
+            continue  # sensitivity variants and other channels
+        praw.setdefault(run["method"], {})[run["seed"]] = run
+    full = {}
+    for m in sorted(praw):
+        if m == "nested":
+            continue
+        shared = sorted(set(praw[m]) & set(praw["nested"]))
+        series = [np.asarray(praw[m][s]["log"]["prior_bits"]) - np.asarray(praw["nested"][s]["log"]["prior_bits"]) for s in shared]
+        ci = block_bootstrap(series, block=25)
+        eq = block_equivalence(series, 0.05, block=25)
+        full[m] = {"seeds": shared, "delta": ci["delta"], "ci_low": ci["ci_low"], "ci_high": ci["ci_high"], "eq90": [eq["ci_low"], eq["ci_high"]], "equivalent": eq["equivalent"]}
+    put("pilot.full_precision", full, f"{pilot}/raw_streams.tar.gz")
+    power_file = ROOT / "results" / "refine_power" / "refine_power.json"
+    if power_file.exists():
+        pw = json.load(open(power_file, encoding="utf-8"))
+        put("refine_power.held_out", {v: {"power_tau_0.9": r["power_at_tau_0.9"], "fixed": r["fixed_at_target"], "message_gain": r["message_gain"]["at_target"], "subset_gain": r["subset_gain"]["at_target"], "change_pct": 100 * (r["subset_gain"]["at_target"]["total_entropy"] / r["message_gain"]["at_target"]["total_entropy"] - 1), "messages": pw["messages"], "tokens": r["tokens"]} for v, r in pw["results"].items()}, "results/refine_power/refine_power.json")
     put("link.levels", raw["nested"][0]["levels"], src_raw)
     put("link.slot_switches_mean", sum(raw["nested"][s]["slot_switches"] for s in raw["nested"]) / len(raw["nested"]), src_raw)
     put("runtime.hours", {f"{m}_s{s}": round(raw[m][s]["summary"]["seconds"] / 3600, 2) for m in raw for s in sorted(raw[m])}, src_raw)

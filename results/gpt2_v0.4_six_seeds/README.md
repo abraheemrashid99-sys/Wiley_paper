@@ -39,3 +39,18 @@ signalling charged, against 9.23 for the frozen fixed-rate receiver with the
 same decoder: −23.3 %, lower on all six seeds (p = 0.031). Decoded for real
 on the audited steps: −27.9 % [−31.7 %, −21.6 %]. The discussion is in
 `results/gpt2/RESULTS.md`, section 14.
+
+Note on the crossover traffic. `tables/netrate_hier.md` reads the forward
+symbols only, on every seed of each receiver (N* = 1487 against the frozen
+receiver). The paper charges the return-link signalling as well and uses the
+four seeds that all three receivers share: about 400 messages per update
+against the frozen fixed-rate receiver, 1,250 against the frozen receiver
+with refinement and 6,100 against the context memory with refinement
+(`scripts/paper_numbers.py`, keys `link.crossover_*`).
+
+Note on the power of refinement rounds. These runs read every refinement
+round off one transmission of the message, with the gain of the whole
+message (`decoder.refine_power=message`); a round that carries a subset of
+the tokens then has an average power other than one. Its size and effect
+are measured in `results/refine_power`; new runs should set
+`decoder.refine_power=subset` (CHANGELOG 0.5.0).
